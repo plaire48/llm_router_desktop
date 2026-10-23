@@ -1,6 +1,7 @@
 import {createPortal} from 'react-dom';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {AgentMark,NubiWordmark} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
+import {WorkspaceBrand} from './WorkspaceBrand.jsx';
+import {NUBI_VERSION as VERSION} from './app-version.mjs';
 import './cinematic-intro.css';
 import {openingSceneId,openingSceneMode,rememberOpeningScene} from './opening-scene.mjs';
 import {startIntroFlight} from './introFlight.js';
@@ -16,13 +17,19 @@ const SCENES=5400,TITLE_MIN=900,COMPLETE=420,LEAVE=620,LONGEST=11000;
 let played=false;
 // A completed installation rotates its ID even for a same-version reinstall.
 // Remember only after the scene completes naturally, never on mount.
-const VERSION=typeof __NUBI_VERSION__==='string'&&__NUBI_VERSION__||'installed';
 const storage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)};
 export function CinematicIntro({ready=false,onFinish}){
   const [sceneId]=useState(()=>openingSceneId(VERSION,window.nubi?.installationId));
   const [mode]=useState(()=>openingSceneMode({played,automated:navigator.webdriver,installationId:window.nubi?.installationId,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,storage,id:sceneId}));
   const [phase,setPhase]=useState(()=>mode==='none'?'done':mode==='full'?'scenes':'title');
   const finished=useRef(false),finish=useRef(onFinish),flight=useRef(null);finish.current=onFinish;
+  const active=phase!=='done';
+  useLayoutEffect(()=>{
+    if(!window.nubi?.desktop)return;
+    const update=active=>{void window.nubi.request('openingScene',{active}).catch(()=>{});};
+    update(active);
+    return()=>{if(active)update(false);};
+  },[active]);
   const bootGuard=useRef(document.body.hasAttribute('data-nubi-opening'));
   useLayoutEffect(()=>{
     if(!bootGuard.current)return;
@@ -68,8 +75,17 @@ export function CinematicIntro({ready=false,onFinish}){
     <div className="nubi-intro-flash"/>
     {mode==='full'&&<div className="nubi-intro-whiteout"/>}
     <div className="nubi-intro-title">
-      <div className="nubi-intro-brand"><span className="nubi-intro-brand-bird"><AgentMark size={64} mood="idle" lively/></span><NubiWordmark/><span>Workspace</span></div>
-      <div className="nubi-intro-progress"><span/></div>
+      <div className="nubi-intro-lockup">
+        <WorkspaceBrand variant="intro"/>
+        <span className="nubi-intro-version" aria-label={`버전 ${VERSION}`}>{VERSION}</span>
+      </div>
+      <div className="nubi-intro-loading">
+        <div className="nubi-intro-progress" data-ready={ready} role="progressbar" aria-label="Workspace 시작 준비" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ready?100:undefined} aria-valuetext={ready?'준비 완료':'Workspace 준비 중'}><span/></div>
+        <div className="nubi-intro-progress-status" role="status">
+          <span>{ready?'준비 완료':'Workspace 준비 중'}</span>
+          {ready&&<span className="nubi-intro-progress-value">100%</span>}
+        </div>
+      </div>
     </div>
   </div>,document.body);
 }

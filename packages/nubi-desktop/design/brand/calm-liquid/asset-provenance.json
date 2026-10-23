@@ -1,0 +1,106 @@
+{
+  "source": "Existing Nubi mascot edited with imagegen for the user supplied 110deg six-stop brand gradient",
+  "registration": "Full square canvas retained; exported without cropping, recolouring or redraw",
+  "frames": [
+    {
+      "frame": "bird",
+      "input": "exec-bf1a5d9e-c3c0-49df-b649-9ad6aa1504ec.png",
+      "width": 1254,
+      "height": 1254,
+      "outputSize": 512,
+      "opaque": 0,
+      "transparent": 140770
+    },
+    {
+      "frame": "blink",
+      "input": "exec-bdaac40f-6e4c-49d4-8865-a74b24a2d777.png",
+      "width": 1254,
+      "height": 1254,
+      "outputSize": 512,
+      "opaque": 0,
+      "transparent": 139908
+    },
+    {
+      "frame": "wing",
+      "input": "exec-dd684a3d-82f1-4bef-ac64-2e5cace279bf.png",
+      "width": 1254,
+      "height": 1254,
+      "outputSize": 512,
+      "opaque": 0,
+      "transparent": 142160
+    },
+    {
+      "frame": "smile",
+      "input": "exec-ab3d647b-6e56-435c-9271-c93069b9e865.png",
+      "width": 1254,
+      "height": 1254,
+      "outputSize": 512,
+      "opaque": 0,
+      "transparent": 142320
+    },
+    {
+      "frame": "sad",
+      "input": "exec-0b1914f0-3b6b-4716-a3c8-020faceec81f.png",
+      "width": 1254,
+      "height": 1254,
+      "outputSize": 512,
+      "opaque": 0,
+      "transparent": 140333
+    }
+  ],
+  "generatedWith": "imagegen image edits of the existing Nubi mascot",
+  "brandGradient": "linear-gradient(110deg, #74CDD4 0%, #8EDAD9 20%, #9BCFE8 40%, #A2BFEA 60%, #B3B8E5 80%, #CEC7EB 100%)",
+  "transparency": "Transparent background retained; artwork has near-opaque alpha values, not exclusively alpha 255.",
+  "assets": [
+    {
+      "file": "icons/agent-128.png",
+      "sha256": "f88b6da8edb7bbe8c63be152a84a1e1fe571dc02ab8c61b4023dcf97de9a115a",
+      "bytes": 16725
+    },
+    {
+      "file": "icons/agent-16.png",
+      "sha256": "dc410850ffeeed21a2e7c13ebb51b7a0d209063ae081a4ba3455d748e4011240",
+      "bytes": 602
+    },
+    {
+      "file": "icons/agent-32.png",
+      "sha256": "0d88cef3a59cf2e1c99cf6231b0fa8fcd962bc596f87371d71ad7f1fd30ed33e",
+      "bytes": 1688
+    },
+    {
+      "file": "icons/agent-48.png",
+      "sha256": "07b4b8e7cf55b297a224d1c016f8d8890ba73974b582973a3c4bd75a49a2fdf5",
+      "bytes": 3183
+    },
+    {
+      "file": "icons/agent-bird.webp",
+      "sha256": "0feb37b3466d1209eb04a4d3f1f4105eb43bca4a30a4c4a9207d319a723d37bb",
+      "bytes": 21362
+    },
+    {
+      "file": "icons/agent-blink.webp",
+      "sha256": "c9447a9712e34ae84b82ba4ead5b9527e5207aef49aece2242d27389feb51892",
+      "bytes": 22526
+    },
+    {
+      "file": "icons/agent-sad.webp",
+      "sha256": "15fe8ba797dd52f35247b1ae9f32c75cdd65fa4bf87006d02f593414af268e3f",
+      "bytes": 23430
+    },
+    {
+      "file": "icons/agent-smile.webp",
+      "sha256": "03a2c129cfbfbdf5f9beb6ac0cc0f502105c66912e011d17a757787898c1659d",
+      "bytes": 22106
+    },
+    {
+      "file": "icons/agent-wing.webp",
+      "sha256": "72c0eed496bdbc55ee32618e9c1ad8aba4352a43e4015a4366b3046b53133493",
+      "bytes": 22638
+    },
+    {
+      "file": "mascot-master.png",
+      "sha256": "0823e4959787c9e21f2e1943cd6e64fac62c521bd4012881b9b2067a92988cff",
+      "bytes": 943712
+    }
+  ]
+}

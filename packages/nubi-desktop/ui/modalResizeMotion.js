@@ -11,11 +11,11 @@ export function installModalResizeMotion(allowed){
   return {left:r.left+(r.width-width)/2-transform.m41,top:r.top+(r.height-height)/2-transform.m42,width,height};
  };
  const stop=record=>{record.animation?.cancel();record.reveal?.cancel();record.surface?.remove();record.panel.classList.remove('nubi-modal-morphing');record.animation=record.reveal=record.surface=record.appearance=null;};
- const appearance=panel=>{const style=getComputedStyle(panel);return {background:style.background,borderRadius:style.borderRadius,boxShadow:style.boxShadow,duration:parseFloat(style.getPropertyValue('--nubi-modal-resize')),easing:style.getPropertyValue('--nubi-modal-resize-ease').trim()};};
+ const appearance=panel=>{const style=getComputedStyle(panel);return {background:style.background,borderRadius:style.borderRadius,boxShadow:style.boxShadow,duration:parseFloat(style.getPropertyValue('--nubi-modal-resize')),easing:style.getPropertyValue('--nubi-modal-resize-ease').trim(),contentEasing:style.getPropertyValue('--nubi-modal-content-ease').trim()};};
  function morph(record,from,to){
   const panel=record.panel,backdrop=panel.parentElement;
   if(!allowed()||!panel.isConnected||!from?.width||!to.width||Math.abs(from.width-to.width)+Math.abs(from.height-to.height)<2)return;
-  const {background,borderRadius,boxShadow,duration,easing}=record.appearance;
+  const {background,borderRadius,boxShadow,duration,easing,contentEasing}=record.appearance;
   record.animation?.cancel();record.reveal?.cancel();
   panel.dataset.modalSettled='true';
   const surface=record.surface||document.createElement('div');
@@ -25,7 +25,7 @@ export function installModalResizeMotion(allowed){
   record.animation=surface.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px) scale(${from.width/to.width},${from.height/to.height})`},{transform:'none'}],{duration,easing});
   // Move the live text with the surface. Repeated progress/size updates must
   // not flash the entire form back to 35% opacity or scale its text.
-  record.reveal=panel.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px)`},{transform:'none'}],{duration,easing});
+  record.reveal=panel.animate([{transform:`translate(${from.left-to.left}px,${from.top-to.top}px)`},{transform:'none'}],{duration,easing:contentEasing});
   const animation=record.animation;
   animation.finished.then(()=>{if(record.animation===animation)stop(record);},()=>{});
  }

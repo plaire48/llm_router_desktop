@@ -10,7 +10,6 @@
     "node scripts/check-modals.mjs",
     "node scripts/check-ui-responsiveness.mjs",
     "node scripts/check-shared-ui.mjs",
-    "node scripts/check-workflow-ui.mjs",
     "node scripts/check-motion-quality.mjs",
     "node scripts/check-motion-performance.mjs after",
     "node scripts/check-wave2-ui.mjs",
@@ -43,18 +42,20 @@
   ],
   "pretest": "npm run build:browser-agent-core && npm run build:document-agent-native && npm run build:office-forms",
   "additions": [
-    "node scripts/check-electron-workflow.mjs",
     "node scripts/check-wiki-scope-ui.mjs",
     "node scripts/check-wiki-durability-ui.mjs",
     "node scripts/check-wiki-generation-ui.mjs",
     "node scripts/check-wiki-coverage-ui.mjs",
     "node scripts/check-wiki-search-ui.mjs",
-    "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs tests/workflow-runner.test.mjs tests/workflow-mcp.test.mjs",
+    "node --test --test-concurrency=1 tests/tool-budget.test.mjs tests/compaction-observations.test.mjs tests/compaction-reads.test.mjs tests/compaction-wiki-evidence.test.mjs tests/compaction-turn.test.mjs tests/irreversible-actions.test.mjs tests/approval-policy.test.mjs tests/mcp-approval-flow.test.mjs",
     "node scripts/check-safety-regression.mjs",
     "node scripts/check-design-rules.mjs",
     "node scripts/check-mail-thread-card.mjs",
-    "node scripts/check-browser-teach-connection.mjs",
     "node scripts/check-document-chat-ui.mjs",
-    "node scripts/check-personal-start-ui.mjs"
-  ]
+    "node scripts/check-removed-features-ui.mjs"
+  ],
+  "retiredFeatures": {
+    "date": "2026-10-22",
+    "reason": "User requested removal of workflow and browser recording features. Other gate commands and limits are preserved."
+  }
 }

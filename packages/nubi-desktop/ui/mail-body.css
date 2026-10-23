@@ -21,3 +21,5 @@
 /* Keep the pending form compact instead of covering a full settings page with empty space. */
 .nubi-mail-settings[aria-busy=true] .nubi-mail-settings-content { display:none; }
 .nubi-mail-settings[aria-busy=true] .nubi-mail-connection-overlay { position:relative; min-block-size:180px; }
+
+.nubi-mail-connection-method { display:grid; gap:var(--cx-space-2); min-width:0; }

@@ -1,0 +1,45 @@
+/* Nubi brand source. Change the six originals here; derived roles follow.
+   Light tones belong to surfaces, readable deep inks to text and icon strokes.
+   Approved palette/usage contract: design/reference.json and NUBI-BRAND-GUIDE.md. */
+:root {
+  --nubi-brand-icon-fill:linear-gradient(110deg,var(--nuvi-aqua-ink),var(--nuvi-primary),var(--nuvi-violet-ink));
+  --nuvi-mint: #74CDD4;
+  --nuvi-aqua: #8EDAD9;
+  --nuvi-sky: #9BCFE8;
+  --nuvi-periwinkle: #A2BFEA;
+  --nuvi-iris: #B3B8E5;
+  --nuvi-lavender: #CEC7EB;
+  --nuvi-brand-gradient: linear-gradient(110deg, var(--nuvi-mint) 0%, var(--nuvi-aqua) 20%, var(--nuvi-sky) 40%, var(--nuvi-periwinkle) 60%, var(--nuvi-iris) 80%, var(--nuvi-lavender) 100%);
+  --nuvi-brand-gradient-soft: linear-gradient(110deg, color-mix(in srgb,var(--nuvi-mint) var(--nuvi-action-tint),var(--nuvi-surface)) 0%, color-mix(in srgb,var(--nuvi-aqua) var(--nuvi-action-tint),var(--nuvi-surface)) 20%, color-mix(in srgb,var(--nuvi-sky) var(--nuvi-action-tint),var(--nuvi-surface)) 40%, color-mix(in srgb,var(--nuvi-periwinkle) var(--nuvi-action-tint),var(--nuvi-surface)) 60%, color-mix(in srgb,var(--nuvi-iris) var(--nuvi-action-tint),var(--nuvi-surface)) 80%, color-mix(in srgb,var(--nuvi-lavender) var(--nuvi-action-tint),var(--nuvi-surface)) 100%);
+  --nuvi-content-gradient: linear-gradient(110deg, color-mix(in srgb,var(--nuvi-mint) var(--nuvi-content-tint),var(--nuvi-surface)) 0%, color-mix(in srgb,var(--nuvi-aqua) var(--nuvi-content-tint),var(--nuvi-surface)) 20%, color-mix(in srgb,var(--nuvi-sky) var(--nuvi-content-tint),var(--nuvi-surface)) 40%, color-mix(in srgb,var(--nuvi-periwinkle) var(--nuvi-content-tint),var(--nuvi-surface)) 60%, color-mix(in srgb,var(--nuvi-iris) var(--nuvi-content-tint),var(--nuvi-surface)) 80%, color-mix(in srgb,var(--nuvi-lavender) var(--nuvi-content-tint),var(--nuvi-surface)) 100%);
+  --nuvi-action-tint: 40%;
+  --nuvi-selection-tint: 20%;
+  --nuvi-content-tint: 8%;
+  --nuvi-selection-gradient: linear-gradient(110deg, color-mix(in srgb,var(--nuvi-mint) var(--nuvi-selection-tint),var(--nuvi-surface)) 0%, color-mix(in srgb,var(--nuvi-aqua) var(--nuvi-selection-tint),var(--nuvi-surface)) 20%, color-mix(in srgb,var(--nuvi-sky) var(--nuvi-selection-tint),var(--nuvi-surface)) 40%, color-mix(in srgb,var(--nuvi-periwinkle) var(--nuvi-selection-tint),var(--nuvi-surface)) 60%, color-mix(in srgb,var(--nuvi-iris) var(--nuvi-selection-tint),var(--nuvi-surface)) 80%, color-mix(in srgb,var(--nuvi-lavender) var(--nuvi-selection-tint),var(--nuvi-surface)) 100%);
+  --nubi-brand-modal-header: var(--nuvi-content-gradient);
+  --nubi-brand-page-header: var(--nuvi-content-gradient);
+  --nubi-brand-selection: var(--nuvi-selection-gradient);
+  --nubi-brand-icon-tile: var(--nuvi-brand-gradient-soft);
+  --nubi-brand-icon-paint: url("#nubi-brand-icon-ink");
+  --nubi-brand-motion-surface: var(--nuvi-selection-gradient);
+  --nubi-brand-motion-glass: var(--nuvi-content-gradient);
+  --nubi-brand-motion-edge: color-mix(in srgb,var(--nuvi-primary) 24%,var(--nuvi-surface));
+  /* Accent roles from the user supplied Calm Liquid identity reference.
+     Small labels use the deeper ink; the six original gradient stops stay. */
+  --nuvi-primary: #2873EE;
+  --nuvi-primary-hover: #1765DB;
+  --nubi-calm-sky: #A9D9FF;
+  --nubi-calm-aqua: #A8EDEA;
+  --nubi-calm-lavender: #C5BBFA;
+  --nuvi-violet-ink: #625A86;
+  --nuvi-aqua-ink: #2D6870;
+  --nuvi-background: #FAFCFF;
+  --nuvi-surface: #FFFFFF;
+  --nuvi-subtle: #EAF5F8;
+  --nuvi-text: #26334B;
+  --nuvi-border: #E5EAF3;
+  --nuvi-text-secondary: #53617A;
+  --nuvi-aqua-soft: #ECF8F8;
+  --nuvi-lavender-soft: #F3F0FA;
+  --nuvi-provider-openai-ink: #191F28;
+}

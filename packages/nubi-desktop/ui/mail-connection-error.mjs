@@ -1,7 +1,8 @@
 // Fixed diagnostics only. Server replies may contain account or message data.
+import {NUBI_VERSION} from './app-version.mjs';
 const listing='로그인은 완료됐어요. 메일 목록을 읽는 단계에서 멈췄어요.';
 export const mailConnectionErrors={
-  external_browser_connection_required:{title:'삼성 브라우저를 연결해 주세요',detail:'웹 화면에서 연결 코드를 복사한 뒤 브라우저의 누비 연결 확장에 붙여넣어 주세요.'},
+  external_browser_connection_required:{title:'외부 브라우저를 연결해 주세요',detail:'오른쪽 웹 화면에서 브라우저 연결을 누른 뒤 메일 연결을 다시 눌러 주세요. 연결 확장은 처음 한 번 설치하면 됩니다.'},
   external_browser_portal_permission_required:{title:'이 포털의 메일 읽기를 허용해 주세요',detail:'브라우저의 포털 탭에서 누비 연결 확장을 열고 메일 읽기를 허용한 뒤 다시 연결해 주세요.'},
   external_browser_result_unconfirmed:{title:'브라우저 연결을 확인해 주세요',detail:'메일 수집을 멈췄어요. 브라우저의 누비 연결 상태를 확인한 뒤 다시 연결해 주세요. 저장된 메일은 유지됩니다.'},
   mail_encryption_migration:{title:'기존 원문 암호화를 마치지 못했어요',detail:'파일은 유지했습니다. 저장 위치와 권한을 확인한 뒤 다시 시도해 주세요.'},
@@ -14,8 +15,8 @@ export const mailConnectionErrors={
   mail_portal_additional_auth:{title:'추가 인증이 필요해요',detail:'사내 SSO에서 추가 확인을 요청했거나 로그인이 완료되지 않았어요.'},
   mail_portal_logout_failed:{title:'로그아웃을 확인하지 못했어요',detail:'메일 수집은 멈췄어요. 앱을 다시 시작한 뒤 확인해 주세요.'},
   mail_portal_only:{title:'포털 로그인으로 연결해 주세요',detail:'메일 연결은 사내 포털을 사용합니다. 아이디와 비밀번호를 누비 설정에 입력하지 않아도 됩니다.'},
-  mail_portal_login_failed:{title:'포털 로그인으로 메일을 가져오지 못했어요',detail:'로그인 뒤 세션 확인을 세 번 했지만 메일 서버가 응답하지 않았어요. 다시 로그인하거나 아래 POP3로 연결해 주세요.'},
-  mail_portal_first:{title:'먼저 포털 로그인을 시도해 주세요',detail:'POP3는 포털 로그인이 안 될 때 쓰는 대체 연결이에요.'},
+  mail_portal_login_failed:{title:'포털 로그인으로 메일을 가져오지 못했어요',detail:'로그인 뒤 세션 확인을 세 번 했지만 메일 서버가 응답하지 않았어요. 다시 로그인하거나 연결 방식에서 POP3를 선택해 주세요.'},
+  mail_method_changed:{title:'메일 연결 방식을 확인해 주세요',detail:'설정에서 사용할 연결 방식을 선택한 뒤 다시 연결해 주세요.'},
   mail_portal_login:{title:'포털에 로그인해 주세요',detail:'로그인되어 있지 않거나 세션이 만료됐어요. 포털 로그인 버튼으로 다시 연결해 주세요.'},
   mail_portal_sso:{title:'포털 로그인 페이지에서 오류가 발생했어요',detail:'메일 연결을 완료하지 못했어요. 포털 로그인을 다시 열어 주세요. 계속되면 일반 브라우저에서도 kor3.samsung.net이 열리는지 확인해 주세요.'},
   mail_portal_identity:{title:'포털 사용자 정보를 확인해 주세요',detail:'로그인은 열렸지만 메일과 결재를 조회할 사용자 정보를 확인하지 못했어요. 다시 로그인해 주세요.'},
@@ -23,6 +24,7 @@ export const mailConnectionErrors={
   mail_portal_request:{title:'사내 포털에 연결하지 못했어요',detail:'사내망이나 VPN을 확인해 주세요. 메일 연결을 해제했어요. 확인한 뒤 다시 로그인해 주세요.'},
   mail_portal_off:{title:'포털 연결은 지금 쓰지 않아요',detail:'Knox Desktop Message나 POP3로 연결해 주세요.'},
   mail_portal_login_timeout:{title:'연결이 안 됐습니다',detail:'5분 동안 포털 로그인이 끝나지 않아 연결을 멈췄어요. 다시 하려면 포털 로그인을 눌러 주세요.'},
+  mail_portal_endpoint_unavailable:{title:'포털의 메일 읽기 주소를 확인하지 못했어요',detail:'이 포털에서 메일 조회 기능을 사용할 수 있는지 확인한 뒤 다시 연결해 주세요.'},
   mail_portal_timeout:{title:'포털 응답이 늦어요',detail:'메일 연결을 해제했어요. 사내망이나 VPN을 확인한 뒤 다시 로그인해 주세요.'},
   mail_portal_forbidden:{title:'포털 접근이 거부됐어요',detail:'로그인 만료로 판단하지 않았어요. 사내망이나 VPN, 서비스 접근 권한을 확인해 주세요. 계속되면 관리자에게 오류 코드를 알려주세요.'},
   mail_portal_response:{title:'포털이 다른 페이지를 보냈어요',detail:'로그인 만료인지 확인되지 않았어요. 사내망이나 VPN을 확인해 주세요. 메일 연결을 해제했어요. 확인 후 다시 로그인해 주세요.'},
@@ -56,5 +58,5 @@ export const mailConnectionErrors={
 export function mailConnectionDiagnostic(code,protocol){
   if(!Object.hasOwn(mailConnectionErrors,code))return null;
   const connection=protocol==='portal'||code.startsWith('mail_portal_')?'메일 포털 / kor3.samsung.net':'POP3 / pop3.samsung.net:995 / SSL/TLS';
-  return `누비 Workspace Beta\n${connection}\n${code}`;
+  return `누비 Workspace ${NUBI_VERSION}\n${connection}\n${code}`;
 }

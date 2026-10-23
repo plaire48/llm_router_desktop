@@ -4,7 +4,7 @@ import {constants} from 'node:fs';
 import path from 'node:path';
 export const MAIL_FILE_EXTENSIONS=new Set(['.eml','.mysingle','.mhtml','.mht']);
 // Folder totals do not limit imports. Payloads are read one at a time.
-const HARD_LIMIT=96*1024*1024;
+const HARD_LIMIT=256*1024*1024;
 const check=signal=>{if(signal?.aborted)throw Error('mail_cancelled');};
 // Only the native folder picker supplies this root. Never follow links out of it.
 export async function scanMailFolder(directory,{signal,onScan=()=>{},extensions=MAIL_FILE_EXTENSIONS,excludeDirectories=[]}={}){

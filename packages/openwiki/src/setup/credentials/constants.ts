@@ -40,6 +40,7 @@ export const ONBOARDING_TEMPLATES = [
       "notion",
       "web-search",
       "hackernews",
+      "knox",
       "x",
     ],
     suggestedSources: [
@@ -48,6 +49,7 @@ export const ONBOARDING_TEMPLATES = [
       "Custom MCP",
       "Web Search (Tavily)",
       "Hacker News",
+      "Knox local data",
       "X/Twitter",
     ],
     suggestedGoal:
@@ -119,6 +121,21 @@ export const SOURCE_OPTIONS = [
       "Choose the local repository directory OpenWiki should read.",
       "The default is the current working directory, and you can replace it with another path.",
       "You can add more repositories later in the connector config file.",
+    ],
+    secretInputs: [],
+  },
+  {
+    displayName: "Knox local data",
+    examples: [
+      "Connect cached work conversations to related project knowledge.",
+      "Use the existing mail store and connected Windows observations as wiki evidence.",
+    ],
+    id: "knox",
+    instructions: [
+      "Connect the host's existing Node/Electron mail, Windows observation and JSM cache services.",
+      `Select streams and room/project scope in ${openWikiConnectorsDisplayPath}/knox/config.json.`,
+      "Only returned local evidence is read. No app switching, sync, sending or attachment opening.",
+      "Python, a localhost web server, MCP tokens and a separate model are not required.",
     ],
     secretInputs: [],
   },

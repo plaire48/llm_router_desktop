@@ -11,12 +11,15 @@
  --nubi-motion-list:180ms;
  --nubi-motion-reduced:120ms;
  --nubi-motion-capture:120ms;
+ --nubi-motion-stagger:24ms;
+ --nubi-motion-pressed-x:1.025;
+ --nubi-motion-pressed-y:.95;
  /* Interactive result cards never defer visibility behind a stagger. */
  --nubi-motion-delay:0ms;
  --nubi-pointer-move:var(--nubi-motion-state);
  --nubi-pointer-feedback:var(--nubi-motion-press);
  --nubi-pointer-ease:var(--nubi-ease-out);
- --nubi-ease-out:cubic-bezier(0.2, 0.8, 0.2, 1);
+ --nubi-ease-out:cubic-bezier(.2,.85,.25,1);
  --nubi-ease-exit:cubic-bezier(0.4, 0, 1, 1);
  --nubi-ease-spring:linear(0 0.000%, 0.01844 1.667%, 0.06651 3.333%, 0.13477 5.000%, 0.21554 6.667%, 0.30271 8.333%, 0.39155 10.000%, 0.47851 11.667%, 0.56102 13.333%, 0.63735 15.000%, 0.70643 16.667%, 0.76775 18.333%, 0.82118 20.000%, 0.8669 21.667%, 0.90533 23.333%, 0.93703 25.000%, 0.96265 26.667%, 0.98287 28.333%, 0.99841 30.000%, 1.00993 31.667%, 1.01809 33.333%, 1.02348 35.000%, 1.02664 36.667%, 1.02804 38.333%, 1.02808 40.000%, 1.02713 41.667%, 1.02547 43.333%, 1.02336 45.000%, 1.02098 46.667%, 1.01848 48.333%, 1.01599 50.000%, 1.01359 51.667%, 1.01134 53.333%, 1.00928 55.000%, 1.00743 56.667%, 1.00581 58.333%, 1.00441 60.000%, 1.00322 61.667%, 1.00222 63.333%, 1.00141 65.000%, 1.00077 66.667%, 1.00026 68.333%, 0.99988 70.000%, 0.9996 71.667%, 0.99941 73.333%, 0.99929 75.000%, 0.99922 76.667%, 0.9992 78.333%, 0.99922 80.000%, 0.99925 81.667%, 0.99931 83.333%, 0.99937 85.000%, 0.99944 86.667%, 0.99951 88.333%, 0.99958 90.000%, 0.99965 91.667%, 0.99971 93.333%, 0.99976 95.000%, 0.99981 96.667%, 0.99986 98.333%, 1 100.000%);
  --nubi-motion-ease:var(--nubi-ease-out);
@@ -26,7 +29,7 @@
  --nubi-morph-out:var(--nubi-motion-exit);
  --nubi-motion-hover:var(--nubi-motion-state);
  --nubi-motion-dock:var(--nubi-motion-enter);
- --nubi-motion-dock-ease:var(--nubi-ease-out);
+ --nubi-motion-dock-ease:var(--nubi-ease-spring);
  --nubi-motion-pressed-scale:.98;
  --nubi-sidebar-motion:var(--nubi-motion-enter);
  --nubi-entry-duration:var(--nubi-motion-enter);
@@ -52,18 +55,21 @@
  --nubi-ambient-pastel-c:23s;
  --nubi-ambient-wash:72s;
  --nubi-ambient-surround:96s;
+ --nubi-ambient-liquid-a:24s;
+ --nubi-ambient-liquid-b:28s;
+ --nubi-ambient-liquid-offset:-8s;
  --nubi-ambient-progress:1.8s;
  --nubi-ambient-progress-glow:8s;
- --nubi-ambient-spin:.8s;
- --nubi-ambient-spin-watch:2.4s;
+ --nubi-ambient-spin:4s;
+ --nubi-ambient-spin-watch:4s;
  --nubi-ambient-greeting:280ms;
- --nubi-ambient-spin-live:.9s;
+ --nubi-ambient-spin-live:4s;
  --nubi-ambient-pulse:2.8s;
  --nubi-ambient-host:1.1s;
  --nubi-ambient-water:14s;
  --nubi-ambient-water-aura:11s;
  --nubi-ambient-swim:9s;
- --nubi-ambient-registry:"bird-idle-base:8000:opacity;bird-idle-wing:8000:opacity;bird-idle-smile:8000:opacity;bird-blink:8000:opacity;bird-wing-base:2800:opacity;bird-wing:2800:opacity;bird-sigh:280/2800:transform;bird-tear:2800:transform,opacity;nubi-bird-flight:8000:transform;nubi-bird-curious:12000:transform;nubi-brand-float:6000:transform;nubi-bird-dance:1200:transform;nubi-answer-breathe:8000/2800:transform;nubi-answer-greeting:280:transform;nubi-brand-greeting:280:transform;nubi-pastel-flow:72000/96000:transform;nubi-progress-breathe:8000:opacity;deck-twinkle:3200:transform,opacity;nubi-start-drift-a:26000:transform;nubi-start-drift-b:31000:transform;nubi-start-drift-c:23000:transform;nubi-ambient-blue:16000:transform;nubi-ambient-violet:20000:transform;nubi-ambient-teal:18000:transform;nubi-water-drift:14000:transform;nubi-water-aura:11000:transform;nubi-bird-swim:9000/11000:transform;nubi-emblem-drift:13200:transform;nubi-session-spin:800:transform;nubi-live-spin:900:transform;nubi-live-breathe:1800:opacity;nubi-wiki-scan:1800:transform;nubi-workflow-pulse:2800:opacity;master-spin:800/2400:transform;spin:800/900/1000/1200/1600/2400:transform;deck-spin:800/1000:transform;nubi-host-busy:1100:transform";
+ --nubi-ambient-registry:"nubi-liquid-drift:24000/28000:transform;bird-idle-base:8000:opacity;bird-idle-wing:8000:opacity;bird-idle-smile:8000:opacity;bird-blink:8000:opacity;bird-wing-base:2800:opacity;bird-wing:2800:opacity;bird-sigh:280/2800:transform;bird-tear:2800:transform,opacity;nubi-bird-flight:8000:transform;nubi-bird-curious:12000:transform;nubi-brand-float:6000:transform;nubi-bird-dance:1200:transform;nubi-answer-breathe:8000/2800:transform;nubi-answer-greeting:280:transform;nubi-brand-greeting:280:transform;nubi-pastel-flow:72000/96000:transform;nubi-progress-breathe:8000:opacity;deck-twinkle:3200:transform,opacity;nubi-start-drift-a:26000:transform;nubi-start-drift-b:31000:transform;nubi-start-drift-c:23000:transform;nubi-ambient-blue:16000:transform;nubi-ambient-violet:20000:transform;nubi-ambient-teal:18000:transform;nubi-water-drift:14000:transform;nubi-water-aura:11000:transform;nubi-bird-swim:9000/11000:transform;nubi-emblem-drift:13200:transform;nubi-live-breathe:1800:opacity;nubi-wiki-scan:1800:transform;nubi-workflow-pulse:2800:opacity;nubi-hourglass-flip:4000:transform;spin:800/900/1000/1200/1600/2400:transform;deck-spin:800/1000:transform;nubi-host-busy:1100:transform";
 }
 :root:is([data-nubi-transition],[data-nubi-window-hidden],[data-motion-panel],[data-motion-visibility=hidden],[data-motion=paused]) {
  --nubi-ambient-play:paused;
@@ -111,7 +117,7 @@
 ::view-transition-group(*),::view-transition-image-pair(*) {animation:none!important}
 ::view-transition-old(*),::view-transition-new(*) {pointer-events:none}
 ::view-transition-old(nubi-main) {animation:nubi-view-out var(--nubi-motion-exit) var(--nubi-ease-exit) both!important}
-::view-transition-new(nubi-main) {animation:nubi-view-in var(--nubi-motion-enter) var(--nubi-ease-out) both!important}
+::view-transition-new(nubi-main) {animation:nubi-view-in var(--nubi-motion-enter) var(--nubi-ease-spring) both!important}
 @keyframes nubi-view-in {from{opacity:0;transform:translate3d(12px,0,0)}to{opacity:1;transform:none}}
 @keyframes nubi-view-out {from{opacity:1;transform:none}to{opacity:0;transform:translate3d(-12px,0,0)}}
 @keyframes nubi-motion-fade {from{opacity:0}to{opacity:1}}
@@ -126,7 +132,7 @@
   transition:transform var(--nubi-motion-enter) var(--nubi-ease-spring),background-color var(--nubi-motion-state) var(--nubi-ease-out),color var(--nubi-motion-state) var(--nubi-ease-out),border-color var(--nubi-motion-state) var(--nubi-ease-out)!important;
  }
  :is(.desktop-shell,.cx-panel-backdrop) :is(.cx-kit-button,.cx-action-button,.nubi-session-select,.nubi-start-card,.nubi-file-card,.nubi-workflow-node,.nubi-workflow-row,.nubi-mail-result,.nubi-icon-button,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice,[role=menuitem],[role=option]):active:not(:disabled):not([aria-disabled=true]) {
-  transform:scale(.98)!important; transition-duration:var(--nubi-motion-press)!important;transition-timing-function:var(--nubi-ease-out)!important;
+  transform:scale(var(--nubi-motion-pressed-scale))!important; transition-duration:var(--nubi-motion-press)!important;transition-timing-function:var(--nubi-ease-out)!important;
  }
  :is(.desktop-shell,.cx-panel-backdrop) :is(.cx-kit-button,.cx-action-button,.nubi-session-select,.nubi-start-card,.nubi-file-card,.nubi-workflow-node,.nubi-workflow-row,.nubi-mail-result,.nubi-icon-button,.nubi-custom-skill-row,.nubi-marketplace-row,.nubi-mcp-item,.nubi-wiki-table tbody tr,.usage-account,.nubi-server-notice,[role=menuitem],[role=option]):not(:active) {transform:none!important}
  .desktop-shell :is(.nubi-enter,.nubi-loading-note) {animation:nubi-motion-fade var(--nubi-motion-load) var(--nubi-ease-out) both!important}
@@ -148,11 +154,11 @@
 /* Canonical exceptions also override legacy animation:none in OS-reduce rules.
    Do not destroy a running ambient Animation when the preference changes. */
 @layer nubi-ambient {
- .desktop-shell .status-spinner {animation:master-spin var(--nubi-ambient-spinner-period,var(--nubi-ambient-spin)) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important;will-change:auto!important}
+ .desktop-shell .status-spinner,body.nubi-desktop-host .status-spinner {animation:nubi-hourglass-flip var(--nubi-ambient-spinner-period,var(--nubi-ambient-spin)) var(--nubi-ease-out) infinite!important;animation-play-state:var(--nubi-ambient-play)!important;will-change:auto!important}
  .desktop-shell .nubi-mail-watching-spinner {--nubi-ambient-spinner-period:var(--nubi-ambient-spin-watch)}
- .desktop-shell .nubi-progress.is-indeterminate>span {animation:nubi-wiki-scan var(--nubi-ambient-progress) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
+ .desktop-shell :is(.nubi-progress.is-indeterminate,.nubi-preparing-bar)>span {animation:nubi-wiki-scan var(--nubi-ambient-progress) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-workflow-stage[data-status=running] .nubi-workflow-stage-state {animation:nubi-workflow-pulse var(--nubi-ambient-pulse) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
- .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace>summary::before {animation:nubi-live-spin var(--nubi-ambient-spin-live) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
+ .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace>summary::before {animation:nubi-hourglass-flip var(--nubi-ambient-spin-live) var(--nubi-ease-out) infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace-title {animation:nubi-live-breathe var(--nubi-ambient-progress) ease-in-out infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  html[data-host-busy] .desktop-shell::after {animation:nubi-host-busy var(--nubi-ambient-host) linear infinite!important;animation-play-state:var(--nubi-ambient-play)!important}
  .desktop-shell .nubi-brand-emblem .agent-mark[data-mood=celebrate] {animation:nubi-brand-greeting var(--nubi-ambient-greeting) ease-in-out 2!important;animation-play-state:var(--nubi-ambient-play)!important}
@@ -174,3 +180,19 @@
  .desktop-shell .welcome-art:hover .agent-mark:is([data-mood=idle],[data-mood=celebrate]) :is(.bird-base,.bird-wing,.bird-blink) {opacity:0!important;animation:none!important}
  .desktop-shell .welcome-art:hover .agent-mark:is([data-mood=idle],[data-mood=celebrate]) .bird-smile {opacity:1!important;animation:none!important}
 }
+
+/* Lucide Hourglass, ISC license: https://lucide.dev/license.
+   Two 180-degree flips, each 300ms after a 1700ms hold. */
+@keyframes nubi-hourglass-flip {0%,42.5%{transform:rotate(0deg)}50%,92.5%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+@layer nubi-ambient {
+ .desktop-shell .status-spinner,body.nubi-desktop-host .status-spinner,
+ .desktop-shell .nubi-agent-activity[data-activity-live=true] .agent-trace>summary::before {
+  display:inline-block;flex-shrink:0;border:0!important;border-radius:0!important;box-sizing:border-box;
+  background:var(--nubi-brand-icon-fill,currentColor)!important;
+  mask:url('../ui/icons/hourglass.svg') center/contain no-repeat;
+  -webkit-mask:url('../ui/icons/hourglass.svg') center/contain no-repeat;
+  transform-origin:center;
+ }
+}
+
+@media(forced-colors:active) { :root:root {--nubi-brand-icon-fill:CanvasText;} }

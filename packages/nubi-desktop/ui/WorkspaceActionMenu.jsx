@@ -15,7 +15,7 @@ export function WorkspaceActionMenu({label='관리',inline=false,children}){
   const anchor=trigger.current.getBoundingClientRect(),box=panel.current.getBoundingClientRect(),gap=6,inset=8;
   const left=Math.max(inset,Math.min(anchor.right-box.width,innerWidth-box.width-inset));
   const top=Math.max(inset,Math.min(anchor.bottom+box.height+gap<=innerHeight-inset?anchor.bottom+gap:anchor.top-box.height-gap,innerHeight-box.height-inset));
-  Object.assign(panel.current.style,{left:`${left}px`,top:`${top}px`});
+  Object.assign(panel.current.style,{left:`${left}px`,top:`${top}px`,transformOrigin:`${Math.max(8,Math.min(box.width-8,anchor.left+anchor.width/2-left))}px ${top>anchor.bottom?'0':'100%'}`});
  }
  function show(){
   root.current.open=true;

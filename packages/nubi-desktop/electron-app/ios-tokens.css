@@ -4,16 +4,14 @@
   --nubi-action-ink:var(--deck-blue-deep);
   --nubi-action-fill:linear-gradient(145deg,color-mix(in srgb,var(--deck-blue) 20%,var(--deck-blue-deep)),var(--deck-blue-deep));
   --nubi-action-soft:var(--deck-blue-soft);
-  --nubi-action-radius:18px;
-  --nubi-field-radius:16px;
-  --nubi-content-radius:18px;
-  --nubi-surface-radius:24px;
+  --nubi-action-radius:var(--nubi-radius-control);
+  --nubi-field-radius:var(--nubi-radius-field);
+  --nubi-content-radius:var(--nubi-radius-card);
+  --nubi-surface-radius:var(--nubi-radius-surface);
   --nubi-action-height:44px;
   --nubi-action-inset:18px;
   --nubi-action-shadow:0 5px 14px color-mix(in srgb,var(--deck-blue) 20%,transparent);
-  --nubi-surface-glass:color-mix(in srgb,var(--deck-card) 82%,transparent);
-  --nubi-surface-stroke:color-mix(in srgb,var(--deck-card) 75%,var(--deck-blue-soft));
-  --nubi-surface-shadow:0 12px 36px color-mix(in srgb,var(--deck-blue-deep) 10%,transparent);
+  --nubi-surface-shadow:var(--nubi-elevation-surface);
   --nubi-workspace-gradient:var(--deck-background);
   --nubi-chat-surround:radial-gradient(ellipse at 0% 100%,color-mix(in srgb,var(--deck-blue-soft) 80%,transparent),transparent 65%),radial-gradient(ellipse at 100% 0%,color-mix(in srgb,var(--deck-green-soft) 65%,transparent),transparent 60%),var(--nubi-workspace-gradient);
   --nubi-chat-min-inset:12px;
@@ -60,7 +58,7 @@
 .desktop-shell .welcome-title .welcome-accent {background:linear-gradient(92deg,var(--deck-blue-deep),var(--deck-blue) 50%,var(--deck-blue-lite));background-clip:text;-webkit-background-clip:text;color:transparent}
 .desktop-shell .nubi-compose-card {background:var(--nubi-surface-glass);border:1px solid var(--nubi-surface-stroke);box-shadow:var(--nubi-surface-shadow);border-radius:var(--nubi-surface-radius);backdrop-filter:blur(16px)}
 .desktop-shell .composer-send {border-radius:var(--nubi-action-radius);min-width:var(--nubi-action-height);height:var(--nubi-action-height)}
-.desktop-shell .desktop-pane {background:var(--deck-card);border-left-color:var(--deck-surface-border);box-shadow:-8px 0 32px color-mix(in srgb,var(--deck-blue-deep) 6%,transparent);animation:nubi-pane-in var(--nubi-motion-enter) var(--nubi-motion-ease)}
+.desktop-shell .desktop-pane {background:var(--deck-card);border-left-color:var(--deck-surface-border);box-shadow:-8px 0 32px color-mix(in srgb,var(--deck-blue-deep) 6%,transparent);animation:nubi-pane-in var(--nubi-motion-dock) var(--nubi-motion-dock-ease)}
 .desktop-shell .desktop-pane header {background:var(--deck-tint);border-bottom-color:var(--deck-surface-border)}
 .desktop-shell .desktop-pane header .cx-action-button {min-width:var(--nubi-action-height);background:var(--deck-blue-soft);color:var(--deck-blue-deep);border:0}
 .desktop-shell .desktop-pane header [data-action="save"] {background:var(--nubi-action-fill);color:var(--deck-card)}

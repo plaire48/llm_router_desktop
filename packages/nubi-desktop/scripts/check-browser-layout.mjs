@@ -1,0 +1,27 @@
+import {build} from 'esbuild';
+import {chromium} from 'playwright';
+import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+import {createServer} from 'node:http';
+import path from 'node:path';
+import os from 'node:os';
+import assert from 'node:assert/strict';
+import {rendererBundleOptions} from './renderer-bundle.mjs';
+import {captureDesign} from './design-rules.mjs';
+const dir=await mkdtemp(path.join(os.tmpdir(),'nubi-browser-layout-')),out=path.resolve('verification/browser-mode-2026-10-23');await mkdir(out,{recursive:true});
+await build({...rendererBundleOptions(),entryPoints:['tests/browser-layout-fixture.jsx'],outdir:dir,entryNames:'app',splitting:false});
+await writeFile(dir+'/index.html','<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
+const server=createServer(async(req,res)=>{try{const file=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!file.startsWith(dir+path.sep))throw Error();res.setHeader('content-type',file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':'text/html');res.end(await readFile(file));}catch{res.writeHead(404).end();}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const browser=await chromium.launch({channel:'chrome',headless:true}),page=await browser.newPage({viewport:{width:1100,height:800}}),checks=[],errors=[];page.setDefaultTimeout(10000);page.on('pageerror',error=>errors.push(error.message));let facts;
+try{await page.goto('http://127.0.0.1:'+server.address().port);await page.getByRole('region',{name:'인터넷 브라우저',exact:true}).waitFor();await page.waitForFunction(()=>window.browserLayoutCalls.some(call=>call.action==='layout'&&call.visible));
+ facts=await page.evaluate(()=>({viewport:document.querySelector('.desktop-browser-viewport').getBoundingClientRect().height,host:document.querySelector('.nubi-browser-host').getBoundingClientRect().height,pane:document.querySelector('.desktop-pane').getBoundingClientRect().height}));
+ assert(facts.viewport>500,'Browser viewport collapsed: '+JSON.stringify(facts));assert(facts.host>facts.pane-100,JSON.stringify(facts));checks.push('외부 연동을 켜고 창을 가져오지 않아도 내부 본문 높이 유지');
+ const internal=page.getByRole('region',{name:'인터넷 브라우저',exact:true}),address=internal.getByRole('textbox',{name:'인터넷 주소 또는 검색어'});await address.fill('보존할 주소 입력');
+ await page.evaluate(()=>window.setFixtureConfiguration({connected:true}));await internal.waitFor();assert.equal(await address.inputValue(),'보존할 주소 입력');checks.push('확장 연결만으로 내부 화면이나 입력을 교체하지 않음');
+ await page.evaluate(()=>window.setFixtureConfiguration({dock:{phase:'preparing',supported:true}}));await page.locator('.nubi-native-browser').waitFor();await internal.waitFor({state:'hidden'});
+ await page.evaluate(()=>window.setFixtureConfiguration({dock:{phase:'error',error:'dock_result_unconfirmed',supported:true}}));await internal.waitFor();assert.equal(await address.inputValue(),'보존할 주소 입력');assert(await page.locator('.desktop-browser-viewport').evaluate(node=>node.clientHeight>500));checks.push('실제 가져오기 단계만 전환하고 실패하면 기존 내부 입력까지 복구');
+ await page.evaluate(()=>{window.failFixtureConfiguration=true;window.setFixtureConfiguration({dock:{phase:'idle',supported:false}});});await page.getByRole('button',{name:'외부 연동 상태 다시 확인'}).waitFor();assert(await internal.isVisible());checks.push('외부 연결 상태 조회 실패도 내부 브라우저를 가리지 않음');
+ await page.evaluate(()=>window.failFixtureConfiguration=false);await page.getByRole('button',{name:'외부 연동 상태 다시 확인'}).click();
+ await internal.getByRole('button',{name:'외부 브라우저 연결 설정'}).click();const dialog=page.getByRole('dialog',{name:'브라우저 연결'});await dialog.waitFor();const toggle=dialog.getByRole('switch',{name:'외부 브라우저 연동',exact:true});await toggle.click();await page.waitForFunction(()=>window.fixtureConfiguration.mode==='internal');await captureDesign(page,{path:out+'/integration-off.png'});await toggle.click();await page.waitForFunction(()=>window.fixtureConfiguration.mode==='external');await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});assert.equal(await address.inputValue(),'보존할 주소 입력');checks.push('설정 켜기와 끄기 후에도 같은 내부 화면과 입력 유지');
+ await page.evaluate(()=>window.setBrowserVisible(false));await page.locator('.nubi-browser-host').waitFor({state:'hidden'});await page.evaluate(()=>window.setBrowserVisible(true));await internal.waitFor();checks.push('보조 영역 숨김과 재열기에서 정상 복구');
+ assert.deepEqual(errors,[]);await captureDesign(page,{path:out+'/internal-layout.png'});console.log(JSON.stringify({passed:checks.length,facts}));
+}finally{await writeFile(out+'/layout.json',JSON.stringify({facts,checks,errors},null,2));await browser.close();await new Promise(resolve=>server.close(resolve));await rm(dir,{recursive:true,force:true});}

@@ -1,0 +1,20 @@
+/* The center list and the existing auxiliary pane each own one scrollport. */
+.desktop-selection-detail{display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}
+.desktop-selection-detail[hidden]{display:none}
+.desktop-shell .desktop-selection-detail>:is(.nubi-mail-history-detail,.nubi-wiki-document){flex:1;min-width:0;min-height:0;margin:0;padding:var(--cx-space-5);border:0;border-radius:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;box-sizing:border-box;font:var(--deck-font-body);color:var(--deck-ink);background:var(--deck-card)}
+.desktop-selection-detail .nubi-wiki-document-content{max-width:70ch;margin-inline:auto}
+.desktop-selection-detail .nubi-wiki-document-content>header{padding:0 0 var(--cx-space-4);background:transparent;border:0;align-items:flex-start;flex-wrap:wrap}
+.desktop-selection-detail .nubi-wiki-document h2{white-space:normal;overflow-wrap:anywhere}
+.desktop-selection-detail .nubi-wiki-editor{width:100%;min-height:55vh;box-sizing:border-box;resize:vertical}
+.desktop-selection-detail .nubi-mail-reader-text{overflow:visible;max-height:none}
+.desktop-shell .nubi-workbench[data-workspace-screen=mail] .nubi-workbench-content{overflow:hidden}
+.desktop-shell .nubi-mail-history[data-layout=table][data-external-reader]{height:100%;min-height:0;overflow:hidden}
+.desktop-shell .nubi-mail-history[data-layout=table][data-external-reader] .nubi-mail-history-body{flex:1;min-height:0;overflow:hidden}
+.desktop-shell .nubi-mail-history[data-layout=table][data-external-reader] .nubi-mail-history-list{flex:1;min-height:0;overflow:hidden}
+.desktop-shell .nubi-mail-history[data-layout=table][data-external-reader] .nubi-mail-search{flex:1;min-height:0;overflow:hidden}
+.desktop-shell .nubi-mail-history[data-layout=table][data-external-reader] .nubi-mail-results{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+.desktop-shell .nubi-workbench .nubi-wiki-browser[data-external-reader]{overflow:hidden}
+.desktop-shell .nubi-workbench .nubi-wiki-browser[data-external-reader] .nubi-wiki-workbench{display:flex;flex:1;min-height:0;overflow:hidden}
+.desktop-shell .nubi-workbench .nubi-wiki-browser[data-external-reader] .nubi-wiki-explorer{display:block;flex:1;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:var(--cx-space-2)}
+.desktop-shell .nubi-workbench .nubi-wiki-browser[data-external-reader] .nubi-wiki-results{overflow:visible;max-height:none}
+@media(max-width:600px){.desktop-shell .desktop-selection-detail>:is(.nubi-mail-history-detail,.nubi-wiki-document){padding:var(--cx-space-4)}}

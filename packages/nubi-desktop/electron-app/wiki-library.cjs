@@ -37,11 +37,16 @@ function documentLinks(content,from,paths){
  return [...found];
 }
 class WikiLibrary{
- constructor({roots,backupRoot,canWrite=async()=>true}){this.roots=roots;this.backupRoot=backupRoot;this.canWrite=canWrite;this.writes=new Set();}
+ constructor({roots,backupRoot,canWrite=async()=>true,search}){this.roots=roots;this.backupRoot=backupRoot;this.canWrite=canWrite;this.search=search;this.writes=new Set();}
  async scope(id){const value=(await this.roots()).find(r=>r.id===id);if(!value)fail('wiki_library_scope');return value;}
  async call(args={}){
   if(args.action==='roots')return {items:(await this.roots()).map(({root,...r})=>r)};
   const scope=await this.scope(args.scopeId);
+  if(args.action==='search'){
+   if(typeof args.query!=='string'||!args.query.trim()||args.query.length>200)fail('wiki_library_query');
+   if(scope.kind==='mail'||!this.search)fail('wiki_library_action');
+   return this.search(scope,args.query);
+  }
   if(args.action==='read')return read(scope.root,args.path);
   if(args.action==='list'){
    const items=[],skipped=[];let entries=0,bytes=0,truncated=false;

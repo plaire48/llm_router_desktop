@@ -22,6 +22,14 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);await page.getByRole('button',{name:'위키',exact:true}).click();
   const badge=page.getByRole('region',{name:'위키 파일 연결',exact:true});await badge.waitFor();await badge.getByText('중요 파일 연결 33% (1/3)',{exact:true}).click();
   await badge.getByRole('definition').filter({hasText:'바이너리 2'}).waitFor();assert.equal(await badge.getByRole('checkbox').count(),2);await badge.getByRole('checkbox',{name:'config.json',exact:true}).uncheck();
+  const quality=badge.getByRole('region',{name:'위키 문서 점검'});await quality.getByText('끊긴 링크',{exact:true}).waitFor();
+  const search=page.getByRole('searchbox',{name:'위키 문서 검색',exact:true}),table=page.getByRole('table',{name:'위키 문서 목록',exact:true});
+  await search.fill('지연질의');await page.waitForFunction(()=>wikiSearchCalls.includes('지연질의'));
+  await search.fill('본문전용키');await page.getByText('제목·태그·본문에서 찾았어요.',{exact:true}).waitFor();await table.getByText('프로젝트 개요',{exact:true}).waitFor();
+  await page.waitForTimeout(800);assert.equal(await table.getByText('프로젝트 개요',{exact:true}).count(),1,'an older delayed response cannot replace the current body search');
+  await search.fill('조회실패');await page.getByText('본문을 확인하지 못해 제목·설명·태그·경로에서만 찾았어요.',{exact:true}).waitFor();
+  await search.fill('');await table.getByText('프로젝트 개요',{exact:true}).waitFor();
+  await quality.getByRole('button',{name:'home.md',exact:true}).click();await page.getByRole('article',{name:'위키 문서',exact:true}).getByText('이 합성 프로젝트의 현재 문서입니다.',{exact:true}).waitFor();
   assert.deepEqual(await page.evaluate(()=>coverageCalls),[]);await page.locator('.nubi-wiki-browser').evaluate(n=>n.scrollTop=0);await settle(badge);const bounds=await badge.boundingBox();if(bounds.x<8)console.log('geometry',JSON.stringify(await badge.evaluate(n=>{const rows=[];for(let e=n;e;e=e.parentElement){const r=e.getBoundingClientRect(),s=getComputedStyle(e);rows.push({class:e.className,x:r.x,y:r.y,width:r.width,scrollLeft:e.scrollLeft,scrollTop:e.scrollTop,overflow:s.overflow,position:s.position});}return rows;})));assert(bounds.x>=8&&bounds.x+bounds.width<=width-8,'coverage remains within the visible host content gutter '+JSON.stringify(bounds));await captureDesign(page,{path:dir+'/coverage-'+width+'.png'});
   await badge.getByRole('button',{name:'빠진 것 추가',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.waitFor();await dialog.getByText('빠진 파일 보강 제안',{exact:true}).waitFor();
   assert.deepEqual(await page.evaluate(()=>coverageCalls),[{method:'propose',coverageFiles:['main.mjs']}]);assert.equal(await page.getByRole('dialog').count(),1);

@@ -1,7 +1,7 @@
 // Isolated Electron fixture: actual POST popup -> opener -> read-only portal session.
 import {_electron as electron} from 'playwright';
 import {createRequire} from 'node:module';
-import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,rm,mkdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -46,7 +46,7 @@ app.whenReady().then(async()=>{
  global.host=new BrowserHost(win);
  global.other=global.host.create('about:blank').id;
  global.portal=new MailPortal({BrowserWindow,parent:win,invoke:async(_method,args)=>{global.events.push({action:args.action});if(args.action==='portalDocument'){const {normalizePortalMail}=await import(${JSON.stringify(pathToFileURL(path.resolve('runtime/mail-portal-content.mjs')).href)});const parsed=await normalizePortalMail(Buffer.from(args.raw,'base64'),{includePresentation:true});return {mail:{...parsed.normalized,presentation:parsed.presentation}};}return {};},
-  openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:true});global.loginId=row.id;void global.host.request({action:'layout',bounds:{x:80,y:100,width:900,height:600},visible:true});return {tabId:row.id};},
+  openPage:(url,options)=>{const row=global.host.create(url,{...options,session:portalSession,authentication:true,httpsOnly:true});global.loginId=row.id;const contents=row.view.webContents;for(const event of ['dom-ready','did-finish-load','did-stop-loading'])contents.on(event,()=>global.events.push({lifecycle:event,tabId:row.id,url:contents.getURL(),loading:contents.isLoadingMainFrame()}));contents.on('did-fail-load',(_event,code)=>global.events.push({lifecycle:'did-fail-load',tabId:row.id,code}));void global.host.request({action:'layout',bounds:{x:80,y:100,width:900,height:600},visible:true});return {tabId:row.id};},
   getPageContents:id=>[...global.host.tabs.values()].filter(row=>row.ownerId===id).map(row=>row.view.webContents),
   closePage:id=>{for(const row of [...global.host.tabs.values()].reverse())if(row.ownerId===id)global.host.closeTab(row.id);}
  });
@@ -60,7 +60,7 @@ try{
  app=await electron.launch({executablePath:require('electron'),args:[entry],env:{...process.env,ELECTRON_RUN_AS_NODE:undefined}});await app.firstWindow();console.log('fixture: initial login');
  await until(async()=>app.evaluate(async()=>!!global.loginId&&await global.host.tab(global.loginId).view.webContents.executeJavaScript('!!document.querySelector("#login")')));
  const denied=await app.evaluate(async()=>{try{await global.host.request({action:'navigate',id:global.loginId,url:'http://example.invalid'});return false;}catch(error){return error.message==='browser_url_invalid';}});assert.equal(denied,true);
- await app.evaluate(async()=>global.host.tab(global.loginId).view.webContents.executeJavaScript('document.querySelector("#login").click()',true));
+ await app.evaluate(async()=>{const contents=global.host.tab(global.loginId).view.webContents;global.events.push({action:'fixtureLoginClick',tabId:global.loginId,url:contents.getURL(),loading:contents.isLoadingMainFrame()});await contents.executeJavaScript('document.querySelector("#login").click()',true);});
  await until(async()=>app.evaluate(()=>!!global.result));
  console.log('fixture: initial login completed');
  const result=await app.evaluate(({BrowserWindow})=>({result:global.result,events:global.events,status:global.portal.status(),tabs:[...global.host.tabs.keys()],other:global.other,windows:BrowserWindow.getAllWindows().length}));
@@ -97,7 +97,7 @@ try{
  await new Promise(resolve=>setTimeout(resolve,2300));
  const waiting=await app.evaluate(()=>({connecting:global.portal.status().connecting,result:global.result,guide:global.host.status().tabs.find(row=>row.id===global.loginId)?.mailLoginStage,requests:global.events.filter(row=>row.path?.startsWith('/mail/rest/'))}));
  assert.equal(waiting.guide,'login');assert.equal(waiting.connecting,true);assert.equal(waiting.result,null);assert.deepEqual(waiting.requests,[],'no API probes while abnormal logout is awaiting user input');
- await app.evaluate(async()=>global.host.tab(global.loginId).view.webContents.executeJavaScript('document.querySelector("#login").click()',true));
+ await app.evaluate(async()=>{const contents=global.host.tab(global.loginId).view.webContents;global.events.push({action:'fixtureLoginClick',tabId:global.loginId,url:contents.getURL(),loading:contents.isLoadingMainFrame()});await contents.executeJavaScript('document.querySelector("#login").click()',true);});
  await until(async()=>app.evaluate(()=>!!global.result));
  console.log('fixture: recovered '+loginPath);
  const recovered=await app.evaluate(()=>({result:global.result,connected:global.portal.status().connected,tabs:[...global.host.tabs.keys()],other:global.other,events:global.events}));
@@ -108,7 +108,7 @@ try{
  }
  console.log(JSON.stringify({passed:true,checks:['POST popup and opener preserved','same persistent session','verified background mail reader','portal-session EP ID fallback and approval list/body POST contract','no separate login popup','owned tab cleanup','HTTPS-only login navigation','abnormal-logout and portal-home expiry alert/confirm automatically advance to login; unrelated dialogs remain manual; no premature API probes','relogin restores mail through existing SSO flow'],boundary:'Local Electron with isolated mock HTTPS protocol; not company SSO or Windows verification.'}));
 }catch(error){
- if(app)console.error('fixture failure state',await app.evaluate(()=>({result:global.result,status:global.portal?.status(),events:global.events,tabs:[...(global.host?.tabs.values()||[])].map(row=>({id:row.id,ownerId:row.ownerId,url:row.view.webContents.getURL(),loading:row.view.webContents.isLoadingMainFrame(),guide:global.host.status().tabs.find(tab=>tab.id===row.id)?.mailLoginStage}))})).catch(()=>({unavailable:true})));
+ if(app){const diagnostic=await app.evaluate(()=>({result:global.result,status:global.portal?.status(),events:global.events,tabs:[...(global.host?.tabs.values()||[])].map(row=>({id:row.id,ownerId:row.ownerId,url:row.view.webContents.getURL(),loading:row.view.webContents.isLoadingMainFrame(),guide:global.host.status().tabs.find(tab=>tab.id===row.id)?.mailLoginStage}))})).catch(()=>({unavailable:true}));await mkdir('verification',{recursive:true});await writeFile('verification/mail-portal-login-failure.json',JSON.stringify({boundary:'isolated synthetic portal only',diagnostic},null,2));console.error('fixture failure state',diagnostic);}
  throw error;
 }finally{await app?.close();await rm(temporary,{recursive:true,force:true});}
 async function until(check){for(let i=0;i<150;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw Error('portal fixture timed out');}

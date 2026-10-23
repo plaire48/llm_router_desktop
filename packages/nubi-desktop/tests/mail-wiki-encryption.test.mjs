@@ -1,7 +1,7 @@
 import {removeLater} from './helpers-cleanup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,readdir,readFile,rm,stat} from 'node:fs/promises';
+import {mkdtemp,mkdir,readdir,readFile,writeFile,rm,stat} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {PersonalMail} from '../runtime/mail.mjs';
@@ -47,4 +47,20 @@ test('without a usable vault the pages stay plain and the status says unavailabl
   const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-plain-'));removeLater(root);
   const mail=new PersonalMail(makeHost(root,{get:async()=>{throw Error('secret_unavailable');},set:async()=>{}}),{personalRoot:path.join(root,'mail')});t.after(()=>{mail.dispose();});await mail.ensureWiki();
   assert.equal(mail.status().encryption.wikiState,'unavailable');assert.equal(mail.wikiRoot,mail.wikiStoreRoot);
+});
+
+test('mail runtime close and reopen preserve a wiki edit made immediately before disposal',async t=>{
+  const root=await mkdtemp(path.join(os.tmpdir(),'nubi-mail-close-'));removeLater(root);
+  const secrets=memorySecrets();let mail=await runtime(root,secrets);
+  t.after(async()=>{mail.dispose();await Promise.all([mail.wikiDisposed,mail.rawDisposed]);});
+  await mail.intake({uidls:['one'],mails:[{uidl:'one',raw:Buffer.from('Original MIME'),attachments:[],normalized:{subject:'예산 확인',from:'sender@example.invalid',text:'본문 예산 요청',attachments:[]}}]},mail.generation);
+  await mail.drain();await settle(mail,()=>mail.rows()[0]?.state==='saved');
+  const row=mail.rows()[0];assert.equal(row.state,'saved');
+  const name=(await readdir(mail.wikiRoot)).find(name=>name.endsWith('.md'));
+  const edited=(await readFile(path.join(mail.wikiRoot,name),'utf8'))+'\n\n사용자가 확인해 보충한 지식입니다.\n';
+  await writeFile(path.join(mail.wikiRoot,name),edited);
+  mail.dispose();await Promise.all([mail.wikiDisposed,mail.rawDisposed]);
+  mail=await runtime(root,secrets);
+  assert.equal(await readFile(path.join(mail.wikiRoot,name),'utf8'),edited);
+  assert.equal((await mail.read(row.id)).mail.text,'본문 예산 요청');
 });

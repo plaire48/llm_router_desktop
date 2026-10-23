@@ -24,10 +24,23 @@ test('externally paused ambient is not resumed by motion cleanup',()=>{
  const bird=animation('bird',{repeat:true,duration:8000,properties:['opacity']});bird.playState='paused';
  reconcileMotion([bird],{registry,paused:false,owned:new Set()});assert.equal(bird.playState,'paused');
 });
+test('project opening holds covered motion while visible progress respects visibility and reduced motion',()=>{
+ const bird=animation('bird',{repeat:true,duration:8000,properties:['opacity']}),progress=animation('progress',{repeat:true,duration:1800,properties:['transform'],target:{closest:selector=>selector==='.nubi-project-switch-cover'?{}:null}}),owned=new Set();
+ reconcileMotion([bird,progress],{registry,paused:false,projectSwitching:true,owned});assert.equal(bird.playState,'paused');assert.equal(progress.playState,'running');
+ reconcileMotion([bird,progress],{registry,paused:true,projectSwitching:true,owned});assert.equal(progress.playState,'paused','hidden/reduced motion still holds the visible loader');
+ reconcileMotion([bird,progress],{registry,paused:false,projectSwitching:true,owned});assert.equal(bird.playState,'paused');assert.equal(progress.playState,'running');
+ reconcileMotion([bird,progress],{registry,paused:false,projectSwitching:false,owned});assert.equal(bird.playState,'running');assert.equal(bird.currentTime,47,'completion resumes the previous ambient phase');
+});
 test('interaction budget counts targets and retains modal before decorative entrances',()=>{
  const target={},a=animation('nubi-modal-sheet-in',{target}),b=animation('color',{target}),c=animation('nubi-modal-scrim-in'),d=animation('press'),extra=animation('decoration');
  const stats=reconcileMotion([extra,a,b,c,d],{registry,paused:true,owned:new Set()});
  assert.equal(stats.interactionTargets,3);assert.equal(extra.cancelled,true);assert.equal(a.cancelled,false);assert.equal(b.cancelled,false);
+});
+test('project loading entrance and stage change remain visible when covered controls are transitioning',()=>{
+ const hover=animation('hover'),sidebar=animation('sidebar'),press=animation('press'),entrance=animation('nubi-view-project-loader-enter',{properties:['opacity','transform']}),stage=animation('nubi-view-project-stage-reveal');
+ for(const effect of [hover,sidebar])effect.transitionProperty='opacity';
+ const stats=reconcileMotion([hover,sidebar,press,entrance,stage],{registry,paused:false,projectSwitching:true,owned:new Set()});
+ assert.equal(stats.interactionTargets,3);assert.equal(entrance.cancelled,false);assert.equal(stage.cancelled,false);assert.ok([hover,sidebar,press].some(effect=>effect.cancelled));
 });
 test('unregistered long, non-compositor and incorrect ambient duration fail closed',()=>{
  const long=animation('long',{duration:900}),layout=animation('layout',{properties:['width']}),wrong=animation('bird',{duration:900,repeat:true,properties:['opacity']});

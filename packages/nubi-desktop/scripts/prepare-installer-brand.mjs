@@ -3,9 +3,9 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {PNG} from 'pngjs';
 
-// Build native NSIS bitmap surfaces from the unchanged approved character.
+// Build native NSIS bitmap surfaces from the approved Desktop brand master.
 // All copy stays in accessible native controls, never rasterized in the art.
-const source=await readFile('../../extensions/aipro-chat/design/brand/bird-master.png');
+const source=await readFile('design/brand/calm-liquid/mascot-master.png');
 const bird=PNG.sync.read(source),output=path.resolve('electron-app/resources/nsis-generated');
 await mkdir(output,{recursive:true});
 function bitmap(png){
@@ -45,5 +45,5 @@ function draw(width,height,{size,x,y,sidebar=false}){
 }
 const assets=[['installer-sidebar',draw(492,942,{size:450,x:21,y:246,sidebar:true})],['installer-header',draw(450,171,{size:159,x:267,y:6})]];
 for(const [name,png] of assets){await writeFile(path.join(output,name+'.bmp'),bitmap(png));await writeFile(path.join(output,name+'.png'),PNG.sync.write(png));}
-await writeFile(path.join(output,'brand-provenance.json'),JSON.stringify({source:'extensions/aipro-chat/design/brand/bird-master.png',sha256:createHash('sha256').update(source).digest('hex'),scale:3,copyInNativeControls:true},null,2));
+await writeFile(path.join(output,'brand-provenance.json'),JSON.stringify({source:'packages/nubi-desktop/design/brand/calm-liquid/mascot-master.png',sha256:createHash('sha256').update(source).digest('hex'),scale:3,copyInNativeControls:true},null,2));
 console.log('Prepared native installer bird surfaces');

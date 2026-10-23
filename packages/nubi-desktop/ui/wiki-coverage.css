@@ -8,3 +8,6 @@
 .nubi-wiki-coverage-files input { accent-color: var(--deck-blue); flex: 0 0 auto; }
 
 .nubi-wiki-coverage-facts > div:last-child { grid-column: 1 / -1; }
+.nubi-wiki-quality-facts > div:last-child { grid-column: auto; }
+.nubi-wiki-quality-files li { display: grid; justify-items: start; gap: var(--cx-space-1); padding-block: var(--cx-space-2); overflow-wrap: anywhere; }
+.nubi-wiki-quality-files button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: start; }

@@ -25,6 +25,16 @@ const corpus={
   'tests/main.test.ts':"import {run} from '../src/main.js'; run();",
 };
 
+test('page context keeps assigned files and direct static neighbors while omitting unrelated modules',()=>{
+ const map=analyzeRepository({files:inputs(corpus)});map.coverage={incomplete:false};map.artifacts=[];
+ const page=decode(formatWikiCodeContext(map,{phase:'page',seedPaths:['/src/math.ts']}));
+ assert(page.files.some(row=>row.path==='src/math.ts'));
+ assert(page.files.some(row=>row.path==='src/index.ts'));
+ assert(!page.files.some(row=>row.path==='src/other.ts'));
+ assert(page.omittedFiles>0);assert.equal(page.coverage.incomplete,true);
+ const planning=decode(formatWikiCodeContext(map,{phase:'planning'}));assert.equal(planning.files.length,map.files.length);
+});
+
 test('resolves imports, reexports and aliased calls without confusing same-named or shadowed symbols',()=>{
   const map=analyzeRepository({files:inputs(corpus)});
   assert.equal(map.scope,'static_symbols_and_references');

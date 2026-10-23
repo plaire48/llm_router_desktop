@@ -52,19 +52,26 @@ export function formatWikiCodeContext(map,{phase='planning',seedPaths=[],changed
   const add=(path,value)=>scores.set(path,(scores.get(path)||0)+value);
   for(const file of map.files)add(file.path,(seeds.has(file.path)?1000:0)+(changed.has(file.path)?500:0)+(testFile(file.path)?5:0));
   for(const edge of map.edges){add(edge.target,1);if(seeds.has(edge.path)||changed.has(edge.path))add(edge.target,100);if(seeds.has(edge.target)||changed.has(edge.target))add(edge.path,80);}
-  const ranked=[...map.files].sort((a,b)=>(scores.get(b.path)||0)-(scores.get(a.path)||0)||compare(a.path,b.path));
+  // Each page gets its seed/change neighborhood, not the entire repository
+  // again. Omitted modules remain available through the normal source tools.
+  const relevant=new Set([...seeds,...changed]);
+  for(const edge of map.edges)if(seeds.has(edge.path)||changed.has(edge.path)||seeds.has(edge.target)||changed.has(edge.target)){relevant.add(edge.path);relevant.add(edge.target);}
+  const ranked=map.files.filter(file=>phase!=='page'||!seeds.size||relevant.has(file.path)).sort((a,b)=>(scores.get(b.path)||0)-(scores.get(a.path)||0)||compare(a.path,b.path));
+  const symbolsByFile=new Map(),edgesByFile=new Map();
+  for(const row of map.symbols){if(!symbolsByFile.has(row.path))symbolsByFile.set(row.path,[]);symbolsByFile.get(row.path).push(row);}
+  for(const row of map.edges){if(!edgesByFile.has(row.path))edgesByFile.set(row.path,[]);edgesByFile.get(row.path).push(row);}
   const artifacts=[];
   for(const row of map.artifacts||[]){if(JSON.stringify([...artifacts,row]).length>2000)break;artifacts.push(row);}
   const out={phase,scope:map.scope,coverage:{...map.coverage},artifacts,omittedArtifacts:(map.artifacts?.length||0)-artifacts.length,files:[],omittedFiles:ranked.length,omittedSymbols:0,omittedEdges:0,unresolvedCount:map.unresolved.length};
   // Whole entries only: never truncate a JSON blob or a path halfway through.
   for(const file of ranked){
-    const symbols=map.symbols.filter(row=>row.path===file.path),edges=map.edges.filter(row=>row.path===file.path);
+    const symbols=symbolsByFile.get(file.path)||[],edges=edgesByFile.get(file.path)||[];
     const row={...file,test:testFile(file.path),changed:changed.has(file.path),symbols:symbols.slice(0,16),references:edges.slice(0,24)};
     out.files.push(row);
     if(header.length+JSON.stringify(out).length>CODE_MAP_LIMITS.characters-128){out.files.pop();continue;}
     out.omittedSymbols+=Math.max(0,symbols.length-16);out.omittedEdges+=Math.max(0,edges.length-24);
   }
-  out.omittedFiles=ranked.length-out.files.length;
+  out.omittedFiles=map.files.length-out.files.length;
   out.coverage.incomplete||=out.omittedFiles>0||out.omittedSymbols>0||out.omittedEdges>0||out.omittedArtifacts>0;
   return header+JSON.stringify(out);
 }

@@ -88,7 +88,7 @@ export async function wikiFiles(root){
       const rel=base+entry.name;if(entry.isSymbolicLink())fail('path_scope');
       if(entry.isDirectory())await visit(path.join(directory,entry.name),rel+'/');
       else if(entry.isFile()&&(rel.endsWith('.md')||['.last-update.json','.page-manifest.json','.nubi-sources.json'].includes(rel)||rel.startsWith('.claims/')&&rel.endsWith('.json'))){
-        result.push(await readSource(root,'openwiki/'+rel,{maxBytes:rel==='.nubi-sources.json'||rel==='.page-manifest.json'?64*1024*1024:1024*1024}));
+        result.push(await readSource(root,'openwiki/'+rel,{maxBytes:rel==='.nubi-sources.json'||rel==='.page-manifest.json'?64*1024*1024:16*1024*1024}));
       }
     }
   }

@@ -15,3 +15,15 @@
 .nubi-wiki-progress-dialog .nubi-wiki-project-identity {margin-bottom:var(--cx-space-4);}
 .nubi-project-wiki-state {display:inline-flex;align-items:center;gap:calc(var(--cx-space-1) * 1.5);flex:none;margin-left:auto;white-space:nowrap;font-size:var(--cx-type-caption);color:var(--deck-blue);font-weight:var(--nubi-weight-label);}
 .nubi-project-wiki-state .status-spinner {width:12px;height:12px;flex:none;}
+.nubi-project-journey{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;padding:var(--cx-space-1);margin:0;border-radius:var(--deck-control-radius);background:var(--deck-surface);font-size:var(--cx-type-caption);color:var(--nubi-text-secondary)}
+.nubi-project-journey::before{content:"";position:absolute;inset:var(--cx-space-1) auto var(--cx-space-1) var(--cx-space-1);width:calc((100% - var(--cx-space-2))/3);background:var(--nubi-brand-motion-surface);border-radius:inherit;z-index:-1;transform:translateX(calc(var(--nubi-project-step)*100%));transition:transform var(--nubi-motion-enter) var(--nubi-ease-spring)}
+.nubi-project-journey>li{display:flex;align-items:center;justify-content:center;gap:var(--cx-space-1);padding:var(--cx-space-2) var(--cx-space-1);min-width:0;white-space:nowrap}
+.nubi-project-journey>li:is([aria-current=step],[data-complete]){color:var(--deck-blue-deep);font-weight:var(--nubi-weight-label)}
+.nubi-project-journey-title{font-size:var(--cx-type-body);font-weight:var(--nubi-weight-emphasis);color:var(--nubi-text-primary);animation:nubi-view-project-preparation var(--nubi-motion-state) var(--nubi-ease-out) both}
+.nubi-project-ready{display:flex;align-items:center;justify-content:space-between;gap:var(--cx-space-3)}
+.nubi-project-ready>p{margin:0;font-size:var(--cx-type-caption);color:var(--nubi-text-secondary);line-height:var(--deck-line-body)}
+.nubi-project-ready>button{flex:none}
+.nubi-project-preparation-detail{margin:0}
+@keyframes nubi-view-project-preparation{from{opacity:.65}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.nubi-project-journey::before{transition:none}.nubi-project-journey-title{animation-duration:var(--nubi-motion-reduced)}}
+@media(max-width:480px){.nubi-project-ready{align-items:flex-start;flex-direction:column}}

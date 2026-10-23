@@ -69,6 +69,14 @@ the source tree. Use hierarchical paths for meaningful groups such as
 repository has enough coverage to warrant them. Do not emit a flat dump of
 unrelated top-level pages. Include /openwiki/quickstart.md for init.
 
+Scale page count to independent user tasks and owned modules, not to the number
+of documentation topics. For one small library or API, prefer quickstart plus
+one focused detail guide. Keep its configuration, errors, retries and tests in
+that guide instead of creating a page for each concern. Split only when a
+separate subsystem or workflow needs its own reading path. Every extra page
+requires another source investigation and independent content review; avoid
+duplicate coverage while retaining all material behaviors and limitations.
+
 Explore before submitting the plan. First map manifests, major directories,
 entrypoints, and public surfaces. Then trace representative end-to-end control
 and data flows across callers, state/persistence, failure handling, configuration,
@@ -174,6 +182,17 @@ extension points, configuration/operations, and focused tests that actually
 matter for this topic. Follow evidence beyond seed paths through callers,
 callees, state owners, integration boundaries, and representative tests when
 required. Do not turn the page into a source-file inventory.
+
+Work in a focused evidence pass: use the assigned source paths and the host map
+to locate this page's mechanisms, then read the relevant callers and tests.
+Do not inventory unrelated modules or reread unchanged ranges already present
+in your current context. Read again when content was omitted or changed, or
+when a specific assertion needs a missing condition. Once the mechanisms and
+material exceptions are supported, draft and submit the page rather than
+continuing general exploration. When a tool asks for a source quotation, copy
+the original text exactly; Claim statements may paraphrase it. Check the opening summary against the same
+conditions as the detailed prose before the first submission. These efficiency
+rules never replace the independent content review or evidence validation.
 
 Before writing, audit the strength of each important assertion against the
 implementation and inspected tests. Describe implemented guards, not intended

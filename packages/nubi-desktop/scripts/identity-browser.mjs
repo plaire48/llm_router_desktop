@@ -59,11 +59,11 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
       overflow:root.scrollWidth>root.clientWidth};
   });
   const {size,line,heading,headingLine}=desktopDialogScale(large);
-  assert(facts.font.includes('Noto Sans KR'));assert.equal(facts.size,size);assert.equal(facts.line,line);assert.equal(facts.radius,'20px');
+  assert(facts.font.includes('Noto Sans KR'));assert.equal(facts.size,size);assert.equal(facts.line,line);assert.equal(facts.radius,adaptation.modal.radius+'px');
   assert.deepEqual(facts.title,{size:heading,line:headingLine});assert((facts.danger?[facts.dangerToken]:[palette.blue,palette['blue-deep']]).map(value=>value.toLowerCase()).includes(facts.blue.toLowerCase()),'Actions use the semantic token for the dialog purpose');
   assert.equal(facts.overflow,false);assert(facts.buttons.every(b=>b.label&&b.size===size));
   assert(facts.fields.every(field=>field.size===size&&field.line===line),'Dialog labels and instructions must track the body scale: '+JSON.stringify(facts.fields));
-  assert(facts.buttons.filter(b=>b.kit&&!b.chip).every(b=>b.radius==='12px'));
+  assert(facts.buttons.filter(b=>b.kit&&!b.chip).every(b=>b.radius===adaptation.workControl.radius+'px'));
   assert(facts.buttons.filter(b=>b.chip).every(b=>b.radius==='100px'),'Page chips use the reference pill radius');
   assert(facts.buttons.filter(b=>b.iconOnly).every(b=>b.title));
 }
@@ -75,7 +75,7 @@ export async function assertDialogIdentity(dialog) {
  const facts=await dialog.evaluate(root=>{
   const css=getComputedStyle(root),probe=document.createElement('span');root.append(probe);
   const color=name=>{probe.style.color=`var(${name})`;return getComputedStyle(probe).color;};
-  const tokens={primary:color('--nubi-text-primary'),surface:color('--nubi-surface-base'),danger:color('--nubi-text-danger'),action:color('--nubi-text-action'),label:css.getPropertyValue('--nubi-weight-label').trim(),emphasis:css.getPropertyValue('--nubi-weight-emphasis').trim()};probe.remove();
+  const tokens={primary:color('--nubi-text-primary'),surface:color('--nubi-surface-dialog'),danger:color('--nubi-text-danger'),action:color('--nubi-text-action'),label:css.getPropertyValue('--nubi-weight-label').trim(),emphasis:css.getPropertyValue('--nubi-weight-emphasis').trim()};probe.remove();
   const visible=selector=>[...root.querySelectorAll(selector)].filter(e=>e.checkVisibility());
   return {name:root.querySelector('h2')?.textContent,tokens,background:css.backgroundColor,color:css.color,title:getComputedStyle(root.querySelector('h2')).color,
    labels:visible('label[for]').map(e=>({text:e.textContent.trim().slice(0,40),color:getComputedStyle(e).color,weight:getComputedStyle(e).fontWeight})),

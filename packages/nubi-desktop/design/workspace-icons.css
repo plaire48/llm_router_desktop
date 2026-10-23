@@ -15,32 +15,33 @@
 :root:root :is(.nubi-session-row,.nubi-sidebar-more,.desktop-tabs,.nubi-answer-source,.nubi-command-menu,.nubi-applied-menu,.nubi-skill-menu,.nubi-mail-reader-tools,.nubi-mail-document-toolbar) { --nubi-glyph-size:var(--nubi-icon-inline); }
 :root:root .nubi-workspace-rail .nubi-team-mark { width:var(--nubi-icon-navigation); height:var(--nubi-icon-navigation); }
 /* A restrained desktop lockup: mint artwork, quiet wordmark and a secondary
-   Beta badge. Optical sizes are Nubi choices, not prescribed Apple values. */
-.desktop-shell .nubi-workspace-brand.nubi-logo {
+   version badge. Optical sizes are Nubi choices, not prescribed Apple values. */
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand.nubi-logo {
   display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:0;
   padding:0; margin:0; background:transparent;
 }
-.desktop-shell .nubi-brand-emblem {
+:is(.desktop-shell,.nubi-intro) .nubi-brand-emblem {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
   width:var(--nubi-brand-emblem-size); height:var(--nubi-brand-emblem-size);
   border-radius:var(--nubi-brand-radius); background:var(--nubi-brand-surface);
 }
-.desktop-shell .nubi-brand-name { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
-.desktop-shell .nubi-workspace-brand .nubi-wordmark {
+:is(.desktop-shell,.nubi-intro) .nubi-brand-name { display:inline-flex; align-items:center; gap:var(--cx-space-2); min-width:0; }
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-wordmark {
   width:var(--nubi-brand-wordmark-width); height:var(--nubi-brand-wordmark-height); object-fit:contain;
 }
-.desktop-shell .nubi-brand-wordmark { position:relative; display:inline-flex; flex:none; }
+:is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark { position:relative; display:inline-flex; flex:none; }
 @supports (mask-image:url("")) {
-  .desktop-shell .nubi-brand-wordmark::after {
+  :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark::after {
     content:""; position:absolute; inset:0; background:var(--nubi-brand-wordmark-fill);
     mask:url('../../../extensions/aipro-chat/public/icons/nubi-wordmark.webp') center / contain no-repeat;
   }
-  .desktop-shell .nubi-brand-wordmark > .nubi-wordmark { opacity:0; }
+  :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark > .nubi-wordmark { opacity:0; }
 }
-.desktop-shell .nubi-workspace-brand .nubi-logo-product {
+:is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-logo-product {
   font:var(--deck-font-caption); font-weight:var(--nubi-weight-label); color:var(--deck-sub); letter-spacing:normal;
 }
 .desktop-shell .nubi-workspace-brand .nubi-beta {
+  display:inline-flex;
   flex:none; padding:var(--cx-space-1) var(--cx-space-2); border-radius:var(--cx-radius-pill,999px);
   background:var(--deck-blue-soft); color:var(--deck-blue-deep);
   font:var(--nubi-weight-label) var(--nubi-brand-badge-type)/var(--nubi-line-solid) var(--cx-font-family);
@@ -50,7 +51,7 @@
 .desktop-shell .nubi-toolbar-navigation:not([data-aligned=true]) { border-right:0; padding-right:var(--cx-space-2); }
 .desktop-shell .nubi-toolbar-navigation[data-aligned=true] { container:workspace-brand / inline-size; }
 @container workspace-brand (max-width:17rem) {
-  .desktop-shell .nubi-workspace-brand .nubi-logo-product { display:none; }
+  :is(.desktop-shell,.nubi-intro) .nubi-workspace-brand .nubi-logo-product { display:none; }
 }
 .desktop-shell .nubi-toolbar-context { color:var(--deck-sub); }
 .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { background:var(--nubi-chrome-surface); gap:var(--cx-space-2); }
@@ -84,14 +85,14 @@
 @media(forced-colors:active) {
   .desktop-shell :is(.nubi-window-toolbar,.nubi-workspace-navigation.nubi-workspace-rail,.nubi-brand-emblem) { background:Canvas; }
   .desktop-shell .nubi-workspace-brand .nubi-beta { background:Canvas; color:CanvasText; }
-  .desktop-shell .nubi-brand-wordmark::after { display:none; }
-  .desktop-shell .nubi-brand-wordmark > .nubi-wordmark { opacity:1; }
+  :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark::after { display:none; }
+  :is(.desktop-shell,.nubi-intro) .nubi-brand-wordmark > .nubi-wordmark { opacity:1; }
   .desktop-shell .nubi-workspace-rail [aria-pressed=true] { outline:1px solid Highlight; outline-offset:-2px; }
 }
 /* The copied content and collapsed disclosure affordances have less emphasis. */
 :root:root :is(.copy-control,.nubi-actions-disclosure>summary) { --nubi-glyph-size:var(--nubi-icon-inline); }
 :root:root :is(.desktop-shell,.deck-dialog,.nubi-workspace-panel)
- :is(button,a,summary) svg[data-icon^="chevron"] {
+ :is(button[aria-expanded],button[aria-haspopup],summary,.nubi-settings-row,.nubi-skill-menu-marketplace,.nubi-applied-trigger) svg[data-icon^="chevron"] {
   width:var(--nubi-icon-disclosure); height:var(--nubi-icon-disclosure);
 }
 @media(pointer:coarse) {
@@ -99,4 +100,46 @@
   :root:root .desktop-shell .nubi-window-toolbar :is(.nubi-toolbar-actions,.nubi-toolbar-account) > .cx-kit-button:is(.nubi-icon-button,[data-icon-only]) {
     width:44px; min-width:44px; height:44px; min-height:44px;
   }
+}
+
+/* Brand ink is deep enough for small glyphs. Light colours stay on the tile,
+   never on body text, status controls, provider logos or authored content. */
+.nubi-brand-definitions {position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;}
+.nubi-brand-ink-mint {stop-color:var(--nuvi-aqua-ink);}
+.nubi-brand-ink-blue {stop-color:var(--nuvi-primary);}
+.nubi-brand-ink-lavender {stop-color:var(--nuvi-violet-ink);}
+:root:root .desktop-shell .nubi-workspace-rail :is(button[data-tone=blue],.nubi-rail-settings)>svg[stroke=currentColor],
+:root:root :is(.desktop-shell,.deck-dialog,.nubi-project-connect) :is(.nubi-panel-title-icon,.nubi-start-tile,.nubi-start-go,.nubi-wiki-badge)>svg[stroke=currentColor]:not([data-icon=alertCircle],[data-icon=check],[data-icon=trash]) {
+ stroke:var(--nubi-brand-icon-paint,currentColor);
+}
+@media(forced-colors:active) {:root {--nubi-brand-icon-paint:currentColor;}}
+
+/* Functional icons share brand ink; provider and semantic colours keep their roles. */
+:root:root .desktop-shell .nubi-mail-history-bar>svg[stroke=currentColor],
+:root:root .desktop-shell .nubi-skill-page-header>svg[stroke=currentColor],
+:root:root .desktop-shell .nubi-wiki-bar .nubi-wiki-badge>svg[stroke=currentColor] {
+ stroke:var(--nubi-brand-icon-paint,currentColor);stroke-width:var(--nubi-icon-stroke);
+}
+:root:root .desktop-shell :is(.nubi-toolbar-actions,.nubi-sidebar) > button > svg[data-icon-set=lucide]:not([data-icon=trash],[data-icon=alertCircle],[data-icon=check]),
+:root:root .deck-dialog .nubi-settings-row > svg[data-icon-set=lucide]:first-child {
+ stroke:var(--nubi-brand-icon-paint,currentColor);
+}
+/* Move only the drawing; the SVG box, label and click target stay fixed. */
+@media(prefers-reduced-motion:no-preference) {
+ :is(.desktop-shell,.deck-dialog) :is(.nubi-workspace-rail,.nubi-toolbar-actions,.nubi-header-actions,.nubi-sidebar,.cx-panel-header-actions,.cx-panel-footer,.composer-bottom,.nubi-settings-row) .nubi-icon-drawing {
+  transform-box:view-box;transform-origin:center;transition:transform var(--nubi-motion-state) var(--nubi-ease-out);
+ }
+ :is(.desktop-shell,.deck-dialog) :is(.nubi-workspace-rail,.nubi-toolbar-actions,.nubi-header-actions,.nubi-sidebar,.cx-panel-header-actions,.cx-panel-footer,.composer-bottom) button:not(:disabled):is(:hover,:focus-visible) > svg[data-icon-set=lucide] > .nubi-icon-drawing,
+ :is(.desktop-shell,.deck-dialog) .nubi-settings-row:not(:disabled):is(:hover,:focus-visible) > svg[data-icon-set=lucide] > .nubi-icon-drawing {transform:translateY(-.5px) scale(1.04);}
+ :is(.desktop-shell,.deck-dialog) button:not(:disabled):active > svg[data-icon-set=lucide] > .nubi-icon-drawing {transform:scale(.92);}
+}
+
+/* The account action and custom composer tools must keep full touch targets. */
+@media(pointer:coarse) {
+ :root:root .desktop-shell .nubi-window-toolbar .nubi-account-button {
+  min-width:var(--nubi-work-control-touch);min-height:var(--nubi-work-control-touch);height:var(--nubi-work-control-touch);
+ }
+ :root:root .desktop-shell .nubi-workbench .nubi-compose-card .composer-bottom button {
+  min-width:var(--nubi-work-control-touch);min-height:var(--nubi-work-control-touch);
+ }
 }

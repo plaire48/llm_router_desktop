@@ -3,7 +3,7 @@ import {parsePop3Content,mailPartPresentation} from './pop3-content.mjs';
 import {createHash} from 'node:crypto';
 
 export const POP3_SERVER=Object.freeze({host:'pop3.samsung.net',port:995,tls:true});
-const MAX_UIDL=4*1024*1024, MAX_MAIL=10*1024*1024;
+const MAX_UIDL=64*1024*1024, MAX_MAIL=256*1024*1024;
 // RFC 1939 specifies 70 octets. Tolerate bounded, longer opaque server IDs
 // without truncating, case-folding or replacing them with unstable mail numbers.
 const MAX_COMPAT_UIDL=1024;
@@ -97,7 +97,8 @@ export function classifyPop3Error(error,endpoint=POP3_SERVER){
   if(error?.command?.startsWith('RETR'))return 'mail_retrieval_failed';
   return 'mail_connection_failed';
 }
-export async function pullPop3({user,password,known=null,skip=[],signal,endpoint=POP3_SERVER,timeoutMs=60000}){
+export async function pullPop3({user,password,known=null,skip=[],signal,endpoint=POP3_SERVER,timeoutMs=60000,maxMailBytes=MAX_MAIL}){
+  if(!Number.isSafeInteger(maxMailBytes)||maxMailBytes<1||maxMailBytes>MAX_MAIL)throw new Error('mail_input_invalid');
   if(typeof user!=='string'||!user.trim()||user.length>320||typeof password!=='string'||!password||password.length>2048||/[\r\n\0]/.test(user+password))throw new Error('mail_input_invalid');
   const client=new FragmentSafePop3({user,password,...endpoint,tls:true,parseStreamToString:false,timeout:15000,tlsOptions:{...endpoint.tlsOptions,rejectUnauthorized:true,minVersion:'TLSv1.2'}});
   let interrupt;
@@ -117,8 +118,9 @@ export async function pullPop3({user,password,known=null,skip=[],signal,endpoint
       const seen=new Set([...(known||[]),...skip]),pending=known===null?[]:entries.filter(e=>!seen.has(e.uidl));
       const mails=[],failed=[];let total=0,terminated=false;
       for(const entry of pending.slice(0,5)){
+        if(total>=25*1024*1024)break;
         const [,retr]=await client.command('RETR',entry.number);
-        let raw;try{raw=await bytes(retr,MAX_MAIL);}catch(error){if(error.message!=='mail_size_limit')throw error;failed.push({...entry,error:'mail_size_limit'});terminated=true;stop();break;}total+=raw.length;if(total>25*1024*1024)break;
+        let raw;try{raw=await bytes(retr,maxMailBytes);}catch(error){if(error.message!=='mail_size_limit')throw error;failed.push({...entry,error:'mail_size_limit'});terminated=true;stop();break;}total+=raw.length;
         try{
           const parsed=await parsePop3Content(raw);
           const address=value=>value?.text?.slice(0,2000)||'';

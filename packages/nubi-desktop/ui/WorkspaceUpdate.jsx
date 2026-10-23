@@ -27,7 +27,7 @@ export function WorkspaceUpdate({update,compact=false,rail=false}){
  const label=phase==='downloading'?`다운로드 ${state.percent||0}%`:available?'업데이트':phase==='checking'?'확인 중':'업데이트 확인';
  if(rail)return <WorkspaceIconAction className="nubi-update-rail-button" icon="download" iconOnly label={label} title={available?`업데이트 ${state.release.version}`:label} aria-haspopup="dialog" disabled={phase==='downloading'} onClick={start}/>;
  return <section className={'nubi-workspace-update'+(compact?' is-compact':'')} aria-label="앱 업데이트">
-  {!compact&&<div className="nubi-update-heading"><AgentMark size={22} mood="still"/><strong>누비 Workspace Beta</strong>{version&&<span className="nubi-update-version" title={`버전 ${version}`}>v{version}</span>}</div>}
+  {!compact&&<div className="nubi-update-heading"><AgentMark size={22} mood="still"/><strong>누비 Workspace</strong>{version&&<span className="nubi-update-version" title={`버전 ${version}`}>v{version}</span>}</div>}
   <CxButton title={label} aria-label={label} disabled={['checking','downloading','installing','unsupported'].includes(phase)} onClick={()=>available?start():void action('check')}><Icon name={available||phase==='downloading'?'download':'refresh'} size={16}/><span>{label}</span></CxButton>
   {!compact&&phase==='current'&&<p>최신 버전이에요.</p>}
   {!compact&&phase==='unsupported'&&<p>Windows 설치판에서 업데이트할 수 있어요.</p>}

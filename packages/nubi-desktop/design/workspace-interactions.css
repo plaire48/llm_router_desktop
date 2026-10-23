@@ -1,0 +1,52 @@
+/* Motion Atlas vocabulary, using Nubi's existing color and geometry tokens. */
+@import './workspace-motion.css';
+:root:root{--nubi-navigation-offset:12px;--nubi-surface-radius:calc(var(--cx-space-2) * 2);--nubi-surface-gap:var(--cx-space-2);--nubi-surface-inner-radius:calc(var(--nubi-surface-radius) - var(--nubi-surface-gap))}
+.nubi-interaction-surface{position:fixed;pointer-events:none;z-index:45;transform-origin:top left;border:1px solid var(--nubi-border-default,var(--deck-line));border-radius:var(--nubi-surface-radius);background:var(--nubi-brand-motion-surface);border-color:var(--nubi-brand-motion-edge);box-shadow:var(--nubi-pane-shadow);contain:strict}
+.nubi-interaction-surface[data-nubi-morph-surface=shared]{background:var(--nubi-brand-motion-surface);border-color:var(--nubi-brand-motion-edge)}
+.nubi-interaction-surface::before{content:'';position:absolute;inset:var(--nubi-surface-gap);border:1px solid var(--deck-line);border-radius:var(--nubi-surface-inner-radius);background:var(--nubi-brand-motion-glass);opacity:.5}
+.desktop-shell .nubi-browser-drop-hint[data-magnetic]{box-sizing:border-box;border:2px solid var(--nubi-text-action);border-radius:var(--nubi-surface-radius);background:var(--nubi-brand-motion-surface);animation:nubi-atlas-magnet var(--nubi-motion-enter) var(--nubi-ease-spring) backwards}
+.desktop-shell[data-interactions] .desktop-pane{--nubi-surface-inner-radius:calc(var(--nubi-surface-radius) - var(--nubi-surface-gap));border-start-start-radius:var(--nubi-surface-radius);border-end-start-radius:var(--nubi-surface-radius)}
+.desktop-shell[data-interactions] .desktop-pane[data-expanded]{--nubi-surface-radius:calc(var(--cx-space-2) * 3);--nubi-surface-gap:calc(var(--cx-space-2) * 1.5)}
+.desktop-shell[data-interactions] .desktop-selection-detail{margin:var(--nubi-surface-gap);border-radius:var(--nubi-surface-inner-radius)}
+.desktop-shell[data-interactions] .nubi-activity-record{border-radius:var(--nubi-surface-radius);overflow:clip}
+.desktop-shell[data-interactions] .nubi-activity-record:not([open]){max-width:fit-content;border-radius:999px}
+.desktop-shell[data-interactions] .nubi-activity-record[open]>.nubi-activity-timeline{animation:nubi-atlas-fade var(--nubi-motion-state) var(--nubi-ease-out) backwards}
+.desktop-shell[data-interactions] .nubi-session-row{touch-action:pan-y}
+.desktop-shell[data-interactions] .nubi-session-row[data-nubi-swiping]{overflow:clip;background:var(--nubi-surface-selected);border-radius:var(--cx-radius-control)}
+.desktop-shell[data-interactions] .nubi-session-row[data-nubi-swiping]::after{content:'•••';position:absolute;inset-inline-end:var(--cx-space-4);top:50%;transform:translateY(-50%);color:var(--nubi-text-action);pointer-events:none}
+.desktop-shell[data-interactions] [data-nubi-dock-icon]{transform-origin:center;transition:transform var(--nubi-motion-state) var(--nubi-ease-spring);will-change:auto}
+.desktop-shell[data-interactions] .agent-tab-highlight{transition:transform var(--nubi-motion-enter) var(--nubi-ease-spring)}
+.desktop-shell[data-interactions] .desktop-tools-menu{transform-origin:top right;animation:nubi-atlas-menu var(--nubi-motion-enter) var(--nubi-ease-spring) backwards}
+/* A bounded lens responds behind the brand, never behind document text. */
+.desktop-shell[data-interactions] .welcome[data-nubi-depth]{position:relative;isolation:isolate}
+.desktop-shell[data-interactions] .welcome[data-nubi-depth]::after{content:'';position:absolute;pointer-events:none;width:120px;height:92px;inset-inline-start:calc(50% - 60px);top:var(--cx-space-3);border-radius:45% 55% 56% 44%;background:var(--nubi-brand-motion-glass);border:1px solid color-mix(in srgb,var(--nubi-surface-base) 75%,transparent);box-shadow:inset 0 1px 8px var(--nubi-surface-base);backdrop-filter:blur(6px);transform:perspective(600px) translate3d(var(--nubi-depth-x,0px),var(--nubi-depth-y,0px),0) rotateY(var(--nubi-depth-rotate,0deg)) rotateX(var(--nubi-depth-tilt,0deg));transition:transform var(--nubi-motion-state) var(--nubi-ease-spring);z-index:0}
+.desktop-shell[data-interactions] .welcome[data-nubi-depth]>.welcome-emblem{z-index:1}
+@layer nubi-interaction{
+ .desktop-shell[data-interactions] .nubi-start-choices>.nubi-start-card:nth-child(-n+3){animation:nubi-atlas-reveal var(--nubi-motion-list) var(--nubi-ease-spring) backwards!important}
+ .desktop-shell[data-interactions] .nubi-start-choices>.nubi-start-card:nth-child(2){animation-delay:var(--nubi-motion-stagger)!important}
+ .desktop-shell[data-interactions] .nubi-start-choices>.nubi-start-card:nth-child(3){animation-delay:calc(var(--nubi-motion-stagger) * 2)!important}
+ .desktop-shell[data-interactions] :is(.cx-kit-button,.cx-action-button,.nubi-icon-button,.nubi-session-select,.nubi-mail-result):active:not(:disabled):not([aria-disabled=true]){transform:scale(var(--nubi-motion-pressed-x),var(--nubi-motion-pressed-y))!important;transition:transform var(--nubi-motion-press) var(--nubi-ease-out)!important}
+ .desktop-shell[data-interactions] .nubi-session-row[data-nubi-swiping]>.nubi-session-select{transform:translateX(var(--nubi-swipe-x))!important;transition:none!important}
+}
+@keyframes nubi-atlas-fade{from{opacity:.55}to{opacity:1}}
+@keyframes nubi-atlas-reveal{from{opacity:.65;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes nubi-atlas-menu{from{opacity:.55;transform:scale(.92) translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes nubi-atlas-magnet{from{opacity:.4;transform:scale(.96)}to{opacity:1;transform:none}}
+/* Paired page pictures keep their direction when navigating back. */
+@keyframes nubi-view-in{from{opacity:0;transform:translate3d(var(--nubi-navigation-offset),0,0)}to{opacity:1;transform:none}}
+@keyframes nubi-view-out{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(calc(var(--nubi-navigation-offset) * -1),0,0)}}
+@media(prefers-reduced-motion:reduce){
+ .nubi-interaction-surface{display:none}
+ .desktop-shell[data-interactions] .welcome[data-nubi-depth]::after{transform:none;transition:none;backdrop-filter:none}
+ .desktop-shell[data-interactions] :is([data-nubi-dock-icon],.agent-tab-highlight){transform:none;transition:none}
+ .desktop-shell[data-interactions] .agent-tab-highlight{transform:translateX(calc(var(--tab-index) * 100%))}
+ .desktop-shell[data-interactions] :is(.desktop-tools-menu,.nubi-activity-timeline,.nubi-browser-drop-hint[data-magnetic],.nubi-start-choices>.nubi-start-card:nth-child(-n+3)){animation:nubi-atlas-fade var(--nubi-motion-reduced) linear backwards!important;animation-delay:0ms!important}
+ @layer nubi-reduced{.desktop-shell[data-interactions] :is(.cx-kit-button,.cx-action-button,.nubi-icon-button,.nubi-session-select,.nubi-mail-result):active{transform:none!important;opacity:.8!important}}
+ @layer nubi-reduced{.desktop-shell[data-interactions] .nubi-start-choices>.nubi-start-card:nth-child(-n+3){animation:nubi-atlas-fade var(--nubi-motion-reduced) linear backwards!important;animation-delay:0ms!important}}
+}
+
+@media(forced-colors:active){
+ .nubi-interaction-surface{display:none}
+ .desktop-shell[data-interactions] .welcome[data-nubi-depth]::after{display:none}
+ .desktop-shell .nubi-browser-drop-hint[data-magnetic]{background:Canvas;border-color:Highlight;box-shadow:none}
+}

@@ -1,24 +1,29 @@
 const {EventEmitter}=require('node:events');
 const {randomBytes,randomUUID,timingSafeEqual}=require('node:crypto');
 const {WebSocketServer}=require('ws');
+const {createServer}=require('node:http');
+const {BrowserQuickConnect}=require('./browser-quick-connect.cjs');
 const {PlaywrightHost}=require('./playwright-host.cjs');
 const {httpBrowserAddress}=require('../runtime/browser-address.cjs');
+const {ExternalBrowserMirror}=require('./external-browser-mirror.cjs');
 
 // A user-paired extension transports the existing tab-scoped Playwright host.
 // No remote-debugging port, second agent loop or browser profile import.
 class ExternalBrowserHost {
- constructor({onChange=()=>{},timeout=15000}={}){this.onChange=onChange;this.timeout=timeout;this.tabs=new Map();this.pending=new Map();this.active=null;this.generation=null;this.playwright=new PlaywrightHost(this);}
- status(){return {mode:'external',connected:!!this.peer&&this.ready===true,automation:!!this.peer&&this.ready===true,windowEmbedded:false,windowId:this.windowId??null,active:this.active,tabs:[...this.tabs.values()].map(row=>({id:row.id,title:row.title,url:row.url,documentId:row.automationDocument,external:true})),pairing:!!this.ticket&&Date.now()<this.expiresAt};}
+ constructor({onChange=()=>{},onMirrorEvent=()=>{},timeout=15000}={}){this.onChange=onChange;this.timeout=timeout;this.tabs=new Map();this.pending=new Map();this.active=null;this.generation=null;this.playwright=new PlaywrightHost(this);this.mirror=new ExternalBrowserMirror(this,{onEvent:onMirrorEvent});}
+ status(){return {mode:'external',connected:!!this.peer&&this.ready===true,automation:!!this.peer&&this.ready===true,windowEmbedded:false,windowId:this.windowId??null,active:this.active,tabs:[...this.tabs.values()].map(row=>({id:row.id,title:row.title,url:row.url,documentId:row.automationDocument,protected:row.authentication,external:true})),pairing:!!this.ticket&&Date.now()<this.expiresAt};}
  publish(){const state=this.status(),encoded=JSON.stringify(state);if(encoded===this.lastPublished)return;this.lastPublished=encoded;this.onChange(state);}
- async pair(){
+ async pair(quickOptions){
   if(this.peer)throw Error('external_browser_already_connected');
   await this.stop();this.ticket=randomBytes(32).toString('hex');this.expiresAt=Date.now()+300000;
   const ticket=this.ticket;
-  this.server=new WebSocketServer({host:'127.0.0.1',port:0,maxPayload:140*1024*1024,verifyClient:({origin,req})=>{
+  this.httpServer=createServer((req,res)=>{if(this.quick)void this.quick.handle(req,res).catch(()=>{res.writeHead(500);res.end();});else{res.writeHead(404);res.end();}});
+  this.server=new WebSocketServer({server:this.httpServer,maxPayload:140*1024*1024,verifyClient:({origin,req})=>{
    const supplied=req.url?.slice(1)||'';
    return /^chrome-extension:\/\/[a-p]{32}$/.test(origin||'')&&Date.now()<this.expiresAt&&this.ticket===ticket&&supplied.length===ticket.length&&timingSafeEqual(Buffer.from(supplied),Buffer.from(ticket));
   }});
-  await new Promise((resolve,reject)=>{this.server.once('listening',resolve);this.server.once('error',reject);});
+  await new Promise((resolve,reject)=>{this.httpServer.once('error',reject);this.httpServer.listen(0,'127.0.0.1',resolve);});
+  this.quick=quickOptions?new BrowserQuickConnect(this,quickOptions):null;
   this.server.on('error',()=>{});
   this.server.on('connection',socket=>{
    // Consume the ticket at upgrade. A second extension cannot replace a peer.
@@ -40,7 +45,8 @@ class ExternalBrowserHost {
      ready=true;this.ready=true;clearTimeout(helloTimer);this.windowId=packet.windowId;this.browserVersion=String(packet.browserVersion||'').slice(0,200);this.updateTabs(packet.tabs);socket.send(JSON.stringify({type:'ready',generation:owner}));this.publish();return;
     }
     if(packet.type==='tabs'){this.updateTabs(packet.tabs);return;}
-    if(packet.type==='detached'){this.tabs.get(String(packet.tabId))?.view.webContents.debugger.disconnected();return;}
+    if(packet.type==='mirrorFrame'){this.mirror.frame(packet);return;}
+    if(packet.type==='detached'){if(this.mirror.current?.tabId===String(packet.tabId))this.mirror.invalidate();this.tabs.get(String(packet.tabId))?.view.webContents.debugger.disconnected();return;}
     if(packet.type==='cdp'){const row=this.tabs.get(String(packet.tabId));if(row&&packet.documentId===row.automationDocument)row.view.webContents.debugger.emit('message',null,packet.method,packet.params,packet.sessionId);return;}
     const item=this.pending.get(packet.id);if(!item||item.generation!==owner)return;this.pending.delete(packet.id);clearTimeout(item.timer);
     packet.error?item.reject(Error(/^[a-z_]{3,80}$/.test(packet.error)?packet.error:'external_browser_request_failed')):item.resolve(packet.result);
@@ -48,7 +54,7 @@ class ExternalBrowserHost {
   });
   this.expiry=setTimeout(()=>{if(this.ticket===ticket)void this.stop();},300000);this.expiry.unref?.();
   this.heartbeat=setInterval(()=>{if(this.peer?.readyState===1)this.peer.send(JSON.stringify({type:'heartbeat'}));},20000);this.heartbeat.unref?.();
-  this.publish();return {code:`ws://127.0.0.1:${this.server.address().port}/${ticket}`,expiresAt:this.expiresAt};
+  this.publish();return {code:`ws://127.0.0.1:${this.server.address().port}/${ticket}`,expiresAt:this.expiresAt,...(this.quick?{connectUrl:this.quick.address()}: {})};
  }
  updateTabs(values){
   if(!Array.isArray(values)||values.length>32){this.peer?.terminate();return;}
@@ -68,7 +74,7 @@ class ExternalBrowserHost {
    Object.assign(row,{title:String(value.title||'외부 브라우저').slice(0,500),url:value.url,authentication:value.protected===true,automationDocument:value.documentId});if(value.active)this.active=id;
   }
   for(const [id,row] of this.tabs)if(!present.has(id)){this.tabs.delete(id);row.view.webContents.emit('destroyed');}
-  if(!this.tabs.has(this.active))this.active=this.tabs.keys().next().value||null;this.publish();
+  if(!this.tabs.has(this.active))this.active=this.tabs.keys().next().value||null;this.mirror.update();this.publish();
  }
  tab(id){const row=this.tabs.get(id);if(!row)throw Error('browser_tab_missing');return row;}
  command(action,args={}){
@@ -99,11 +105,12 @@ class ExternalBrowserHost {
  async openPage(url){const opened=await this.command('open',{url:httpBrowserAddress(url)});this.updateTabs(opened.tabs);return {opened:true,external:true,automation:true,tabId:String(opened.tabId),userInteractionRequired:true};}
  async focus(tabId=this.active){await this.command('focus',{tabId});return this.status();}
  disconnected(){
+  this.mirror.invalidate();
   this.peer=null;this.ready=false;this.generation=null;this.windowId=null;this.playwright.dispose();
   for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(Error('external_browser_result_unconfirmed'));}this.pending.clear();
   for(const row of this.tabs.values())row.view.webContents.emit('destroyed');this.tabs.clear();this.active=null;this.publish();
  }
- async stop(){clearTimeout(this.expiry);clearInterval(this.heartbeat);this.ticket=null;this.peer?.terminate();this.disconnected();const server=this.server;this.server=null;if(server)await new Promise(resolve=>server.close(resolve));}
+ async stop(){clearTimeout(this.expiry);clearInterval(this.heartbeat);this.ticket=null;this.quick=null;this.peer?.terminate();this.disconnected();const server=this.server,http=this.httpServer;this.server=null;this.httpServer=null;if(server)await new Promise(resolve=>server.close(resolve));if(http)await new Promise(resolve=>http.close(resolve));}
  dispose(){void this.stop();}
 }
 module.exports={ExternalBrowserHost};

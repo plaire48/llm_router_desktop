@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
-import {desktopStoragePaths,discoverDesktopMail} from '../runtime/mail-desktop-source.mjs';
+import {DesktopMailSource,desktopStoragePaths,discoverDesktopMail} from '../runtime/mail-desktop-source.mjs';
 import {readDesktopMailReference} from '../runtime/mail-desktop-reference.mjs';
 import MailComposer from 'nodemailer/lib/mail-composer';
 import {PersonalMail} from './helpers-personal-mail.mjs';
@@ -16,7 +16,9 @@ async function fixture(t){
  const root=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-desktop-mail-'))),storage=path.join(root,'DesktopMessage'),configFile=path.join(root,'DesktopMessageEnv.xml');await mkdir(storage);
  await writeFile(configFile,'<config><storage>'+storage+'</storage></config>');
  const discover=options=>discoverDesktopMail({platform:'win32',configFile,fallback:storage,...options});
- const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'personal'),desktopSource:{discover},pull:()=>assert.fail('network collection must not run')};
+ // Explicit legacy reader: existing file references remain compatible, while
+ // the production Desktop connection now uses UIA exclusively.
+ const host={storageRoot:path.join(root,'state')},options={personalRoot:path.join(root,'personal'),desktopSourceClass:DesktopMailSource,desktopSource:{discover},pull:()=>assert.fail('network collection must not run')};
  let mail=new PersonalMail(host,options);clearInterval(mail.processingTimer);await mail.call({action:'setAutoWiki',enabled:false});
  t.after(async()=>{mail.dispose();await mail.importTask;await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  return {root,storage,configFile,discover,get mail(){return mail;},async profile(name){const target=path.join(storage,name);await mkdir(target);await writeFile(path.join(target,'UserSavedBoxInfo.xml'),'<folders/>');return target;},async restart(){mail.dispose();await mail.importTask;await Promise.all([mail.rawDisposed,mail.wikiDisposed]);mail=new PersonalMail(host,options);clearInterval(mail.processingTimer);return mail;}};

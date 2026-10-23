@@ -4,14 +4,14 @@ import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';import os from 'node:os';import assert from 'node:assert/strict';
 import {desktopTestWindow} from './electron-test-window.mjs';
-const require=createRequire(import.meta.url),temp=await mkdtemp(path.join(os.tmpdir(),'nubi-switch-check-')),storage=path.join(temp,'state'),out=path.resolve('verification/project-switch-cover');
+const require=createRequire(import.meta.url),temp=await mkdtemp(path.join(os.tmpdir(),'nubi-switch-check-')),storage=path.join(temp,'state'),out=path.resolve('verification/project-switch-cover-2026-10-23');
 await mkdir(storage);await mkdir(out,{recursive:true});
 const roots=['project-alpha','project-beta'].map(name=>path.join(temp,name));
 for(const root of roots){await mkdir(root);await writeFile(path.join(root,'note.txt'),path.basename(root));const git=args=>execFileSync('git',['-C',root,...args],{stdio:'ignore'});git(['init']);git(['add','.']);git(['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','-c','commit.gpgSign=false','commit','-m','Fixture']);}
 await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:roots[0]}));let app,page;const errors=[];
 try{
  app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,ELECTRON_RUN_AS_NODE:undefined}});
- page=await desktopTestWindow(app);page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));
+ page=await desktopTestWindow(app);page.setDefaultTimeout(20000);await page.addInitScript(()=>Object.defineProperty(navigator,'webdriver',{get:()=>false,configurable:true}));page.on('pageerror',e=>errors.push(e.message));
  await page.locator('.desktop-shell[data-startup-ready="true"]').waitFor({timeout:60000});await page.keyboard.press('Escape');
  await page.locator('.nubi-window-toolbar button[aria-label^="사이드바"]').waitFor();
  if(await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).count())await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).click();
@@ -23,13 +23,21 @@ try{
  if(await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).count())await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).click();
  await page.getByRole('button',{name:'project-beta 대화 접기',exact:true}).waitFor();
  // Delay only the project-switch response, preserving real project services and rendering.
- await app.evaluate(({ipcMain})=>{const original=ipcMain._invokeHandlers.get('nubi:request');globalThis.failSwitch=false;ipcMain.removeHandler('nubi:request');ipcMain.handle('nubi:request',async(event,method,args)=>{if(method==='switchProject'){await new Promise(r=>setTimeout(r,2400));if(globalThis.failSwitch)return {__nubiError:'project_missing'};}return original(event,method,args);});});
- await page.evaluate(()=>{window.switchProgressEvents=[];window.nubi.onHostEvent(event=>{if(event.type==='project_open_progress')window.switchProgressEvents.push(event);});window.switchFrames=[];const track=()=>{const body=document.querySelector('.desktop-workspace-body'),switching=document.documentElement.hasAttribute('data-project-switching'),active=document.querySelector('.nubi-saved-project[data-current="true"] .nubi-sidebar-project-name')?.textContent;window.switchFrames.push({switching,active,opacity:body?getComputedStyle(body).opacity:null});window.trackFrame=requestAnimationFrame(track);};track();});
+ await app.evaluate(({ipcMain})=>{const original=ipcMain._invokeHandlers.get('nubi:request');globalThis.failSwitch=false;ipcMain.removeHandler('nubi:request');ipcMain.handle('nubi:request',async(event,method,args)=>{if(method==='switchProject'){await new Promise(r=>setTimeout(r,4200));if(globalThis.failSwitch)return {__nubiError:'project_missing'};}return original(event,method,args);});});
+ await page.evaluate(()=>{window.loadingMotionEvents=[];document.addEventListener('animationstart',event=>{if(event.target.closest?.('.nubi-project-switch-cover'))window.loadingMotionEvents.push(event.animationName);},true);window.switchProgressEvents=[];window.nubi.onHostEvent(event=>{if(event.type==='project_open_progress')window.switchProgressEvents.push(event);});window.switchFrames=[];const track=()=>{const body=document.querySelector('.desktop-workspace-body'),switching=document.documentElement.hasAttribute('data-project-switching'),active=document.querySelector('.nubi-saved-project[data-current="true"] .nubi-sidebar-project-name')?.textContent;window.switchFrames.push({switching,active,opacity:body?getComputedStyle(body).opacity:null});window.trackFrame=requestAnimationFrame(track);};track();});
  await page.getByRole('button',{name:'project-alpha 대화 펼치기',exact:true}).click();
  await page.locator('html[data-project-switching]').waitFor();
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>getComputedStyle(el).opacity),'0');
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>el.inert),true);
  await page.getByRole('status',{name:'프로젝트 여는 중',exact:true}).waitFor();
+ await page.waitForTimeout(350);
+ const loading=await page.evaluate(()=>{const rows=document.getAnimations().filter(a=>a.effect?.getTiming().iterations===Infinity).map(a=>({name:a.animationName,state:a.playState,behind:!!a.effect?.target?.closest?.('.desktop-workspace-body'),cover:!!a.effect?.target?.closest?.('.nubi-project-switch-cover')}));return {rows,events:window.loadingMotionEvents};});
+ await writeFile(path.join(out,'loading-motion.json'),JSON.stringify(loading,null,2));
+ assert(loading.rows.some(a=>a.behind),'exercise real background effects');
+ assert.equal(loading.rows.filter(a=>a.behind&&a.state==='running').length,0,'covered project animations must pause while reading');
+ assert.deepEqual(loading.rows.filter(a=>a.cover&&a.state==='running').map(a=>a.name),['nubi-wiki-scan'],'only the one-way progress track repeats in the loader');
+ assert(loading.events.includes('nubi-view-project-loader-enter'),'exercise shared spring entrance');
+
  const progress=page.getByRole('region',{name:'프로젝트 이동 진행'});await progress.getByText('project-alpha',{exact:true}).waitFor();await page.waitForFunction(()=>/^[1-9]\d*초 경과$/.test(document.querySelector('.nubi-project-open-progress time')?.textContent||''));assert.equal(await progress.getByRole('progressbar').getAttribute('value'),null);await page.screenshot({path:path.join(out,'switching.png')});
  await page.locator('html[data-project-switching]').waitFor({state:'detached'});
  await page.getByRole('button',{name:'project-alpha 대화 접기',exact:true}).waitFor();
@@ -38,10 +46,22 @@ try{
  assert(frames.slice(start).filter(row=>!row.switching).every(row=>row.active==='project-alpha'));
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>el.inert),false);
  const events=await page.evaluate(()=>window.switchProgressEvents);assert(events.some(event=>event.stage==='opening'));assert(events.some(event=>event.stage==='saving'));assert(events.every(event=>Object.keys(event).every(key=>['type','requestId','stage'].includes(key))));
+ await page.waitForFunction(()=>!document.querySelector('.nubi-project-switch-cover[data-leaving]'));
+ assert((await page.evaluate(()=>window.loadingMotionEvents)).includes('nubi-view-project-loader-exit'),'ready view is revealed by a bounded fade');
+ assert.equal(await page.locator('.nubi-project-switch-cover').evaluate(node=>getComputedStyle(node).display),'none');
  await page.screenshot({path:path.join(out,'ready.png')});
+ await page.emulateMedia({reducedMotion:'reduce'});
+
  await app.evaluate(()=>{globalThis.failSwitch=true;});
- await page.getByRole('button',{name:'project-beta 대화 펼치기',exact:true}).click();await page.locator('html[data-project-switching]').waitFor();await page.locator('html[data-project-switching]').waitFor({state:'detached'});
+ await page.getByRole('button',{name:'project-beta 대화 펼치기',exact:true}).click();await page.locator('html[data-project-switching]').waitFor();
+ await page.waitForTimeout(300);
+ assert.equal(await page.locator('.nubi-project-switch-scene').evaluate(node=>getComputedStyle(node).transform),'none','reduced motion has no entrance translation');
+ assert.equal(await page.locator('.nubi-project-switch-cover .nubi-progress > span').evaluate(node=>getComputedStyle(node).animationPlayState),'paused','reduced motion keeps a static progress indication');
+ await page.screenshot({path:path.join(out,'reduced-motion.png')});
+ await page.locator('html[data-project-switching]').waitFor({state:'detached'});
+ await page.waitForFunction(()=>!document.querySelector('.nubi-project-switch-cover[data-leaving]'));
+
  assert.equal(await page.locator('.nubi-saved-project[data-current="true"] .nubi-sidebar-project-name').innerText(),'project-alpha');
  assert.equal(await page.locator('.desktop-workspace-body').evaluate(el=>el.inert),false);assert.deepEqual(errors,[]);
- await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,frames,errors,failureRestoresOriginal:true,elapsedSeconds:true,projectName:true,realHostStages:true,boundary:'Actual macOS Electron with temporary local projects, delayed switch response. Windows installer not tested.'},null,2));console.log('Project switch cover passed');
+ await writeFile(path.join(out,'result.json'),JSON.stringify({passed:true,frames,errors,failureRestoresOriginal:true,elapsedSeconds:true,projectName:true,realHostStages:true,backgroundPaused:true,sharedEntranceExit:true,reducedMotion:true,loaderOnlyProgressRepeats:true,boundary:'Actual macOS Electron with temporary local projects, delayed switch response. Windows installer not tested.'},null,2));console.log('Project switch cover passed');
 }catch(error){if(page)await page.screenshot({path:path.join(out,'failure.png')});throw error;}finally{await app?.close();await rm(temp,{recursive:true,force:true});}

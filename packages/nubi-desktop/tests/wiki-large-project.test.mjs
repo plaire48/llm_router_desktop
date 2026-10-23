@@ -29,7 +29,8 @@ test('more than 20,000 sources survive folder/Git enumeration, Wiki generation a
   // scanning) took over 10 minutes for this add alone (Windows build s, 2026-10-21), so setup has its own longer limit.
   const FIXTURE_GIT_TIMEOUT=20*60*1000;
   await git(root,['add','-A'],{timeout:FIXTURE_GIT_TIMEOUT});await git(root,['-c','user.name=Fixture','-c','user.email=fixture@localhost','-c','commit.gpgSign=false','commit','-qm','Many sources'],{timeout:FIXTURE_GIT_TIMEOUT});
-  assert.equal((await listFiles(root)).truncated,true,'interactive search retains its bounded contract');
+  assert.equal((await listFiles(root)).truncated,false,'default enumeration now supports the authorized large corpus');
+  assert.equal((await listFiles(root,{maxFiles:20000})).truncated,true,'an explicitly lower response budget is still enforced');
   assert.deepEqual((await listWikiSourceFiles(root)).paths,folder.paths);
   const sources=await wikiSources(root);
   assert.equal(sources.length,count+2);assert(sources.every(file=>file.content===undefined&&file.hash&&file.sourceRoot),'keep hashes, not all source bodies in memory');

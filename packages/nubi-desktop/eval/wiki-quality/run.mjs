@@ -8,19 +8,17 @@
 import {mkdir,readFile,rm,writeFile,readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {lintWikiPages,inspectWikiPage,summarizeWikiQuality} from '../../runtime/wiki-quality.mjs';
 
-export function lintPages(pages){
- // pages: {rel: text}. Navigation-only checks; no model.
- const names=new Set(Object.keys(pages));const rows=[];
- for(const [rel,text] of Object.entries(pages)){
-  const lines=text.split('\n');const headings=lines.map((line,i)=>({line:i,level:(/^(#{1,6})\s/.exec(line)||[])[1]?.length||0})).filter(h=>h.level);
-  let emptySections=0;for(let i=0;i<headings.length;i++){const start=headings[i].line+1,end=i+1<headings.length?headings[i+1].line:lines.length;if(!lines.slice(start,end).some(line=>line.trim()))emptySections++;}
-  const links=[...text.matchAll(/\]\(([^)#\s]+\.md)(?:#[^)]*)?\)/g)].map(m=>m[1]);
-  const broken=links.filter(link=>{const target=path.posix.normalize(path.posix.join(path.posix.dirname(rel),link));return !names.has(target)&&!names.has(link);});
-  const words=text.replace(/\s+/g,' ').trim().length;
-  rows.push({page:rel,chars:words,headings:headings.length,emptySections,links:links.length,brokenLinks:broken.length,thin:words<300});
- }
- return {pages:rows.length,emptySections:rows.reduce((n,r)=>n+r.emptySections,0),brokenLinks:rows.reduce((n,r)=>n+r.brokenLinks,0),thinPages:rows.filter(r=>r.thin).length,medianChars:rows.map(r=>r.chars).sort((a,b)=>a-b)[Math.floor(rows.length/2)]??0,rows};
+export function lintPages(pages,{repositoryPaths}={}){
+ if(repositoryPaths===undefined)return lintWikiPages(pages);
+ const rooted=Object.entries(pages).map(([page,text])=>[page.startsWith('openwiki/')?page:'openwiki/'+page,text]),paths=new Set([...repositoryPaths,...rooted.map(([page])=>page)]);
+ return summarizeWikiQuality(rooted.map(([page,text])=>inspectWikiPage(page,text,{paths})),{limit:Infinity});
+}
+export function gradeWikiUse(file,rows,linkedPages){
+ const page=value=>value.replace(/^\/?openwiki\//,'');
+ const linked=new Set(linkedPages.map(page)),hits=rows.slice(0,5);
+ return {linked:hits.some(row=>linked.has(page(row.path))),grounded:hits.some(row=>row.freshness==='source_matched'&&row.sourceReferences?.some(ref=>ref.path===file&&ref.state==='source_matched'))};
 }
 
 const isMain=process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url;
@@ -58,7 +56,7 @@ try{
  if(!skipInit)await rm(path.join(root,'openwiki'),{recursive:true,force:true});
  service=new ProjectService({storageRoot:path.join(out,'state')});service.providers=providers;
  const started=Date.now(),stages=[];let last='',job=null;
- await service.open(root);
+ await service.open(root,{initializeWiki:!skipInit});
  if(skipInit){job=service.wikiInitialization();}
  else for(;;){
   job=service.wikiInitialization();
@@ -72,11 +70,12 @@ try{
  const pages=await listWikiPages();
  let metrics=null;try{const m=readRunMetrics(service.store,{taskId:'wiki-update:'+job?.id,runId:job?.id});metrics=m?.summary?{modelCalls:m.summary.modelCalls,retries:m.summary.retries,promptTokens:m.summary.promptTokens,completionTokens:m.summary.completionTokens,cachedTokens:m.summary.cachedTokens,cacheShare:m.summary.cacheShare,peakRequestCharacters:m.summary.peakRequestCharacters,averageRequestCharacters:m.summary.modelCalls?Math.round(m.summary.requestCharacters/m.summary.modelCalls):null,elapsedMs:m.summary.elapsedMs,submissions:m.summary.submissions}:null;}catch{}
  report.steps.init={state:job?.state,stage:job?.stage,error:job?.error||null,failure:job?.failure||null,elapsedMs:Date.now()-started,pages:Object.keys(pages).length,sourceFiles:job?.sourceFiles??null,excludedFiles:job?.excludedFiles??null,metrics,stages:stages.slice(0,80)};
- report.steps.lint=lintPages(pages);
+ const inventory=await wikiSourceInventory(root,{});
+ report.steps.lint=lintPages(pages,{repositoryPaths:inventory.paths});
  // Coverage of important files (host-owned audit, no model).
  try{report.steps.coverage=await service.wikiCoverage({});}catch(error){report.steps.coverage={error:String(error?.message||error).slice(0,160)};}
  // Use: do the most important files (code map) lead to a grounded page through retrieval?
- const inventory=await wikiSourceInventory(root,{});const map=await codeMap(root,inventory.paths);
+ const map=await codeMap(root,inventory.paths);
  const important=map.ranking.filter(r=>!r.entrypoint||true).slice(0,probes).map(r=>r.path);
  let coverage=null;try{coverage=await coverageMap(root,{important,nativeRun:true});}catch(error){report.steps.groundingError=String(error?.message||error).slice(0,160);}
  const probeRows=[];
@@ -84,8 +83,8 @@ try{
   const name=path.posix.basename(file).replace(/\.[^.]+$/,'');const query=`${name} 역할과 사용처`;
   const started=performance.now();let result;try{result=await service.wikiQuery({query});}catch(error){probeRows.push({file,query,error:String(error?.message||error).slice(0,120)});continue;}
   const hits=(result?.results||[]).slice(0,5).map(row=>row.path?.replace(/^\/?openwiki\//,'')).filter(Boolean);
-  const groundedPages=coverage?.files?.[file]||[];const grounded=hits.some(page=>groundedPages.includes(page));
-  probeRows.push({file,query,hits,groundedPages,grounded,ms:Math.round(performance.now()-started)});
+  const groundedPages=coverage?.files?.[file]||[];
+  probeRows.push({file,query,hits,groundedPages,...gradeWikiUse(file,result.results||[],groundedPages),ms:Math.round(performance.now()-started)});
  }
  const measured=probeRows.filter(r=>!r.error);
  report.steps.use={probes:probeRows.length,grounded:measured.filter(r=>r.grounded).length,groundedRate:measured.length?measured.filter(r=>r.grounded).length/measured.length:null,anyHit:measured.filter(r=>r.hits.length).length,p95Ms:measured.map(r=>r.ms).sort((a,b)=>a-b)[Math.max(0,Math.ceil(measured.length*.95)-1)]??null,rows:probeRows};

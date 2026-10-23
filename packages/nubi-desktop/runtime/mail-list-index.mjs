@@ -198,7 +198,7 @@ export class MailListIndex {
   const last=db.prepare("SELECT json_extract(metadata,'$.row.savedAt') at FROM mail_list INDEXED BY nubi_mail_list_saved WHERE state='saved' AND "+scope+" ORDER BY json_extract(metadata,'$.row.savedAt') DESC LIMIT 1").get(...bindings);
   const timing=db.prepare("SELECT json_extract(metadata,'$.row.summaryTiming') timing FROM mail_list INDEXED BY nubi_mail_list_timing WHERE state='saved' AND "+scope+" AND json_extract(metadata,'$.row.summaryTiming.state')='completed' ORDER BY json_extract(metadata,'$.row.savedAt') DESC LIMIT 1").get(...bindings);
   const attachment=attachmentReading?db.prepare("SELECT json_extract(metadata,'$.row.attachmentProgress') progress FROM mail_list WHERE "+scope+" AND json_extract(metadata,'$.row.attachmentState')='reading' LIMIT 1").get(...bindings):null;
-  return {received:count(),saved:count(" WHERE state='saved'"),queued:count(" WHERE state='queued'"),localCount:count(" WHERE protocol='local'"),
+  return {received:count(),indexed:count(" WHERE state='indexed'"),saved:count(" WHERE state='saved'"),queued:count(" WHERE state='queued'"),localCount:count(" WHERE protocol='local'"),
    localKinds:db.prepare("SELECT DISTINCT mailbox FROM mail_list WHERE protocol='local'").all().map(x=>x.mailbox),attention,
    scopedSaved:count(" WHERE "+scope+" AND state='saved'",bindings),scopedQueued:count(" WHERE "+scope+" AND state IN ('queued','summarizing')"+(attachmentReading?" AND coalesce(json_extract(metadata,'$.row.attachmentState'),'')!='attention'":""),bindings),
    lastAppliedAt:last?.at||null,lastTiming:timing?.timing?JSON.parse(timing.timing):null,attachment:attachment?.progress?JSON.parse(attachment.progress):null};

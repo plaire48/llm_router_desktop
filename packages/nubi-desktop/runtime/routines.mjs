@@ -1,11 +1,6 @@
-import {createRoutineUiActions} from './routine-ui.mjs';
 import {randomUUID} from 'node:crypto';
 import {wikiChatBlocked} from './wiki-chat-admission.mjs';
 import {humanDecisions} from '../ui/human-decisions.mjs';
-import {loadWorkflowPackage,saveWorkflowSchedule,formatWorkflowSchedule} from './workflow-package.mjs';
-import {DESKTOP_FEATURES} from './beta-features.mjs';
-import {workflowsEnabled,requireWorkflows} from './workflow-feature.mjs';
-const SLUG=/^[a-z0-9][a-z0-9-]{0,79}$/;
 const fail=code=>{throw Error(code);};
 const iso=value=>new Date(value).toISOString();
 function slot(routine,now,next){
@@ -20,7 +15,7 @@ function slot(routine,now,next){
 }
 export const nextRun=(routine,now=new Date())=>slot(routine,now,true).toISOString();
 export function dueRoutines(store,now=new Date()){
- return store.list('routine:').filter(r=>{try{const at=+slot(r,now,false);return r.enabled===true&&(!r.createdAt||Date.parse(r.createdAt)<=at)&&(!r.lastRunAt||Date.parse(r.lastRunAt)<at);}catch{return false;}});
+ return store.list('routine:').filter(r=>{try{const at=+slot(r,now,false);return r.kind!=='workflow'&&r.enabled===true&&(!r.createdAt||Date.parse(r.createdAt)<=at)&&(!r.lastRunAt||Date.parse(r.lastRunAt)<at);}catch{return false;}});
 }
 export function createRoutineScheduler({store,run,now=()=>Date.now(),interval=60000,isBusy=()=>false,canRun=()=>true}){
  let timer,stopped=false,queue=Promise.resolve(),pending=0;
@@ -28,7 +23,7 @@ export function createRoutineScheduler({store,run,now=()=>Date.now(),interval=60
  const update=(id,values)=>{const current=store.get('routine:'+id);if(current)store.set('routine:'+id,{...current,...values});};
  async function execute(id,manual){
   if(stopped)return {skipped:true};
-  const routine=store.get('routine:'+id);if(!routine)fail('routine_missing');const revision=JSON.stringify(routine);
+  const routine=store.get('routine:'+id);if(!routine)fail('routine_missing');if(routine.kind==='workflow')fail('feature_removed');const revision=JSON.stringify(routine);
   if(!manual&&!dueRoutines(store,now()).some(row=>row.id===id))return {skipped:true};
   if(await isBusy(routine)){if(manual)fail('routine_busy');return {skipped:true};}
   if(!await canRun(routine)){if(manual)fail('routine_not_ready');return {skipped:true};}
@@ -42,12 +37,10 @@ export function createRoutineScheduler({store,run,now=()=>Date.now(),interval=60
  return {get busy(){return pending>0;},runNow:id=>serial(()=>execute(id,true)),tick:()=>serial(async()=>{if(stopped)return;for(const r of dueRoutines(store,now())){try{await execute(r.id,false);}catch{update(r.id,{lastError:'routine_not_ready'});}}}),
   start(){stopped=false;if(timer)return;void this.tick().catch(()=>{});timer=setInterval(()=>{void this.tick().catch(()=>{});},interval);timer.unref?.();},stop(){stopped=true;clearInterval(timer);timer=null;}};
 }
-export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date.now(),canStart=()=>true,onActivity=()=>{},features=DESKTOP_FEATURES}){
+export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date.now(),canStart=()=>true,onActivity=()=>{}}){
  const owner=async routine=>{const project=(await listProjects()).find(p=>p.id===routine.projectId);if(!project)fail('project_missing');return serviceFor(project);};
- const ui=createRoutineUiActions({store,owner});
  const watched=new WeakSet();
  const notify=(service,taskId,phase)=>{try{onActivity({projectId:service.projectId,taskId,phase});}catch{/* UI delivery never replays work. */}};
- const notifySupervision=(service,r)=>{try{onActivity({projectId:service.projectId,routineId:r.id,routineName:r.name,slug:r.slug,phase:'supervision_required'});}catch{/* see above */}};
  const pending=(service,r)=>{
   const tasks=service.store.list('task:').filter(task=>task.id===r.lastTaskId||task.routineId===r.id);
   const decisions=humanDecisions({...service.state(),projectId:service.projectId});
@@ -60,10 +53,8 @@ export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date
   for(const r of store.list('routine:').filter(r=>r.lastProjectId===service.projectId&&r.lastTaskId)){
    const settled=service.store.get('task:'+r.lastTaskId)&&!pending(service,r)?r.lastTaskId:null;
    if(r.lastSettledTaskId===settled)continue;
-   const task=settled?service.store.get('task:'+settled):null,success=!!task&&['completed','review'].includes(task.state)&&!task.routineError&&r.kind!=='workflow';
+   const task=settled?service.store.get('task:'+settled):null,success=!!task&&['completed','review'].includes(task.state)&&!task.routineError;
    const successCount=(r.successCount||0)+(success?1:0);store.set('routine:'+r.id,{...r,lastSettledTaskId:settled,successCount});
-   // A free request that keeps succeeding is proposed as a workflow exactly once (§3.5 import entry).
-   if(success&&successCount>=3&&!service.store.get('workflow-promotion:'+r.id))service.store.set('workflow-promotion:'+r.id,{routineId:r.id,name:r.name,request:r.request,projectId:service.projectId,count:successCount,state:'proposed',createdAt:iso(now())});
   }
   const promise=service.agent?.promise,taskId=service.agent?.taskId;
   if(promise&&typeof promise.then==='function'&&!watched.has(promise)&&store.list('routine:').some(r=>r.lastProjectId===service.projectId&&r.lastTaskId===taskId)){
@@ -82,57 +73,26 @@ export function createRoutineManager({store,listProjects,serviceFor,now=()=>Date
   canRun:async r=>{const service=await owner(r);return canStart()&&service.providers?.status().connected&&!service.agent?.running&&!service.wikiResetting&&!wikiChatBlocked(service);},
   run:async(r,{recordTask})=>{
    const service=await owner(r);
-   if(r.kind==='workflow'){
-    let run;
-    try{run=await service.startWorkflow({slug:r.slug,inputs:r.inputs||{},trigger:{kind:'routine',routineId:r.id,routineName:r.name}});}
-    catch(error){
-     // One notice per reserved slot: the scheduler does not retry this slot (design §3.8).
-     if(error.message==='workflow_supervision_required')notifySupervision(service,r);
-     throw error;
-    }
-    recordTask(run.taskId);notify(service,run.taskId,'started');observe(service);return {taskId:run.taskId,runId:run.id,projectId:service.projectId};
-   }
    const task=await service.createTask({request:r.request},{id:r.id,name:r.name});recordTask(task.id);
    try{await service.startAgent({taskId:task.id});}
    catch(error){service.store.set('task:'+task.id,{...service.task(task.id),state:'failed',routineError:'routine_not_ready'});observe(service);notify(service,task.id,'settled');throw error;}
    notify(service,task.id,'started');observe(service);return {taskId:task.id,projectId:service.projectId};
   }
  });
- const api={observe,get busy(){return scheduler.busy;},start:()=>scheduler.start(),stop:()=>scheduler.stop(),tick:()=>scheduler.tick(),runNow:({id})=>scheduler.runNow(id),
-  catalog:args=>ui.catalog(args),resolvePromotion:args=>ui.resolve(args),
-  async list({promotions=false}={}){const items=store.list('routine:').map(r=>({...r,nextRunAt:r.enabled?nextRun(r,now()):null}));if(promotions)for(const row of items){try{row.promotion=await ui.promotion(row);}catch{row.promotion=null;}}return {items,projects:await listProjects()};},
+ return {observe,get busy(){return scheduler.busy;},start:()=>scheduler.start(),stop:()=>scheduler.stop(),tick:()=>scheduler.tick(),runNow:({id})=>scheduler.runNow(id),
+  async list(){return {items:store.list('routine:').filter(r=>r.kind!=='workflow').map(r=>({...r,nextRunAt:r.enabled?nextRun(r,now()):null})),projects:await listProjects()};},
   async save(input){
    const kind=input?.kind??'prompt';
-   if(!['prompt','workflow'].includes(kind)||typeof input?.name!=='string'||!input.name.trim()||input.name.length>80||typeof input.projectId!=='string'||typeof input.enabled!=='boolean')fail('routine_invalid');
+   if(kind!=='prompt'||typeof input?.name!=='string'||!input.name.trim()||input.name.length>80||typeof input.projectId!=='string'||typeof input.enabled!=='boolean')fail('routine_invalid');
    if(kind==='prompt'&&(typeof input.request!=='string'||!input.request.trim()||input.request.length>16000))fail('routine_invalid');
-   if(kind==='workflow'&&(!SLUG.test(input.slug||'')||input.request!==undefined||input.inputs!==undefined&&(!input.inputs||typeof input.inputs!=='object'||Array.isArray(input.inputs)||JSON.stringify(input.inputs).length>16000)))fail('routine_invalid');
    if(!(await listProjects()).some(p=>p.id===input.projectId))fail('project_missing');nextRun(input,now());
    const previous=input.id?store.get('routine:'+input.id):null;if(input.id&&!previous)fail('routine_missing');
    if(previous&&(previous.kind||'prompt')!==kind)fail('routine_invalid');
    const schedule={kind:input.schedule.kind,time:input.schedule.time,...(input.schedule.kind==='weekly'?{weekday:input.schedule.weekday}:{})};
    const value={...previous,id:previous?.id||randomUUID(),name:input.name.trim(),projectId:input.projectId,kind,schedule,enabled:input.enabled,createdAt:previous?.createdAt||iso(now())};
-   if(kind==='workflow'){
-    value.slug=input.slug;value.inputs=structuredClone(input.inputs||previous?.inputs||{});delete value.request;
-    // YAML is the truth: the routine screen writes only trigger.schedule back (§3.8).
-    const service=await owner(value),pkg=await loadWorkflowPackage(service.root,value.slug);
-    if(pkg.workflow.trigger?.kind!=='routine')fail('workflow_trigger_invalid');
-    if(pkg.workflow.trigger.schedule!==formatWorkflowSchedule(schedule))await saveWorkflowSchedule(service.root,value.slug,schedule);
-   }else{value.request=input.request.trim();delete value.slug;delete value.inputs;}
+   value.request=input.request.trim();delete value.slug;delete value.inputs;
    store.set('routine:'+value.id,value);return value;
   },
   delete({id,confirmed}){if(confirmed!==true)fail('routine_confirmation');store.delete('routine:'+id);return {deleted:true};}
  };
- return withWorkflowSwitch(api,{store,now,features});
-}
-// Routines run prompts and workflows on a schedule; both are off in this release (design light-flow §5.1). Nothing is
-// scheduled, saved or deleted, stored routines stay as they were, and the person who had routines is told once.
-const ROUTINE_NOTICE_KEY='notice:routines-paused-1.3.1';
-const ROUTINE_NOTICE_TEXT='루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.';
-function withWorkflowSwitch(api,{store,now,features}){
- api.notice=()=>({show:!workflowsEnabled(features)&&store.list('routine:').length>0&&!store.get(ROUTINE_NOTICE_KEY),text:ROUTINE_NOTICE_TEXT});
- api.acknowledgeNotice=()=>{store.set(ROUTINE_NOTICE_KEY,{at:iso(now())});return api.notice();};
- if(workflowsEnabled(features))return api;
- const off=()=>requireWorkflows(features);
- Object.assign(api,{start:()=>{},tick:async()=>{},runNow:async()=>off(),save:async()=>off(),delete:()=>off(),catalog:async()=>off(),resolvePromotion:async()=>off()});
- return api;
 }

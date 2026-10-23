@@ -12,14 +12,16 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);const card=page.locator('.nubi-mail-thread-card');await card.locator('summary').click();
   assert.equal(await card.locator('li').count(),20);assert.match(await card.innerText(),/65통/);assert.match(await card.innerText(),/위키 정리됨/);
   await page.getByRole('textbox',{name:'보존 초안'}).fill('보존할 새 메모');
+  await card.getByRole('button',{name:'대화를 위키로 정리',exact:true}).click();await card.getByRole('status').filter({hasText:'첨부 예산 자료'}).waitFor();assert.match(await card.innerText(),/50\/65통 기준.*일부 범위 확인/);await captureDesign(page,{path:dir+'/topic-'+width+'.png'});
+  await page.evaluate(()=>window.deferTopic=true);await card.getByRole('button',{name:'대화를 위키로 정리',exact:true}).click();
   await card.getByRole('button',{name:'다음 대화 메일'}).click();await card.getByRole('button',{name:/합성 출시 검토 20/}).waitFor();
   await card.getByRole('button',{name:/합성 출시 검토 20/}).click();assert.deepEqual(await page.evaluate(()=>window.openedThread),{id:'m20',hash:'h20'});
-  await page.getByRole('heading',{name:'합성 출시 검토 20'}).waitFor();await page.locator('.nubi-mail-thread-card summary').click();
+  await page.getByRole('heading',{name:'합성 출시 검토 20'}).waitFor();await page.evaluate(()=>{window.finishTopic();window.deferTopic=false;});assert.equal(await page.getByRole('status').filter({hasText:'첨부 예산 자료'}).count(),0);await page.locator('.nubi-mail-thread-card summary').click();
   assert.equal(await page.getByRole('textbox',{name:'보존 초안'}).inputValue(),'보존할 새 메모');assert(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1));assert.deepEqual(errors,[]);
   await captureDesign(page,{path:dir+'/thread-'+width+'.png'});
   await page.evaluate(()=>{window.failThread=true;window.setThreadId('m2');});await page.locator('.nubi-mail-thread-card summary').click();await page.getByRole('button',{name:'다시 확인',exact:true}).waitFor();
   await page.evaluate(()=>window.failThread=false);await page.getByRole('button',{name:'다시 확인',exact:true}).click();await card.getByText('위키 정리됨',{exact:true}).waitFor();
-  checks.push({width,boundedRows:20,draftPreserved:true,sourceHashHandoff:true,recovery:true});await page.close();
+  checks.push({width,boundedRows:20,draftPreserved:true,sourceHashHandoff:true,recovery:true,topicCoverageVisible:true,staleTopicIgnored:true});await page.close();
  }
  await writeFile(dir+'/result.json',JSON.stringify({checks},null,2));console.log(JSON.stringify({checks}));
 }finally{server.closeAllConnections();await new Promise(r=>server.close(r));await browser?.close();}

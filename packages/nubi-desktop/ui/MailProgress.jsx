@@ -4,8 +4,8 @@ import {WikiInitializationProgress} from './WikiInitializationProgress.jsx';
 import {MailBackground} from './MailBackground.jsx';
 import React,{useEffect,useRef,useState} from 'react';
 import {Icon} from '@e2e/cx-design-system';
-const stages={ready:'정리 완료',connecting:'메일 연결 중',disconnected:'메일 연결 필요',off:'자동 정리 꺼짐',checking:'새 메일 확인 중',attachments:'첨부 읽는 중',organizing:'메일 정리 중',waiting_model:'모델 연결 대기',waiting_agent:'현재 작업 후 정리',queued:'정리 대기',paused:'수집 일시중지',attention:'확인 필요',watching:'새 메일 확인 대기'};
-const active=new Set(['connecting','checking','attachments','organizing']);
+const stages={indexing:'메일 검색 준비 중',indexed:'메일 검색 준비 완료',ready:'정리 완료',connecting:'메일 연결 중',disconnected:'메일 연결 필요',off:'자동 정리 꺼짐',checking:'새 메일 확인 중',attachments:'첨부 읽는 중',organizing:'메일 정리 중',waiting_model:'모델 연결 대기',waiting_agent:'현재 작업 후 정리',queued:'정리 대기',paused:'수집 일시중지',attention:'확인 필요',watching:'새 메일 확인 대기'};
+const active=new Set(['connecting','checking','attachments','organizing','indexing']);
 export function MailProgress({api,wiki,onSettings,onOpenMessage}){
   const [status,setStatus]=useState(null),[unavailable,setUnavailable]=useState(false);
   const [open,setOpen]=useState(false),trigger=useRef(null);
@@ -31,12 +31,12 @@ export function MailProgress({api,wiki,onSettings,onOpenMessage}){
   const background=status.connected&&status.autoWiki&&!status.watchPaused&&!unavailable;
   const stopped=['off','disconnected','paused'].includes(stage);
   const pending=stopped?progress.queued:progress.remaining??progress.queued;
-  const showCounts=progress.completed>0||pending>0||progress.attention>0;
+  const showCounts=progress.completed>0||progress.indexed>0||pending>0||progress.attention>0;
   const next=status.connected&&status.autoWiki&&!status.watchPaused&&status.nextCheckAt&&!active.has(stage)?new Date(status.nextCheckAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}):null;
   return <><footer className="desktop-mail-progress" tabIndex={0} aria-label="작업 상태">
     {showWiki&&<WikiInitializationProgress job={wiki} inline/>}
     <button ref={trigger} type="button" className="nubi-mail-progress-state nubi-mail-progress-open" aria-label="메일 처리 상태 확인" title="확인 필요한 메일과 조치 보기" aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{active.has(stage)||(background&&stage==='watching')?<span className={`status-spinner${stage==='watching'?' nubi-mail-watching-spinner':''}`} aria-hidden="true"/>:<Icon name={stage==='attention'?'alertCircle':'mail'} size={14}/>}<strong>{unavailable?'상태 확인 중':stages[stage]||'메일 처리 중'}</strong></button>
-    {showCounts&&<span className="nubi-mail-progress-counts">{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
+    {showCounts&&<span className="nubi-mail-progress-counts">{progress.indexed>0&&<span>검색 가능 <b>{progress.indexed}</b></span>}{progress.completed>0&&<span>완료 <b>{progress.completed}</b></span>}{pending>0&&<span>{stopped?'보류':progress.remaining==null?'정리 대기':'남음'} <b>{pending}</b></span>}{progress.attention>0&&<span>확인 필요 <b>{progress.attention}</b></span>}</span>}
     {!stopped&&progress.timing&&<ResponseTime timing={progress.timing} label={progress.timing.kind==='saving'?'저장':'정리'} live/>}
     {!stopped&&progress.attachment&&<span className="nubi-mail-progress-attachment">첨부 {progress.attachment.completed}/{progress.attachment.total}</span>}
     <MailTimestamp at={progress.lastAppliedAt}/>

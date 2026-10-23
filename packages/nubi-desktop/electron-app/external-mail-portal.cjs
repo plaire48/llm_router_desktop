@@ -2,26 +2,31 @@ const {MailPortal}=require('./mail-portal.cjs');
 const {ORIGIN,LOGIN_URL,portalOrigin}=require('./mail-portal-contract.cjs');
 const {approvalFailure}=require('./approval-failure.cjs');
 const {loginRedirect}=require('./mail-session-recovery.cjs');
+const {PortalWebList}=require('./mail-portal-web-list.cjs');
 
 // Reuses the existing importer, collection scheduler, identity projection,
 // deduplication, encrypted storage and approvals reader. Only the read transport
 // changes. Browser credentials never leave the original browser.
 class ExternalMailPortal extends MailPortal {
- constructor(options){super(options);this.browser=options.browser;this.binding=null;this.restored=true;}
+ constructor(options){super(options);this.browser=options.browser;this.binding=null;this.restored=true;this.webLists=new PortalWebList();}
  status(){return {...super.status(),browser:'external',sessionShared:!!this.binding};}
  restore(){return undefined;}
  async read(operation,input={}){
   if(!this.binding||this.binding.generation!==this.browser.generation)throw Error('mail_portal_login');
   const epoch=this.epoch,binding=this.binding;if(this.access.signal.aborted)throw Error('mail_cancelled');
-  const result=await this.browser.command('portalRead',{tabId:binding.tabId,origin:binding.origin,input:{...input,operation,reportFailure:['approvals','approvalItem'].includes(operation)}});
-  if(epoch!==this.epoch||this.binding!==binding||binding.generation!==this.browser.generation)throw Error('mail_cancelled');
+  const valid=()=>{if(epoch!==this.epoch||this.binding!==binding||binding.generation!==this.browser.generation||this.access.signal.aborted)throw Error('mail_cancelled');};
+  const request=async(operation,input)=>{valid();try{const result=await this.browser.command('portalRead',{tabId:binding.tabId,origin:binding.origin,input:{...input,operation,reportFailure:['approvals','approvalItem'].includes(operation)}});valid();return result;}catch(error){valid();throw error;}};
+  let result;
+  try{result=operation==='list'?await this.webLists.read(input,request,valid):await request(operation,input);}
+  catch(error){const metadata=operation==='summary'&&this.webLists.summary(input);if(error.message==='mail_portal_endpoint_unavailable'&&metadata)result=metadata;else throw error;}
+  valid();
   if(result?.__nubiPortalError)throw approvalFailure({message:result.__nubiPortalError,httpStatus:result.httpStatus},operation==='approvals'?'list':'document');return result;
  }
  readSession(operation,input){return this.read(operation,input);}
  async connect(args={}){
   if(this.state.connecting||this.state.checking)throw Error('mail_busy');
   if(!this.browser.status().connected)throw Error('external_browser_connection_required');
-  const epoch=++this.epoch;this.access.abort();this.access=new AbortController();clearTimeout(this.timer);this.state={...this.state,connected:false,connecting:true,loginStage:'authenticating',error:null};
+  const epoch=++this.epoch;this.access.abort();this.access=new AbortController();this.webLists=new PortalWebList();clearTimeout(this.timer);this.state={...this.state,connected:false,connecting:true,loginStage:'authenticating',error:null};
   try{
    let rows=await this.browser.command('tabs'),selected=rows.find(row=>row.active)||rows.find(row=>String(row.id)===this.browser.active),tabId;
    if(selected&&portalOrigin(selected.url))tabId=String(selected.id);
@@ -47,7 +52,7 @@ class ExternalMailPortal extends MailPortal {
   }catch(error){if(epoch===this.epoch){this.binding=null;this.state={...this.state,connected:false,connecting:false,loginStage:null,error:/^(?:mail|external_browser)_/.test(error.message)?error.message:'mail_portal_request'};}throw Error(epoch!==this.epoch?'mail_cancelled':this.state.error);}
  }
  async sessionReady(){return this.state.connected?this.status():{...this.status(),requiresLogin:true};}
- async clearPortalSession(){this.binding=null;}
- async disconnect(){this.binding=null;return super.disconnect();}
+ async clearPortalSession(){this.binding=null;this.webLists=new PortalWebList();}
+ async disconnect(){this.binding=null;this.webLists=new PortalWebList();return super.disconnect();}
 }
 module.exports={ExternalMailPortal};

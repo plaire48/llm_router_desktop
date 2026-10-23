@@ -1,4 +1,5 @@
 import {captureDesign} from './design-rules.mjs';
+import {auditButtonLayout} from './button-layout-audit.mjs';
 import {build,stop} from 'esbuild';
 import {chromium} from 'playwright';
 import {mkdir,readFile,writeFile,cp} from 'node:fs/promises';
@@ -17,13 +18,14 @@ if(baseline){
  await build({...rendererBundleOptions(),entryPoints:['tests/surface-audit-fixture.jsx'],entryNames:'app',outdir:bundle,minify:false,splitting:false});stop();
 }
 await cp('../../extensions/aipro-chat/public/icons',bundle+'/icons',{recursive:true});
+if(!baseline)await cp('design/brand/calm-liquid/icons',bundle+'/icons',{recursive:true});
 await writeFile(bundle+'/index.html','<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div class="desktop-shell" data-platform="darwin" data-toolbar="true" data-layout="split"><div id="toolbar" class="desktop-titlebar"></div><div class="desktop-workspace-body"><div class="desktop-agent" id="root"></div></div></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const file=path.resolve(bundle,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!file.startsWith(bundle+path.sep))throw Error();const data=await readFile(file);res.writeHead(200,{'content-type':({'.html':'text/html','.js':'text/javascript','.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
-let browser,page;const records=[],errors=[];
+let browser,page;const records=[],errors=[],buttonLayouts=[];
 async function measure(name,selector,size){
- const icons=await page.locator(selector).evaluateAll(nodes=>nodes.filter(n=>n.checkVisibility()).map(n=>{const r=n.getBoundingClientRect(),b=n.closest('button,summary,a,[role=button]')?.getBoundingClientRect();return {name:n.dataset.icon||n.closest('button')?.getAttribute('aria-label'),width:r.width,height:r.height,target:b?{width:b.width,height:b.height}:null};}));
+ const icons=await page.locator(selector).evaluateAll((nodes,expectedSize)=>nodes.filter(n=>n.checkVisibility()).map(n=>{const r=n.getBoundingClientRect(),b=n.closest('button,summary,a,[role=button]')?.getBoundingClientRect();const disclosure=n.dataset.icon?.startsWith('chevron')&&n.closest('button[aria-expanded],button[aria-haspopup],summary,.nubi-settings-row,.nubi-skill-menu-marketplace,.nubi-applied-trigger');return {name:n.dataset.icon||n.closest('button')?.getAttribute('aria-label'),width:r.width,height:r.height,expected:disclosure?parseFloat(getComputedStyle(document.documentElement).fontSize)*.75:expectedSize,target:b?{width:b.width,height:b.height}:null};}),size);
  assert(icons.length,name+': visible glyphs');
- if(!baseline)for(const icon of icons){assert(Math.abs(icon.width-size)<.2&&Math.abs(icon.height-size)<.2,name+': glyph size '+JSON.stringify(icon));if(icon.target)assert(icon.target.width>=icon.width&&icon.target.height>=icon.height,name+': target contains glyph');}
+ if(!baseline)for(const icon of icons){assert(Math.abs(icon.width-icon.expected)<.2&&Math.abs(icon.height-icon.expected)<.2,name+': glyph size '+JSON.stringify(icon));if(icon.target)assert(icon.target.width>=icon.width&&icon.target.height>=icon.height,name+': target contains glyph');}
  records.push({name,icons});
 }
 try{
@@ -48,11 +50,19 @@ try{
   const close=page.getByRole('button',{name:'사이드바 접기',exact:true});if(width===440&&await close.count())await close.click();
   await measure('composer-'+suffix,'.composer-tools > button:not(.context-trigger) > svg',16*k);
   if(!baseline)await measure('send-'+suffix,'.composer button[aria-label="전송"] > svg',16*k);
+  if(!baseline){const layout=await auditButtonLayout(page);assert.deepEqual(layout.issues,[],'conversation button layout '+suffix);buttonLayouts.push({scene:'conversation-'+suffix,...layout});}
   await captureDesign(page,{path:`${dir}/${phase}-conversation-${suffix}.png`});
   await page.getByRole('button',{name:'설정',exact:true}).click();await page.getByRole('dialog',{name:'설정',exact:true}).waitFor();
   await measure('dialog-close-'+suffix,'.deck-dialog .cx-panel-header-actions [data-action=close] > svg',16*k);
   if(!baseline){const target=records.at(-1).icons[0].target;assert(target.width>=40&&target.height>=40,'close click target remains 40px');}
   if(touch){assert(await page.evaluate(()=>matchMedia('(pointer:coarse)').matches));for(const record of records.filter(r=>r.name.endsWith('-touch')&&!r.name.startsWith('conversation')))for(const icon of record.icons)assert(icon.target.width>=44&&icon.target.height>=44,'touch target: '+JSON.stringify(icon));}
+  if(!baseline){const layout=await auditButtonLayout(page);assert.deepEqual(layout.issues,[],'settings button layout '+suffix);buttonLayouts.push({scene:'settings-'+suffix,...layout});}
+  if(touch){
+   // Both edges are outside the painted 27px track, inside the touch target.
+   const toggle=page.getByRole('switch',{name:'진행 과정 표시',exact:true}),before=await toggle.getAttribute('aria-checked'),target=await toggle.boundingBox();
+   await toggle.click({position:{x:target.width/2,y:2}});await page.waitForFunction(before=>document.querySelector('button[role=switch][aria-label="진행 과정 표시"]').getAttribute('aria-checked')!==before,before);
+   await toggle.click({position:{x:target.width/2,y:target.height-2}});await page.waitForFunction(before=>document.querySelector('button[role=switch][aria-label="진행 과정 표시"]').getAttribute('aria-checked')===before,before);
+  }
   await page.getByRole('dialog',{name:'설정',exact:true}).screenshot({path:`${dir}/${phase}-settings-${suffix}.png`});await page.keyboard.press('Escape');
  }
  if(!baseline){
@@ -65,5 +75,5 @@ try{
   await captureDesign(page,{path:`${dir}/provider-colors.png`});
   await writeFile(`${dir}/provider-colors.json`,JSON.stringify(colors,null,2));
  }
- assert.deepEqual(errors,[]);await writeFile(`${dir}/${phase}.json`,JSON.stringify({records,errors,boundary:'Actual production components and full Desktop CSS in Chrome with synthetic data. Pixel values are Nubi adaptations, not Apple-prescribed icon sizes.'},null,2));console.log(JSON.stringify({phase,groups:records.length,errors}));
+ assert.deepEqual(errors,[]);await writeFile(`${dir}/${phase}.json`,JSON.stringify({records,errors,buttonLayouts,boundary:'Actual production components and full Desktop CSS in Chrome with synthetic data. Pixel values are Nubi adaptations, not Apple-prescribed icon sizes.'},null,2));console.log(JSON.stringify({phase,groups:records.length,errors}));
 }catch(error){await page?.screenshot({path:`${dir}/${phase}-failure.png`});throw error;}finally{await browser?.close();await new Promise(r=>server.close(r));}

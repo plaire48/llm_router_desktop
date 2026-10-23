@@ -82,18 +82,22 @@ export class MailWikiVault{
   }
   async readStored(name){try{return decryptPage(this.key,await readFile(path.join(this.storeRoot,name+'.enc')));}catch{return null;}}
   // Full pass: every session page is compared with its stored copy; stored pages without a session file are kept.
-  async syncAll(){
-    if(!this.active||this.disposed)return;
+  async syncAll({closing=false}={}){
+    if(!this.active||this.disposed&&!closing)return;
     let names=[];try{names=(await readdir(this.sessionRoot)).filter(pageName);}catch{return;}
-    if(this.disposed)return;
+    if(this.disposed&&!closing)return;
     for(const name of names)this.pending.add(name);
     await this.sync();
   }
   // Final sync, then the session copy is wiped so no plain page outlives the runtime.
-  async dispose(){
+  dispose(){
+    if(this.disposing)return this.disposing;
     this.disposed=true;clearTimeout(this.debounce);clearInterval(this.timer);this.watcher?.close();this.watcher=null;
-    if(this.active){try{await this.syncAll();}catch{}}
-    await rm(this.sessionRoot,{recursive:true,force:true}).catch(()=>{});
-    this.key=null;
+    this.disposing=(async()=>{
+      if(this.active){try{await this.syncAll({closing:true});}catch{}}
+      await rm(this.sessionRoot,{recursive:true,force:true}).catch(()=>{});
+      this.key=null;
+    })();
+    return this.disposing;
   }
 }

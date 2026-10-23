@@ -1,0 +1,32 @@
+import {_electron as electron} from 'playwright';
+import {createRequire} from 'node:module';
+import {mkdtemp,mkdir,writeFile,rm,realpath} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import path from 'node:path';
+import os from 'node:os';
+import assert from 'node:assert/strict';
+import {desktopTestWindow,killProcessTree} from './electron-test-window.mjs';
+import {startFixtureModel} from './fixture-model.mjs';
+import {captureDesign} from './design-rules.mjs';
+
+const require=createRequire(import.meta.url),temporary=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-personal-entry-'))),storage=path.join(temporary,'state'),root=path.join(temporary,'project'),output=path.resolve('verification/personal-chat-entry-2026-10-23');
+await Promise.all([mkdir(storage),mkdir(root),mkdir(output,{recursive:true})]);execFileSync('git',['init',root],{stdio:'ignore'});await mkdir(path.join(root,'openwiki'));await writeFile(path.join(root,'openwiki/home.md'),'# Local fixture project\n');await writeFile(path.join(root,'notes.md'),'Keep project files\n');
+const fixture=await startFixtureModel({respond:({text})=>text('이 검사는 메시지를 보내지 않습니다.')}),checks=[],errors=[];let app,page,child;
+const request=(method,args={})=>page.evaluate(({method,args})=>window.nubi.request(method,args),{method,args});
+const composer=()=>page.getByRole('textbox',{name:'작업 요청',exact:true});
+async function ready(){await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await page.locator('.nubi-intro').waitFor({state:'detached'});}
+async function enter(){await page.getByRole('button',{name:'프로젝트 없이 대화',exact:true}).click();await page.waitForFunction(()=>!document.documentElement.hasAttribute('data-project-switching'));const state=await request('overview');assert.equal(state.kind,'conversation');assert.equal(await page.locator('.nubi-project-start').count(),0,'explicit personal entry must not return to the project picker');await composer().waitFor();await page.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='작업 요청');return state;}
+try{
+ app=await electron.launch({executablePath:require('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,OPENWIKI_CONFIG_DIR:path.join(temporary,'wiki-state'),NUBI_WEB_PORT:undefined,ELECTRON_RUN_AS_NODE:undefined}});child=app.process();page=await desktopTestWindow(app);page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));await (await app.browserWindow(page)).evaluate(win=>{win.setIgnoreMouseEvents(true);win.setContentSize(1280,860);});await ready();
+ const connected=await request('provider',{action:'connect',input:fixture.connection});assert.equal(connected.connected,true);await page.getByRole('button',{name:'프로젝트 없이 대화',exact:true}).waitFor({timeout:20000});
+ const personal=await enter();checks.push('처음 시작에서 한 번 누르면 개인 대화 입력창에 바로 진입하고 초점 이동');await composer().fill('보존할 개인 새 대화 초안');if(await page.locator('.nubi-feedback-toast').count())await page.locator('.nubi-feedback-toast').getByRole('button',{name:'알림 닫기',exact:true}).click();await captureDesign(page,{path:output+'/personal-chat.png'});
+ const saved=await request('createTask',{request:'보존할 기존 개인 대화'});assert(saved.id);await page.evaluate(({projectId,taskId})=>localStorage.setItem('nubi-session-tabs-v1:'+projectId,JSON.stringify({tabs:[taskId],selected:taskId})),{projectId:personal.projectId,taskId:saved.id});
+ await app.evaluate(({dialog},root)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[root]});},root);await page.getByRole('button',{name:'프로젝트 추가',exact:true}).click();await page.getByRole('button',{name:/폴더 열기/}).click();await page.locator('.nubi-project-wiki-progress[data-preparation-phase=ready]').waitFor();await page.waitForFunction(()=>!document.documentElement.hasAttribute('data-project-switching'));await composer().waitFor();assert.equal(await page.locator('.nubi-wiki-existing').count(),0,'existing Wiki is reused without a second decision');const project=await request('overview');assert.equal(project.kind,'project');await composer().fill('보존할 프로젝트 초안');
+ await page.getByRole('button',{name:'프로젝트 추가',exact:true}).click();await enter();assert.equal(await composer().inputValue(),'보존할 개인 새 대화 초안');assert.equal(await page.locator('.nubi-session-row[data-current=true]').count(),0);checks.push('저장된 개인 대화 선택을 자동 복원하지 않고 새 대화 초안으로 직접 진입');
+ const current=await request('state');assert(current.tasks.some(task=>task.id===saved.id));assert.equal(current.tasks.length,1,'entry never creates an empty conversation task');checks.push('기존 개인 대화와 초안을 유지하고 빈 대화 기록은 만들지 않음');
+ await page.locator('.nubi-saved-project').filter({has:page.locator('.nubi-sidebar-project-name',{hasText:'project'})}).locator('.nubi-sidebar-project').click();await page.waitForFunction(()=>document.querySelector('.nubi-saved-project[data-current=true] .nubi-sidebar-project-name')?.textContent==='project');await composer().waitFor();assert.equal((await request('overview')).projectId,project.projectId);assert.equal(await composer().inputValue(),'보존할 프로젝트 초안');checks.push('프로젝트로 돌아오면 해당 프로젝트의 입력 초안 유지');
+ await (await app.browserWindow(page)).evaluate(win=>win.setContentSize(440,820));await page.getByRole('button',{name:'사이드바 펼치기',exact:true}).click();await page.getByRole('button',{name:'프로젝트 추가',exact:true}).click();await enter();assert.equal(await composer().inputValue(),'보존할 개인 새 대화 초안');assert(await composer().isEditable());assert.equal(await page.locator('.nubi-sidebar').getAttribute('data-open'),'false');await captureDesign(page,{path:output+'/personal-chat-narrow.png'});checks.push('좁은 창에서도 목록을 거치지 않고 입력창에 진입');
+ assert.deepEqual(errors,[]);assert.equal(fixture.requests.length,0,'navigation never sends a model request');
+}catch(error){await page?.screenshot({path:output+'/failure.png'}).catch(()=>{});throw error;}
+finally{await writeFile(output+'/result.json',JSON.stringify({checks,errors,boundary:'Actual macOS Electron with isolated storage and local compatible-provider fixture. No user message sent, real provider login or Windows proof.'},null,2));await app?.close().catch(()=>{});killProcessTree(child);fixture.close();await rm(temporary,{recursive:true,force:true});}
+console.log(JSON.stringify({passed:checks.length,output}));

@@ -112,33 +112,3 @@ test('resuming a previously settled routine clears removal proof before an uncer
  await assert.rejects(manager.runNow({id:'a'}),/routine_previous_project_missing/);
 });
 
-// Workflows and routines are off in this release (design light-flow §5.1): nothing starts, stored routines stay as they
-// were, and the person is told once.
-test('routines never start while workflows are off and stored routines stay untouched',async()=>{
- const store=memory();store.set('routine:a',routine);const before=JSON.stringify(store.get('routine:a'));
- const manager=createRoutineManager({store,listProjects:async()=>[{id:'p'}],serviceFor:()=>assert.fail('a routine must not reach its project'),now:()=>date(16).getTime()});
- await manager.tick();
- assert.equal(JSON.stringify(store.get('routine:a')),before);
- await assert.rejects(()=>manager.runNow({id:'a'}),/workflow_feature_off/);
- await assert.rejects(async()=>manager.save({...routine,id:undefined}),/workflow_feature_off/);
- assert.throws(()=>manager.delete({id:'a',confirmed:true}),/workflow_feature_off/);
- assert.equal(JSON.stringify(store.get('routine:a')),before);
-});
-test('the paused-routines notice shows once, and only to someone who saved a routine',()=>{
- const empty=createRoutineManager({store:memory(),listProjects:async()=>[],serviceFor:()=>null});
- assert.equal(empty.notice().show,false);
- const store=memory();store.set('routine:a',routine);
- const manager=createRoutineManager({store,listProjects:async()=>[],serviceFor:()=>null,now:()=>date(16).getTime()});
- assert.deepEqual(manager.notice(),{show:true,text:'루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.'});
- manager.acknowledgeNotice();
- assert.equal(manager.notice().show,false);
- assert.equal(store.get('notice:routines-paused-1.3.1').at,date(16).toISOString());
-});
-test('the UI reads and acknowledges the routine notice through the host allowlist',async t=>{
- const {service}=await fixture(t);
- assert.deepEqual(await service.invoke('routineNotice',{}),{show:false});
- const store=memory();store.set('routine:a',routine);
- service.routines=createRoutineManager({store,listProjects:async()=>[],serviceFor:()=>null});
- assert.equal((await service.invoke('routineNotice',{})).show,true);
- assert.equal((await service.invoke('acknowledgeRoutineNotice',{})).show,false);
-});

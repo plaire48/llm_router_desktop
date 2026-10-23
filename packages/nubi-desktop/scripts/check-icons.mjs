@@ -1,6 +1,7 @@
 // Every icon name the desktop UI passes to <Icon name=…> must exist in the design system; an unknown name throws at
 // render time and blanks the whole screen (user reports 2026-10-14: 'Unknown icon: folder', 'Unknown icon: terminal').
 import {build} from 'esbuild';
+import {desktopIconsPlugin} from './desktop-icons-plugin.mjs';
 import {readdirSync,statSync,readFileSync,mkdirSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
 const SKIP=new Set(['node_modules','lib','dist','ai-workspace','verification']);
@@ -23,7 +24,7 @@ const names=${JSON.stringify([...used.keys()])};const missing=[];
 for(const name of names){try{renderToStaticMarkup(<Icon name={name} size={16}/>);}catch(error){missing.push(name+' ('+String(error.message).slice(0,60)+')');}}
 console.log(JSON.stringify(missing));`);
 const bundlePath=path.join(dir,'probe.bundle.mjs');
-const result=await build({entryPoints:[path.join(dir,'probe.jsx')],outfile:bundlePath,bundle:true,write:false,platform:'node',format:'esm',external:['react','react-dom','react-dom/server'],loader:{'.jsx':'jsx','.css':'empty','.png':'dataurl','.webp':'file'},jsx:'automatic',nodePaths:[path.resolve('node_modules')],logLevel:'silent'});
+const result=await build({entryPoints:[path.join(dir,'probe.jsx')],outfile:bundlePath,bundle:true,write:false,plugins:[desktopIconsPlugin()],platform:'node',format:'esm',external:['react','react-dom','react-dom/server'],loader:{'.jsx':'jsx','.css':'empty','.png':'dataurl','.webp':'file'},jsx:'automatic',nodePaths:[path.resolve('node_modules')],logLevel:'silent'});
 writeFileSync(bundlePath,result.outputFiles.find(file=>file.path===bundlePath).text);
 const {execFileSync}=await import('node:child_process');
 const missing=JSON.parse(execFileSync(process.execPath,[path.join(dir,'probe.bundle.mjs')],{encoding:'utf8'}).trim().split('\n').pop());

@@ -1219,6 +1219,14 @@ export function getStaticSourceConfig(
 ): Record<string, unknown> {
   const queries = query.trim().length > 0 ? [query.trim()] : [];
 
+  if (sourceId === "knox") {
+    return {
+      enabled: true,
+      streams: ["mail"],
+      limit: 100,
+    };
+  }
+
   if (sourceId === "web-search") {
     return {
       enabled: true,

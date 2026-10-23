@@ -29,6 +29,6 @@
     "start": "electron ."
   },
   "main": "launcher.cjs",
-  "description": "Nubi Workspace beta desktop agent",
+  "description": "Nubi Workspace desktop agent",
   "author": "Nubi"
 }

@@ -1,27 +1,22 @@
 import React from 'react';
+import {Icon} from './LucideIcon.jsx';
 
-// Marks the design system has no glyph for, drawn like its icons (24 grid, round 1.8px stroke).
-const Mark = ({size = 22, children}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
-export const SparklesMark = ({size}) => <Mark size={size}><path d="m9 5 2.1 5.9L17 13l-5.9 2.1L9 21l-2.1-5.9L1 13l5.9-2.1ZM19 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></Mark>;
-export const FolderMark = ({size}) => <Mark size={size}><path d="M3.5 7.5a2 2 0 0 1 2-2h3.7l2 2.2h7.3a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></Mark>;
-export const FolderOpenMark = ({size}) => <Mark size={size}><path d="M3.5 8a2 2 0 0 1 2-2h3.7l2 2.2h6.7a2 2 0 0 1 1.8 2.9l-1.8 6.1a2 2 0 0 1-1.9 1.4H5a2 2 0 0 1-1.9-2.6l1.2-5.1a2 2 0 0 1 1.9-1.5h15"/></Mark>;
-export const BranchMark = ({size}) => <Mark size={size}><circle cx="6.5" cy="5.5" r="2"/><circle cx="6.5" cy="18.5" r="2"/><circle cx="17.5" cy="8" r="2"/><path d="M6.5 7.5v9M17.5 10c0 4-4.5 4.2-9.6 6.9"/></Mark>;
-export const TerminalMark = ({size}) => <Mark size={size}><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m7.5 10 3 2.5-3 2.5M12.5 15h4"/></Mark>;
-export const WindowMark = ({size}) => <Mark size={size}><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M6.5 6.8h.01M9 6.8h.01"/></Mark>;
-export const BrowserMark = ({size}) => <Mark size={size}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/></Mark>;
-export const StopMark = ({size}) => <Mark size={size}><rect x="6" y="6" width="12" height="12" rx="2"/></Mark>;
-export const PointerMark = ({size}) => <Mark size={size}><path d="M5.5 3.5 18 10.2l-5.6 1.6-2.3 5.6z"/><path d="m12.6 12 5 5"/></Mark>;
-export const KeyboardMark = ({size}) => <Mark size={size}><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14.5h8"/></Mark>;
-
-export const LockMark = ({size}) => <Mark size={size}><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3M12 14.5v2.5"/></Mark>;
-export const HomeMark = ({size}) => <Mark size={size}><path d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9"/></Mark>;
-export const PersonMark = ({size}) => <Mark size={size}><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></Mark>;
-export const CompanyMark = ({size}) => <Mark size={size}><path d="M5 21V3h14v18M3 21h18M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1M10 21v-3h4v3"/></Mark>;
-export const SignpostMark = ({size}) => <Mark size={size}><path d="M12 3v18M5 5h12l4 3-4 3H5zM19 14H7l-4 3 4 3h12z"/></Mark>;
-export function RecoveryStatus() {
-  return <span className="nubi-recovery-status" role="status" aria-label="복구 대기" title="복구 대기"><SignpostMark size={14}/></span>;
-}
-
-export const BookMark = ({size}) => <Mark size={size}><path d="M12 5C9 3 5 3 2.5 4.5v15C5 18 9 18 12 20c3-2 7-2 9.5-.5v-15C19 3 15 3 12 5Zm0 0v15"/></Mark>;
-
-export const ArchiveMark = ({size}) => <Mark size={size}><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></Mark>;
+// Existing mark API, one Lucide family and the same common icon tokens.
+export const SparklesMark=({size=22})=><Icon name="sparkles" size={size}/>;
+export const FolderMark=({size=22})=><Icon name="folder" size={size}/>;
+export const FolderOpenMark=({size=22})=><Icon name="folderOpen" size={size}/>;
+export const BranchMark=({size=22})=><Icon name="gitBranch" size={size}/>;
+export const TerminalMark=({size=22})=><Icon name="terminal" size={size}/>;
+export const WindowMark=({size=22})=><Icon name="window" size={size}/>;
+export const BrowserMark=({size=22})=><Icon name="browser" size={size}/>;
+export const StopMark=({size=22})=><Icon name="stop" size={size}/>;
+export const PointerMark=({size=22})=><Icon name="pointer" size={size}/>;
+export const KeyboardMark=({size=22})=><Icon name="keyboard" size={size}/>;
+export const LockMark=({size=22})=><Icon name="lock" size={size}/>;
+export const HomeMark=({size=22})=><Icon name="home" size={size}/>;
+export const PersonMark=({size=22})=><Icon name="user" size={size}/>;
+export const CompanyMark=({size=22})=><Icon name="company" size={size}/>;
+export const SignpostMark=({size=22})=><Icon name="signpost" size={size}/>;
+export const BookMark=({size=22})=><Icon name="book" size={size}/>;
+export const ArchiveMark=({size=22})=><Icon name="archive" size={size}/>;
+export function RecoveryStatus(){return <span className="nubi-recovery-status" role="status" aria-label="복구 대기" title="복구 대기"><SignpostMark size={14}/></span>;}

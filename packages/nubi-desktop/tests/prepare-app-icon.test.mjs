@@ -10,11 +10,11 @@ test('preparing the same app icon twice preserves its modification time', async 
   try {
     // Mirror the build layout without touching the working tree's icon.
     const script = path.join(root, 'packages/nubi-desktop/scripts/prepare-app-icon.mjs');
-    const source = path.join(root, 'extensions/aipro-chat/design/brand/bird-master.png');
+    const source = path.join(root, 'packages/nubi-desktop/design/brand/calm-liquid/mascot-master.png');
     await mkdir(path.dirname(script), {recursive: true});
     await mkdir(path.dirname(source), {recursive: true});
     await copyFile(new URL('../scripts/prepare-app-icon.mjs', import.meta.url), script);
-    await copyFile(new URL('../../../extensions/aipro-chat/design/brand/bird-master.png', import.meta.url), source);
+    await copyFile(new URL('../design/brand/calm-liquid/mascot-master.png', import.meta.url), source);
     const {prepareAppIcon} = await import(pathToFileURL(script).href);
     const target = await prepareAppIcon();
     assert.deepEqual(await readFile(target), await readFile(source));

@@ -36,7 +36,6 @@ for(const file of cssFiles){
 check('hardcoded-duration-zero',literals.length===0,literals);
 check('transition-all-zero',all.length===0,all);
 await build({...rendererBundleOptions(),entryPoints:[],stdin:{contents:"if(new URLSearchParams(location.search).has('quality-controls'))await import('./tests/motion-quality-fixture.jsx');else await import('./tests/shared-ui-fixture.jsx'); import './electron-app/modal-motion.css'; import {installModalMotion} from './ui/modalMotion.js'; window.stopQualityMotion=installModalMotion();",resolveDir:process.cwd(),loader:'jsx'},entryNames:'app',outdir:dir,splitting:false});stop();
-await build({entryPoints:['ui/workflow-layout-worker.mjs'],outfile:path.join(dir,'chunks/workflow-layout-worker.js'),bundle:true,format:'esm',minify:true});stop();
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><link rel="stylesheet" href="app.css"><div id="root"></div><script type="module" src="app.js"></script></html>');
 const server=createServer(async(req,res)=>{try{const file=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!file.startsWith(dir+path.sep))throw Error('outside');const body=await readFile(file);res.writeHead(200,{'content-type':({'.html':'text/html','.js':'text/javascript','.css':'text/css','.woff2':'font/woff2','.webp':'image/webp','.png':'image/png'})[path.extname(file)]||'application/octet-stream'}).end(body);}catch{res.writeHead(404).end();}});
@@ -71,8 +70,7 @@ try{
   const ambient=await page.evaluate(()=>document.getAnimations().filter(animation=>animation.playState==='running').map(animation=>({name:animation.animationName||animation.transitionProperty||'WAAPI',target:String(animation.effect?.target?.className?.baseVal??animation.effect?.target?.className??''),duration:animation.effect.getTiming().duration,iterations:animation.effect.getTiming().iterations===Infinity?'infinite':animation.effect.getTiming().iterations})));
   const registry=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--nubi-ambient-registry'));
   const names=parseAmbientRegistry(registry);await page.evaluate(names=>window.qualityAmbient=new Set(names),[...names.keys()]);
-  // Decoration is held while idle (design light-flow §6): the pastel layer is still mounted, at a held phase.
-  if(!reduced){const pastel=await page.evaluate(()=>document.getAnimations().filter(a=>a.animationName==='nubi-pastel-flow').map(a=>a.playState));check(`pastel-path-exercised:${width}`,pastel.length>0&&pastel.every(state=>state==='paused'),pastel);}
+  if(!reduced)check(`liquid-path-exercised:${width}`,JSON.stringify(ambient.filter(a=>a.name==='nubi-liquid-drift').map(a=>a.duration).sort())===JSON.stringify([24000,28000]),ambient);
   check(`ambient-idle-held-only:${width}:${reduced}`,ambient.filter(animation=>IDLE_AMBIENT_HELD.has(animation.name)).length===0,ambient);
   await page.mouse.move(-1,-1);
   check(`ambient-registered:${width}:${reduced}`,ambient.filter(animation=>animation.iterations==='infinite').every(animation=>names.has(animation.name)),ambient);
@@ -106,8 +104,8 @@ try{
   const phase=await page.evaluate(()=>{window.qualityAmbientRefs=document.getAnimations().filter(a=>window.qualityAmbient.has(a.animationName)&&a.playState==='running');return window.qualityAmbientRefs.map(a=>({name:a.animationName,at:a.currentTime,duration:a.effect.getTiming().duration}));});
   const answerMarks=await page.locator('.answer-model .nubi-answer-mark').evaluateAll(marks=>marks.map(mark=>({animation:getComputedStyle(mark).animationName,transform:getComputedStyle(mark).transform,images:[...mark.querySelectorAll('img')].map(image=>getComputedStyle(image).animationName)})));
   check(`answer-static-baseline:${width}:${reduced}`,answerMarks.length===3&&answerMarks.every(mark=>mark.animation==='none'&&mark.transform==='none'&&mark.images.every(name=>name==='none')),answerMarks);
-  check(`live-progress-paths:${width}:${reduced}`,phase.some(a=>a.name==='nubi-live-spin')&&phase.some(a=>a.name==='nubi-live-breathe'),phase);
-  check(`spinner-periods:${width}:${reduced}`,phase.some(a=>a.name==='master-spin'&&a.duration===800)&&phase.some(a=>a.name==='master-spin'&&a.duration===2400),phase);
+  check(`live-progress-paths:${width}:${reduced}`,phase.some(a=>a.name==='nubi-hourglass-flip'&&a.duration===4000)&&phase.some(a=>a.name==='nubi-live-breathe'),phase);
+  check(`spinner-periods:${width}:${reduced}`,phase.filter(a=>a.name==='nubi-hourglass-flip').length>=3&&phase.filter(a=>a.name==='nubi-hourglass-flip').every(a=>a.duration===4000),phase);
   await page.emulateMedia({reducedMotion:'reduce'});await page.waitForTimeout(70);
   const paused=await page.evaluate(()=>window.qualityAmbientRefs.map(a=>({name:a.animationName,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime})));
   await page.waitForTimeout(70);const held=await page.evaluate(()=>window.qualityAmbientRefs.map(a=>a.currentTime));
@@ -118,23 +116,22 @@ try{
   for(let waited=70;sharedRunner&&waited<2000&&!resumed.every((a,i)=>a.at>held[i]);waited+=100){await page.waitForTimeout(100);resumed=await readResumed();}
   check(`ambient-resume:${width}:${reduced}`,resumed.every((a,i)=>a.same&&a.state==='running'&&a.at>held[i]),{held,resumed});
   const attention=await page.evaluate(async()=>{
-   const workbench=document.querySelector('.nubi-workbench'),sentinel=document.createElement('span');sentinel.className='nubi-task';workbench.append(sentinel);
-   const art=[...document.getAnimations()].filter(a=>a.effect.target?.matches?.('.deck-blob,.deck-spark')&&a.effect.target.closest('.deck-ambient')&&workbench.contains(a.effect.target));
-   document.documentElement.setAttribute('data-nubi-transition','');document.dispatchEvent(new Event('nubi-motion-change'));
-   document.documentElement.removeAttribute('data-nubi-transition');document.dispatchEvent(new Event('nubi-motion-change'));
+   const workbench=document.querySelector('.nubi-workbench'),previous=workbench.getAttribute('data-workspace-screen');
+   const art=[...document.getAnimations()].filter(a=>a.animationName==='nubi-liquid-drift'&&a.effect.target?.matches?.('.nubi-liquid-drop')&&workbench.contains(a.effect.target));
+   workbench.setAttribute('data-workspace-screen','conversation');document.dispatchEvent(new Event('nubi-motion-change'));
    await Promise.all(art.map(a=>a.ready));
    const paused=art.map(a=>({name:a.animationName,target:a.effect.target.className,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime}));await new Promise(resolve=>setTimeout(resolve,70));
-   const held=art.map(a=>a.currentTime);sentinel.remove();await new Promise(resolve=>setTimeout(resolve,70));
+   const held=art.map(a=>a.currentTime);if(previous===null)workbench.removeAttribute('data-workspace-screen');else workbench.setAttribute('data-workspace-screen',previous);document.dispatchEvent(new Event('nubi-motion-change'));await new Promise(resolve=>setTimeout(resolve,70));
    return {paused,held,resumed:art.map(a=>({name:a.animationName,same:document.getAnimations().includes(a),state:a.playState,at:a.currentTime}))};
   });
-  check(`work-attention-pause:${width}:${reduced}`,attention.paused.length>0&&attention.paused.every((a,i)=>a.same&&a.state==='paused'&&Math.abs(a.at-attention.held[i])<1)&&attention.resumed.every((a,i)=>a.same&&IDLE_AMBIENT_HELD.has(a.name)?a.state==='paused'&&Math.abs(a.at-attention.held[i])<1:a.same&&a.state==='running'&&a.at>attention.held[i]),attention);
+  check(`conversation-attention-pause:${width}:${reduced}`,attention.paused.length===2&&attention.paused.every((a,i)=>a.same&&a.state==='paused'&&Math.abs(a.at-attention.held[i])<1)&&attention.resumed.every((a,i)=>a.same&&IDLE_AMBIENT_HELD.has(a.name)?a.state==='paused'&&Math.abs(a.at-attention.held[i])<1:a.same&&a.state==='running'&&a.at>attention.held[i]),attention);
   await page.emulateMedia({reducedMotion:reduced?'reduce':'no-preference'});
   result.scenes.push({width,reduced,ambient,opening,closing,transition:during,openWall,closeWall,phase:{paused,held,resumed}});
   await page.goto(`http://127.0.0.1:${server.address().port}/?quality-controls`);
-  await page.locator('.nubi-workflow-node').first().waitFor();await page.evaluate(()=>document.fonts.ready);
+  await page.locator('.nubi-settings-row').first().waitFor();await page.evaluate(()=>document.fonts.ready);
   await page.evaluate(names=>window.qualityAmbient=new Set(names),[...names.keys()]);
   await page.waitForTimeout(320);
-  for(const [kind,selector] of [['button','.nubi-settings-row'],['row','.nubi-session-select'],['card','.nubi-start-card'],['node','.nubi-workflow-node']]){
+  for(const [kind,selector] of [['button','.nubi-settings-row'],['row','.nubi-session-select'],['card','.nubi-start-card']]){
    const control=page.locator(selector).first();await control.scrollIntoViewIfNeeded();const box=await control.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.waitForTimeout(300);const hovered=await control.evaluate(element=>getComputedStyle(element).transform);check(`hover-color-only:${kind}:${width}:${reduced}`,hovered==='none',hovered);await page.mouse.down();await page.waitForTimeout(140);
    const pressed=await control.evaluate(element=>({transform:getComputedStyle(element).transform,opacity:getComputedStyle(element).opacity,duration:getComputedStyle(element).transitionDuration}));
    check(`press:${kind}:${width}:${reduced}`,reduced?pressed.transform==='none':Math.abs(Number(pressed.transform.match(/matrix\(([^,]+)/)?.[1])-.98)<.002,pressed);
@@ -149,9 +146,6 @@ try{
   await page.evaluate(()=>window.qualityLoad());await page.locator('[data-quality-loaded]').waitFor();
   const load=await page.locator('[data-quality-loaded]').evaluate(element=>({width:element.offsetWidth,animations:element.getAnimations().map(a=>({duration:a.effect.getTiming().duration,frames:a.effect.getKeyframes()}))}));
   check(`load:${width}:${reduced}`,load.width>0&&load.animations.some(a=>a.duration===120),load);await page.waitForTimeout(160);
-  await page.evaluate(()=>window.qualityStatus());await page.locator('.nubi-workflow-node[data-status=complete]').waitFor();
-  const state=await page.locator('.nubi-workflow-node[data-status=complete] .nubi-workflow-node-state').evaluate(element=>element.getAnimations().map(animation=>({duration:animation.effect.getTiming().duration,frames:animation.effect.getKeyframes()})));
-  check(`state-color:${width}:${reduced}`,state.some(animation=>animation.duration===(reduced?120:180)),state);await page.waitForTimeout(220);
   await page.evaluate(()=>{window.qualityStop=window.qualityTrack();window.qualityNavigate();});await page.waitForTimeout(420);
   const view=await page.evaluate(()=>window.qualityStop());timing(`view-long-tasks:${width}:${reduced}`,view.longTasks.length===0,view.longTasks);check(`view-budget:${width}:${reduced}`,view.counts.every(row=>row.interactionTargets<=3),view.counts);
   check(`view-exercised:${width}:${reduced}`,view.captured.some(row=>/^nubi-(view|motion-fade)/.test(row.name)),view.captured);
@@ -164,8 +158,7 @@ try{
  }
  // Load the actual component stylesheet: controls do not mount the host cover.
  {const probe=await browser.newPage({viewport:{width:440,height:900}});await probe.goto(`http://127.0.0.1:${server.address().port}/?quality-controls`);await probe.locator('.nubi-main').waitFor();const css=await readFile('ui/project-switch-cover.css','utf8');
- const measure=()=>{const section=document.createElement('section');section.className='nubi-git-clone-progress';section.innerHTML='<progress aria-label="합성 불확정 진행"></progress>';document.querySelector('.nubi-main').append(section);const bar=section.firstElementChild,style=getComputedStyle(bar),width=bar.clientWidth,imageWidth=parseFloat(style.backgroundSize)/100*width,left=parseFloat(style.backgroundPositionX)/100*(width-imageWidth),value={width,imageWidth,left,visible:Math.max(0,Math.min(width,left+imageWidth)-Math.max(0,left)),play:style.animationPlayState};section.remove();return value;};
- const oldStyle=await probe.addStyleTag({content:css.replace('center / 30%','-43% center / 30%')});const before=await probe.evaluate(measure);await oldStyle.evaluate(node=>node.remove());await probe.addStyleTag({content:css});const fill=await probe.evaluate(measure);check('indeterminate-fill-regression',Number.isFinite(before.visible)&&before.visible===0,before);check('indeterminate-fill-visible',fill.width>0&&Number.isFinite(fill.visible)&&fill.visible>0,fill);await probe.close();}
+ await probe.addStyleTag({content:css});const fill=await probe.evaluate(()=>{const section=document.createElement('section');section.className='nubi-git-clone-progress';section.innerHTML='<div class="nubi-progress is-indeterminate" role="progressbar" aria-label="합성 불확정 진행"><span></span></div>';document.querySelector('.nubi-main').append(section);const bar=section.querySelector('span'),animation=bar.getAnimations().find(row=>row.animationName==='nubi-wiki-scan');if(!animation)throw Error('missing progress animation');animation.pause();const duration=animation.effect.getTiming().duration,track=bar.parentElement.getBoundingClientRect(),samples=[.1,.3,.5,.7,.9].map(phase=>{animation.currentTime=duration*phase;const rect=bar.getBoundingClientRect();return {left:rect.left-track.left,width:rect.width,visible:Math.max(0,Math.min(track.right,rect.right)-Math.max(track.left,rect.left))};}),value={direction:animation.effect.getTiming().direction,samples};section.remove();return value;});check('indeterminate-flow-one-direction',fill.direction==='normal'&&fill.samples.every((row,index)=>index===0||row.left>fill.samples[index-1].left),fill);check('indeterminate-fill-visible',fill.samples.some(row=>row.visible>0),fill);await probe.close();}
  // Actual native visibility, using an isolated Electron window and userData.
  storage=await mkdtemp(path.join(os.tmpdir(),'nubi-motion-'));
  const require=createRequire(import.meta.url);

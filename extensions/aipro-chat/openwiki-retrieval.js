@@ -1,9 +1,10 @@
-import {wikiChunks, rankWikiEvidence} from './site-wiki-retrieval.js';
+import {wikiChunks, createWikiEvidenceSearch} from './site-wiki-retrieval.js';
 
 // Each question owns its cache. Reuse the reviewed-Markdown parser and Korean
 // spacing search for BOTH Wiki sources, without persistent mixed-source state.
 export function createWikiQuestionSearch() {
   const cache = new Map();
+  let previousParts=[],rank=null,indexBuilds=0,indexReuses=0;
   const documentChunks = doc => {
       const previous=cache.get(doc.id);
       if (!previous || previous.text!==doc.text || previous.title!==doc.title) cache.set(doc.id, {text:doc.text,title:doc.title,chunks:wikiChunks(doc.text).map(part => ({
@@ -16,9 +17,15 @@ export function createWikiQuestionSearch() {
       return cache.get(doc.id).chunks;
   };
   const search = (query, documents) => {
-    const chunks = documents.flatMap(documentChunks);
-    const byId = new Map(chunks.map(chunk => [chunk.id, chunk]));
-    const ranked = rankWikiEvidence(chunks, query).map(hit => {
+    const allowed=new Set(documents.map(doc=>doc.id));
+    for(const id of cache.keys())if(!allowed.has(id))cache.delete(id);
+    const parts=documents.map(documentChunks);
+    if(!rank||parts.length!==previousParts.length||parts.some((part,i)=>part!==previousParts[i])){
+      const chunks=parts.flat(),byId=new Map(chunks.map(chunk=>[chunk.id,chunk]));
+      rank={search:createWikiEvidenceSearch(chunks),byId};previousParts=parts;indexBuilds++;
+    }else indexReuses++;
+    const ranked = rank.search(query).map(hit => {
+      const byId=rank.byId;
       const {documentId,start,end,contextRanges,contextTruncated,mixedSections}=byId.get(hit.id);
       return {documentId,start,end,contextRanges,contextTruncated,mixedSections};
     });
@@ -32,6 +39,7 @@ export function createWikiQuestionSearch() {
     }
     return [...selected,...deferred];
   };
+  search.diagnostics=()=>({indexBuilds,indexReuses,indexedChunks:rank?.byId.size||0,retainedDocuments:cache.size});
   // Only structural ranges from the same parsed snapshot. The core validates
   // and budgets these before observing original text, never inferred summaries.
   search.context = (document, start, end) => {

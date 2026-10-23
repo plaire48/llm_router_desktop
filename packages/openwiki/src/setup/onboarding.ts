@@ -462,6 +462,7 @@ function isKnownConnectorId(value: string): value is ConnectorId {
     value === "git-repo" ||
     value === "google" ||
     value === "hackernews" ||
+    value === "knox" ||
     value === "notion" ||
     value === "slack" ||
     value === "web-search" ||

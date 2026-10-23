@@ -52,7 +52,7 @@ class Program {
      Binding selected=null;var requested=S(a,"candidateId");
      if(requested!=""){if(!candidates.TryGetValue(requested,out selected)||!Valid(selected))throw new Exception("dock_window_changed");}
      else{var top=IntPtr.Zero;if(lastBrowser!=IntPtr.Zero&&Matches(lastBrowser))top=lastBrowser;else EnumWindows((h,l)=>{if(Matches(h)&&!IsIconic(h)){top=h;return false;}return true;},IntPtr.Zero);if(top==IntPtr.Zero)throw new Exception("dock_browser_missing");selected=bound!=null&&bound.hwnd==top?bound:Remember(top);}
-     result=new{candidateId=selected.id,browserName=BrowserName(selected.path)};break;
+     result=new{candidateId=selected.id,browserName=BrowserName(selected.path),executable=selected.path};break;
     case "resolveProof":
      var nonce=S(a,"nonce");if(!Guid.TryParse(nonce,out var parsed))throw new Exception("dock_proof_invalid");var found=new List<IntPtr>();
      EnumWindows((h,l)=>{if(Matches(h)&&Title(h).Contains(nonce))found.Add(h);return true;},IntPtr.Zero);

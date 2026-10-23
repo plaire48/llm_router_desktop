@@ -1,6 +1,7 @@
 import {DESKTOP_FEATURES} from '../runtime/beta-features.mjs';
+import {AuxiliaryDetail} from './AuxiliaryDetail.jsx';
 import {AfterFirstPaint} from './AfterFirstPaint.jsx';
-import {MAILBOX_TABS,mailboxSelection,personalMailFolders} from './mailbox-navigation.mjs';
+import {isDesktopUia,mailboxTabsFor,mailboxSelection,personalMailFolders} from './mailbox-navigation.mjs';
 import {CxSelect} from './WorkspaceSelect.jsx';
 import {FolderMark} from './marks.jsx';
 import {ApprovalHistory} from './ApprovalHistory.jsx';
@@ -18,13 +19,15 @@ import {mailTableDate} from '../runtime/mail-presentation.mjs';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
 import {LoadingNote} from './LoadingNote.jsx';
 
-export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connectionRef,sourceTarget,onReturn,viewState}){
+export function MailHistory({detailHost,api,onDocument,onAsk,onAskSearch,onSettings,connectionRef,sourceTarget,onReturn,viewState}){
  const [portalView,setPortalView]=useState(()=>viewState?.current?.portalView==='approvals'?'approvals':'mail');
  const [mailbox,setMailbox]=useState(()=>viewState?.current?.mailbox||'inbox');
+ const initialMailboxApplied=useRef(!!viewState?.current?.mailbox);
  const lastPersonalFolder=useRef(viewState?.current?.personalFolder||mailbox);
  const mailboxTabs=useRef(null);
  const [status,setStatus]=useState(null),[refreshing,setRefreshing]=useState(false),[searchRevision,setSearchRevision]=useState(0);
  const [query,setQuery]=useState(()=>viewState?.current?.query||''),[source,setSource]=useState(null),[loading,setLoading]=useState(false);
+ useEffect(()=>{if(!initialMailboxApplied.current&&isDesktopUia(status)){initialMailboxApplied.current=true;setMailbox('other');if(viewState)viewState.current={...viewState.current,mailbox:'other',search:undefined};}},[status?.connectionMethod,status?.desktop?.mode,status?.desktop?.transport]);
  useEffect(()=>{if(!status)return;const next=mailboxSelection(mailbox,status.folders);if(next!==mailbox){setMailbox(next);if(viewState)viewState.current={...viewState.current,mailbox:next,search:undefined};}},[status?.folders,mailbox]);
  useEffect(()=>{if(viewState)viewState.current={...viewState.current,portalView};},[portalView,viewState]);
  const [navigation,setNavigation]=useState(null),pendingNavigation=useRef(null),listRoot=useRef(null);
@@ -47,7 +50,7 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
   pendingNavigation.current={page:next,edge:direction>0?'first':'last',signature:navigation.signature};navigation.movePage(next);
  }
  const open=useCallback(async function open(id,expectedHash,context={}){
-  const attempt=++selection.current;setLoading(true);
+  const attempt=++selection.current;setLoading(true);detailHost?.show('mail-detail');
   try{
    const value=await api('mail',{action:'read',id,includePresentation:true});if(expectedHash&&value.sourceHash!==expectedHash)throw Error('mail_source_changed');
    if(!alive.current||attempt!==selection.current)return false;
@@ -75,20 +78,22 @@ export function MailHistory({api,onDocument,onAsk,onAskSearch,onSettings,connect
  const checkedAt=status?.progress?.checkedAt||status?.lastCheckedAt;
  const personalFolders=personalMailFolders(status?.folders),personalSelected=personalFolders.some(folder=>'folder:'+folder.id===mailbox);
  useLayoutEffect(()=>{const tabs=mailboxTabs.current,scroll=tabs?.parentElement,active=tabs?.querySelector('[aria-selected="true"]');if(!scroll||!active)return;const observer=new ResizeObserver(()=>{const box=scroll.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.right>box.right)scroll.scrollLeft+=item.right-box.right+8;else if(item.left<box.left)scroll.scrollLeft-=box.left-item.left+8;});observer.observe(scroll);observer.observe(active);return()=>observer.disconnect();},[mailbox,personalFolders.length]);
- function selectMailbox(value){if(value==='personal')value=personalFolders.some(folder=>'folder:'+folder.id===lastPersonalFolder.current)?lastPersonalFolder.current:'folder:'+personalFolders[0].id;if(value.startsWith('folder:'))lastPersonalFolder.current=value;closeReader();setMailbox(value);setQuery('');if(viewState)viewState.current={...viewState.current,mailbox:value,personalFolder:lastPersonalFolder.current,query:'',search:undefined};}
+ function selectMailbox(value){initialMailboxApplied.current=true;if(value==='personal')value=personalFolders.some(folder=>'folder:'+folder.id===lastPersonalFolder.current)?lastPersonalFolder.current:'folder:'+personalFolders[0].id;if(value.startsWith('folder:'))lastPersonalFolder.current=value;closeReader();setMailbox(value);setQuery('');if(viewState)viewState.current={...viewState.current,mailbox:value,personalFolder:lastPersonalFolder.current,query:'',search:undefined};}
  const revision=JSON.stringify([status?.identityRevision,status?.counts?.received]);
- return <section className="nubi-mail-history" data-layout="table" data-selected={!!source||loading} aria-label="메일 이력">
+ return <section className="nubi-mail-history" data-layout="table" data-external-reader={!!detailHost||undefined} data-selected={!!source||loading} aria-label="메일 이력">
   <header className="nubi-mail-history-bar">{onReturn&&<ActionButton action="back" label="대화로 돌아가기" onClick={onReturn}/>}<Icon name="mail" size={22}/><h1>메일</h1><span>{status?.counts?.received??0}개</span><ActionButton action="refresh" label="새 메일 확인" disabled={refreshing||status?.checking||status?.connecting} onClick={reload}/>{(refreshing||status?.checking)&&<span className="status-spinner" role="status" aria-label="메일 확인 중"/>}<CxButton ref={connectionRef} className="nubi-mail-connect-link" onClick={onSettings}><Icon name="mail" size={18}/><span>{!DESKTOP_FEATURES.mailPortal||status?.desktop||status?.connected||status?.localCount?'메일 설정':'포털 로그인'}</span></CxButton></header>
   <WorkspaceCatalogTabs wide label="포털 자료" idPrefix="portal-view" active={portalView} onChange={value=>{setPortalView(value);if(value==='approvals')closeReader();}} items={[{key:'mail',label:<><Icon name="mail" size={16}/>메일</>},{key:'approvals',label:<><Icon name="clipboardCheck" size={16}/>결재</>}]}/>
   {portalView==='approvals'?<ApprovalHistory api={api} onSettings={onSettings} status={status} onAsk={onAsk} onAskSearch={onAskSearch} onDocument={onDocument} revision={revision}/>:<>
-  <WorkspaceCatalogTabs containerRef={mailboxTabs} wide={false} label="메일함" idPrefix="mailbox" active={personalSelected?'personal':mailbox} onChange={selectMailbox} items={[...MAILBOX_TABS.map(({key,label,icon})=>({key,label:<><Icon name={icon} size={16}/>{label}</>})),...(personalFolders.length?[{key:'personal',label:<><FolderMark size={16}/>개인 폴더</>}]:[])]}/>
+  <WorkspaceCatalogTabs containerRef={mailboxTabs} wide={false} label="메일함" idPrefix="mailbox" active={personalSelected?'personal':mailbox} onChange={selectMailbox} items={[...mailboxTabsFor(status).map(({key,label,icon})=>({key,label:<><Icon name={icon} size={16}/>{label}</>})),...(personalFolders.length?[{key:'personal',label:<><FolderMark size={16}/>개인 폴더</>}]:[])]}/>
   {personalSelected&&<div className="nubi-mail-personal-folder"><FolderMark size={16}/><CxSelect singleLine aria-label="개인 폴더 선택" title={personalFolders.find(folder=>'folder:'+folder.id===mailbox)?.name} value={mailbox} onChange={event=>selectMailbox(event.target.value)}>{personalFolders.map(folder=><option key={folder.id} value={'folder:'+folder.id}>{folder.name||'개인 폴더'}</option>)}</CxSelect></div>}
   <div className="nubi-mail-history-body">
    <div ref={listRoot} className="nubi-mail-history-list"><AfterFirstPaint key={`${mailbox}:${accountKey}`}><MailKnowledgeSearch key={`${mailbox}:${accountKey}`} mailbox={mailbox} accountKey={accountKey} api={api} query={query} onQuery={setQuery} lastAppliedAt={status?.progress?.lastAppliedAt} revision={revision} refreshKey={searchRevision} selectedId={source?.id} onOpen={open} onAskSearch={onAskSearch} onAskSelected={onAsk} onResults={setNavigation} viewState={viewState}/></AfterFirstPaint></div>
-   <article className="nubi-mail-history-detail" aria-label="메일 본문" aria-busy={loading}>
+   <AuxiliaryDetail host={detailHost} kind="mail-detail" title={loading?'메일 읽는 중':source?.mail?.subject||'메일 본문'} open={!!source||loading} onClose={closeReader}>
+   <article className={'nubi-mail-history-detail'+(detailHost?' desktop-mail-source':'')} aria-label="메일 본문" aria-busy={loading}>
     {(source||loading)&&<div className="nubi-mail-reader-navigation"><ActionButton action="back" label="메일 목록으로" onClick={closeReader}/><span>{position>=0?`${navigation.offset+position+1} / ${navigation.total}`:''}</span><ActionButton action="previousMedia" iconOnly label="이전 메일" disabled={loading||navigation?.blocked||position<0||(position===0&&navigation.page<=1)} onClick={()=>adjacent(-1)}/><ActionButton action="nextMedia" iconOnly label="다음 메일" disabled={loading||navigation?.blocked||position<0||(position===navigation.results.length-1&&navigation.page>=navigation.totalPages)} onClick={()=>adjacent(1)}/></div>}
     {loading?<LoadingNote>메일 읽는 중</LoadingNote>:source?<MailReader key={source.id} source={source} api={api} onOpenThread={open} onDocument={onDocument} onAsk={onAsk} onLocalChange={(id,local)=>{setSource(current=>current?.id===id?{...current,local}:current);setSearchRevision(value=>value+1);}}/>:<div className="nubi-mail-reader-empty"><AgentMark size={64} mood="idle"/><strong>선택된 항목이 없습니다.</strong><p>목록에서 항목을 선택하세요.</p></div>}
    </article>
+   </AuxiliaryDetail>
   </div>
   {(checkedAt||status?.progress?.lastAppliedAt||status?.recentChecks?.length>0)&&<details className="nubi-mail-recent"><summary><Icon name="clock" size={14}/>최근 수집<Icon name="chevronDown" size={12}/></summary>
    <dl className="nubi-mail-recent-times" aria-label="수집 시각">{status?.progress?.lastAppliedAt&&<div><dt><Icon name="check" size={14}/>최근 반영</dt><dd><MailTimestamp at={status.progress.lastAppliedAt} label=""/></dd></div>}{checkedAt&&<div><dt><Icon name="refresh" size={14}/>서버 확인</dt><dd><MailTimestamp at={checkedAt} label=""/></dd></div>}</dl>

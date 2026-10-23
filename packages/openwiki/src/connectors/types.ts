@@ -3,6 +3,7 @@ export type ConnectorId =
   | "git-repo"
   | "google"
   | "hackernews"
+  | "knox"
   | "langsmith"
   | "notion"
   | "slack"
@@ -10,7 +11,7 @@ export type ConnectorId =
   | "x";
 
 export type ConnectorBackend =
-  "direct-api" | "local-git" | "mcp-http" | "mcp-stdio";
+  "direct-api" | "local-git" | "mcp-http" | "mcp-stdio" | "native-host";
 
 export type ConnectorDefinition = {
   backend: ConnectorBackend;
@@ -20,6 +21,10 @@ export type ConnectorDefinition = {
   mode: "code" | "personal";
   requiredEnv: string[];
   supportsAgenticDiscovery: boolean;
+  /** False when display dates/local copies cannot enforce a time window. */
+  supportsTimeWindow?: boolean;
+  /** Native capabilities are supplied in process by the existing host. */
+  nativeHostConnected?: boolean;
 };
 
 export type ConnectorIngestOptions = {

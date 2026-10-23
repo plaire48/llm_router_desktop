@@ -88,6 +88,9 @@ export interface BeginRepositoryRunInput {
    */
   mode: RepositoryRunMode;
 
+  /** Host may omit workflow scaffolding it will not publish. CLI default is unchanged. */
+  createWorkflow?: boolean;
+
   /**
    * Requested documentation language, resolved before persistence.
    */
@@ -403,7 +406,7 @@ export async function beginRepositoryRun(
     resolvedRequest.kind === "resolved" ? resolvedRequest.language : undefined;
 
   await ensureCodeModeRepoSetup(input.root, {
-    createWorkflow: input.mode === "init",
+    createWorkflow: input.createWorkflow ?? (input.mode === "init"),
   });
 
   const persisted = await readRepositoryRunState(input.root);

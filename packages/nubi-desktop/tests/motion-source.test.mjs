@@ -6,9 +6,9 @@ test('performance and shared fixtures include the actual renderer pastel motion 
  const renderer=await readFile(new URL('../electron-app/renderer.jsx',import.meta.url),'utf8');assert.match(renderer,/import '\.\.\/design\/workspace-pastel\.css'/);
  for(const name of ['shared-ui-fixture.jsx','motion-performance-fixture.jsx'])assert.match(await readFile(new URL(name,import.meta.url),'utf8'),/import '\.\.\/design\/workspace-pastel\.css'/,name+' must exercise ambient surfaces, not an empty animation path');
 });
-test('the installed CX spinner and slow mail spinner retain named ambient periods',async()=>{
+test('the installed CX spinner is replaced by the shared four-second hourglass',async()=>{
  const cx=await readFile(new URL('../node_modules/@e2e/cx-design-system/dist/styles.css',import.meta.url),'utf8');assert.match(cx,/master-spin/);
- const motion=await readFile(new URL('../design/workspace-motion.css',import.meta.url),'utf8'),registry=parseAmbientRegistry(motion.match(/--nubi-ambient-registry:"([^"]+)"/)[1]);assert.ok(registry.get('master-spin')?.durations.includes(800));assert.ok(registry.get('master-spin')?.durations.includes(2400));
+ const motion=await readFile(new URL('../design/workspace-motion.css',import.meta.url),'utf8'),registry=parseAmbientRegistry(motion.match(/--nubi-ambient-registry:"([^"]+)"/)[1]);assert.deepEqual(registry.get('nubi-hourglass-flip')?.durations,[4000]);assert.equal(registry.has('master-spin'),false);assert.match(motion,/\.status-spinner[^}]+animation:nubi-hourglass-flip/);assert.match(motion,/--nubi-ambient-spin-watch:4s/);
 });
 
 test('owned transition declarations keep balanced CSS functions after token migration',async()=>{

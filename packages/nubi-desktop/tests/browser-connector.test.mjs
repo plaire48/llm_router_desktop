@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
+import {createTabMirror} from '../browser-connector/mirror.js';
 const require=createRequire(import.meta.url),{portalFetch}=require('../electron-app/mail-portal-contract.cjs');
 // Execute the shipped worker source with synthetic Chrome ports. This is not
 // evidence of an installed extension, Samsung API compatibility or live SSO.
@@ -10,8 +11,8 @@ async function fixture(){
  const event=key=>({addListener:fn=>listeners[key]=fn});
  const chrome={runtime:{id:'a'.repeat(32),getURL:file=>'chrome-extension://'+'a'.repeat(32)+'/'+file,onMessage:event('message')},permissions:{contains:async()=>true,request:async()=>true},scripting:{executeScript:async()=>[{result:{email:'synthetic@example.test'}}]},tabs:{query:async options=>[...live.values()].filter(tab=>(options.windowId===undefined||tab.windowId===options.windowId)&&(!options.active||tab.active)),get:async id=>{const row=live.get(id);if(!row)throw Error('closed');return {...row};},create:async options=>{for(const t of live.values())if(t.windowId===options.windowId)t.active=false;const tab={id:10,windowId:options.windowId,url:options.url,title:'Created',active:true,status:'complete',openerTabId:options.openerTabId};live.set(10,tab);return tab;},remove:async id=>{const tab=live.get(id);live.delete(id);if(tab?.active&&live.has(tab.openerTabId))live.get(tab.openerTabId).active=true;},update:async(id,args)=>{if(args.active){for(const t of live.values())if(t.windowId===live.get(id)?.windowId)t.active=false;live.get(id).active=true;}},onUpdated:event('updated'),onRemoved:event('removed'),onActivated:event('activated')},windows:{update:async()=>{}},debugger:{attach:async()=>{},detach:async()=>{},sendCommand:async(target,method,params)=>{commands.push({target,method,params});return {ok:true};},onEvent:event('cdp'),onDetach:event('detach')}};
  class Socket{constructor(){this.readyState=1;queueMicrotask(()=>this.onopen());}send(raw){const value=JSON.parse(raw);if(value.type==='hello')queueMicrotask(()=>this.onmessage({data:JSON.stringify({type:'ready',generation:'generation-1'})}));}close(){this.readyState=3;}}
- const source=(await readFile(new URL('../browser-connector/background.js',import.meta.url),'utf8')).replace("import {portalFetch} from './portal-contract.js';",'');
- const run=new Function('chrome','WebSocket','portalFetch',source+'\nreturn {dispatch,inventory};');const worker=run(chrome,Socket,portalFetch);
+ const source=(await readFile(new URL('../browser-connector/background.js',import.meta.url),'utf8')).replace("import {portalFetch} from './portal-contract.js';",'').replace("import {createTabMirror} from './mirror.js';",'').replace("import {createQuickConnector} from './quick-connector.js';",'');
+ const run=new Function('chrome','WebSocket','portalFetch','createTabMirror','createQuickConnector',source+'\nreturn {dispatch,inventory};');const worker=run(chrome,Socket,portalFetch,createTabMirror,()=>{});
  const message=input=>new Promise(resolve=>listeners.message(input,{id:chrome.runtime.id,url:chrome.runtime.getURL('connect.html')},resolve));
  assert.equal((await message({action:'connect',code:'ws://127.0.0.1:1234/'+'a'.repeat(64)})).connected,true);
  return {worker,commands,listeners,live,message};

@@ -1,9 +1,12 @@
 import {portalFetch} from './portal-contract.js';
+import {createTabMirror} from './mirror.js';
+import {createQuickConnector} from './quick-connector.js';
 let socket=null,generation=null,windowId=null,sourceTab=null,portalTab=null,connecting=false;
 let windowProof=null;
 const tabs=new Map(),attached=new Set();
 const restricted=value=>{try{const u=new URL(value);return !['http:','https:'].includes(u.protocol)||u.username||u.password||/^(?:epsso\.|accounts\.|login\.)/i.test(u.hostname)||/\/(?:loginapp|saml|oauth|authorize|sso)(?:\/|$)/i.test(u.pathname)||[...u.searchParams.keys(),...new URLSearchParams(u.hash.slice(1)).keys()].some(k=>/^(?:code|token|access_token|id_token|refresh_token|SAMLRequest|SAMLResponse)$/i.test(k));}catch{return true;}};
 const send=value=>{if(socket?.readyState===1)socket.send(JSON.stringify(value));};
+const mirror=createTabMirror({chrome,send,row,attached});
 async function row(tabId,{documentId,allowPortal=false}={}){
  const id=Number(tabId),record=tabs.get(id);if(!record||!Number.isSafeInteger(id))throw Error('browser_tab_missing');
  const tab=await chrome.tabs.get(id);if(tab.incognito||tab.windowId!==windowId)throw Error('browser_tab_missing');
@@ -18,8 +21,9 @@ async function endWindowProof(nonce){
  try{const active=await chrome.tabs.query({active:true,windowId:proof.windowId});if(!active.length||active[0].id===proof.previous){await chrome.tabs.update(proof.previous,{active:true});}}catch{}
  return {ended:true};
 }
-async function disconnect(){if(windowProof)await endWindowProof(windowProof.nonce);const prior=socket;socket=null;generation=null;connecting=false;prior?.close();for(const id of attached)await chrome.debugger.detach({tabId:id}).catch(()=>{});attached.clear();tabs.clear();windowId=null;portalTab=null;sourceTab=null;}
+async function disconnect(){mirror.invalidate();if(windowProof)await endWindowProof(windowProof.nonce);const prior=socket;socket=null;generation=null;connecting=false;prior?.close();for(const id of attached)await chrome.debugger.detach({tabId:id}).catch(()=>{});attached.clear();tabs.clear();windowId=null;portalTab=null;sourceTab=null;}
 async function dispatch(action,args){
+ if(['mirrorStart','mirrorStop','mirrorAck','mirrorInput'].includes(action))return mirror.dispatch(action,args);
  if(action==='tabs')return inventory();
  if(action==='windowProofEnd')return endWindowProof(args.nonce);
  if(action==='windowProofStart'){
@@ -57,8 +61,8 @@ async function dispatch(action,args){
  }
  const {tab,record}=await row(args.tabId,{documentId:args.documentId,allowPortal:['focus','detach','releaseTab'].includes(action)});
  if(action==='focus'){await chrome.tabs.update(tab.id,{active:true});await chrome.windows.update(windowId,{focused:true});return {focused:true};}
- if(action==='detach'){if(attached.has(tab.id))await chrome.debugger.detach({tabId:tab.id}).catch(()=>{});attached.delete(tab.id);return {released:true};}
- if(action==='releaseTab'){if(attached.has(tab.id))await chrome.debugger.detach({tabId:tab.id}).catch(()=>{});attached.delete(tab.id);tabs.delete(tab.id);return {released:true};}
+ if(action==='detach'){if(mirror.active(tab.id))return {released:true,retainedForMirror:true};if(attached.has(tab.id))await chrome.debugger.detach({tabId:tab.id}).catch(()=>{});attached.delete(tab.id);return {released:true};}
+ if(action==='releaseTab'){mirror.invalidate(tab.id);if(attached.has(tab.id))await chrome.debugger.detach({tabId:tab.id}).catch(()=>{});attached.delete(tab.id);tabs.delete(tab.id);return {released:true};}
  if(action==='capture'){
   if(!attached.has(tab.id)){await chrome.debugger.attach({tabId:tab.id},'1.3');attached.add(tab.id);}
   const documentId=record.documentId,metrics=await chrome.debugger.sendCommand({tabId:tab.id},'Page.getLayoutMetrics',{}),viewport=metrics.cssLayoutViewport||metrics.layoutViewport;
@@ -69,6 +73,7 @@ async function dispatch(action,args){
   await row(tab.id,{documentId});return {image:shot.data,url:tab.url,title:tab.title,tabId:String(tab.id),documentId,viewport:{width:viewport.clientWidth,height:viewport.clientHeight},clip};
  }
  if(action!=='cdp')throw Error('browser_action_invalid');
+ if(mirror.interacting(tab.id))throw Error('browser_user_interacting');
  const method=args.method;
  if(typeof method!=='string'||/^(?:Browser|Storage)\./.test(method)||/^Network\.(?:getAllCookies|getCookies|setCookie|setCookies|deleteCookies|clearBrowserCookies|setExtraHTTPHeaders|setAcceptedEncodings)$/.test(method)||/^(?:Target\.(?:create|close|activate|attachTo)Target|Target\.createBrowserContext)$/.test(method))throw Error('browser_scope');
  if(method==='Page.navigate'&&(restricted(args.params?.url)||!/^https?:/.test(args.params?.url||'')))throw Error('browser_url_invalid');
@@ -76,10 +81,10 @@ async function dispatch(action,args){
  const result=await chrome.debugger.sendCommand({tabId:tab.id,...(args.sessionId?{sessionId:args.sessionId}:{})},method,args.params||{});
  if(method!=='Page.navigate')await row(tab.id,{documentId:args.documentId});return result;
 }
-chrome.debugger.onEvent.addListener((source,method,params)=>{if(!tabs.has(source.tabId)||!attached.has(source.tabId)||/^(?:Log\.|Runtime\.(?:consoleAPICalled|exceptionThrown))/.test(method))return;send({type:'cdp',tabId:String(source.tabId),documentId:tabs.get(source.tabId).documentId,method,params,...(source.sessionId?{sessionId:source.sessionId}:{})});});
-chrome.debugger.onDetach.addListener(source=>{attached.delete(source.tabId);send({type:'detached',tabId:String(source.tabId)});});
-chrome.tabs.onUpdated.addListener((id,change)=>{const record=tabs.get(id);if(!record)return;if(change.status==='loading'||change.url)record.documentId=crypto.randomUUID();void inventory().then(values=>send({type:'tabs',tabs:values}));});
-chrome.tabs.onRemoved.addListener(id=>{if(!tabs.has(id))return;tabs.delete(id);attached.delete(id);if(portalTab===id)portalTab=null;void inventory().then(values=>send({type:'tabs',tabs:values}));});
+chrome.debugger.onEvent.addListener((source,method,params)=>{if(mirror.frame(source,method,params))return;if(!tabs.has(source.tabId)||!attached.has(source.tabId)||/^(?:Log\.|Runtime\.(?:consoleAPICalled|exceptionThrown))/.test(method))return;send({type:'cdp',tabId:String(source.tabId),documentId:tabs.get(source.tabId).documentId,method,params,...(source.sessionId?{sessionId:source.sessionId}:{})});});
+chrome.debugger.onDetach.addListener(source=>{mirror.invalidate(source.tabId);attached.delete(source.tabId);send({type:'detached',tabId:String(source.tabId)});});
+chrome.tabs.onUpdated.addListener((id,change)=>{const record=tabs.get(id);if(!record)return;if(change.status==='loading'||change.url){mirror.invalidate(id);record.documentId=crypto.randomUUID();}void inventory().then(values=>send({type:'tabs',tabs:values}));});
+chrome.tabs.onRemoved.addListener(id=>{if(!tabs.has(id))return;mirror.invalidate(id);tabs.delete(id);attached.delete(id);if(portalTab===id)portalTab=null;void inventory().then(values=>send({type:'tabs',tabs:values}));});
 chrome.tabs.onActivated.addListener(info=>{if(info.windowId===windowId&&tabs.has(info.tabId))void inventory().then(values=>send({type:'tabs',tabs:values}));});
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
  if(sender.id!==chrome.runtime.id||sender.tab||sender.url!==chrome.runtime.getURL('connect.html'))return;
@@ -90,12 +95,19 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
    const {tab}=await row(sourceTab,{allowPortal:true}),u=new URL(tab.url);if(!['http:','https:'].includes(u.protocol))throw Error('mail_portal_login');
    if(!await chrome.permissions.request({origins:[u.origin+'/*']}))throw Error('external_browser_portal_permission_required');return {granted:true};
   }
-  if(message.action!=='connect'||connecting||socket)throw Error('external_browser_busy');
-  if(typeof message.code!=='string'||!/^ws:\/\/127\.0\.0\.1:\d{1,5}\/[a-f0-9]{64}$/.test(message.code))throw Error('external_browser_code_invalid');
-  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab||tab.incognito||restricted(tab.url))throw Error('browser_auth_protected');
+  if(message.action!=='connect')throw Error('browser_action_invalid');
+  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});return connectTab(message.code,tab);
+ };
+ void run().then(reply,error=>reply({error:/^[a-z_]{3,80}$/.test(error.message)?error.message:'external_browser_request_failed'}));return true;
+});
+
+async function connectTab(code,tab){
+  if(connecting||socket)throw Error('external_browser_busy');
+  if(typeof code!=='string'||!/^ws:\/\/127\.0\.0\.1:\d{1,5}\/[a-f0-9]{64}$/.test(code))throw Error('external_browser_code_invalid');
+  if(!tab||tab.incognito||!/^https?:\/\//.test(tab.url||''))throw Error('browser_auth_protected');
   sourceTab=tab.id;windowId=tab.windowId;tabs.set(tab.id,{documentId:crypto.randomUUID()});connecting=true;
   await new Promise((resolve,reject)=>{
-   const ws=new WebSocket(message.code);socket=ws;const timer=setTimeout(()=>{ws.close();reject(Error('external_browser_timeout'));},5000);
+   const ws=new WebSocket(code);socket=ws;const timer=setTimeout(()=>{ws.close();reject(Error('external_browser_timeout'));},5000);
    ws.onopen=async()=>{ws.send(JSON.stringify({type:'hello',version:1,windowId,browserVersion:navigator.userAgent,tabs:await inventory()}));};
    ws.onerror=()=>{clearTimeout(timer);reject(Error('external_browser_connection_failed'));};
    ws.onclose=()=>{clearTimeout(timer);if(socket===ws)void disconnect();reject(Error('external_browser_connection_failed'));};
@@ -106,6 +118,6 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     try{const result=await dispatch(packet.action,packet.args||{});if(owner===generation)send({id:packet.id,result});}catch(error){if(owner===generation)send({id:packet.id,error:/^[a-z_]{3,80}$/.test(error.message)?error.message:'external_browser_request_failed'});}
    };
   });return {connected:true};
- };
- void run().then(reply,error=>reply({error:/^[a-z_]{3,80}$/.test(error.message)?error.message:'external_browser_request_failed'}));return true;
-});
+
+}
+createQuickConnector({chrome,connect:connectTab,connected:()=>!!socket||connecting});

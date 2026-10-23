@@ -92,7 +92,11 @@ export const WIKI_MODEL_WAIT_POLICY=Object.freeze({idleMs:600000,attemptMs:0,slo
 export async function prepareNativeWikiCopy(root,mode='update'){
   try{
     const {ensureCodeModeRepoSetup}=await import('../generated/openwiki-update/index.mjs');
-    await ensureCodeModeRepoSetup(root,{createWorkflow:mode==='init'});
+    // Desktop publishes only openwiki/. A workflow invented in this analysis
+    // copy would become false evidence of CI in the user's actual repository.
+    // Existing source workflows remain untouched; the standalone CLI keeps its
+    // own opt-in workflow setup.
+    await ensureCodeModeRepoSetup(root,{createWorkflow:false});
   }catch(error){if(['ENOENT','ERR_MODULE_NOT_FOUND'].includes(error?.code))fail('wiki_runtime_missing');throw error;}
 }
 
@@ -215,7 +219,7 @@ export function defaultWikiUpdater(service,{load=()=>import('../generated/openwi
         return {nextRetryAt:clock.now()+policy.waitMs};
       }};
     const heartbeat=setInterval(()=>{try{check();journal.beat();publishJournal();}catch{/* A stale owner cannot publish a heartbeat. */}},10000);heartbeat.unref?.();
-    try{result=await runNativeRepositoryGeneration({root,mode,language:language||null,modelId:status.model,model,pageConcurrency:status.concurrency,onEvent:progress,repositoryContext,planningContext,force,durability});}
+    try{result=await runNativeRepositoryGeneration({root,mode,createWorkflow:false,language:language||null,modelId:status.model,model,pageConcurrency:status.concurrency,onEvent:progress,repositoryContext,planningContext,force,durability});}
     catch(error){throw terminalModelError||error;}finally{clearInterval(heartbeat);}
     // OpenWiki may return after skipping failed pages. Keep the durable run for
     // resume instead of publishing a partial generation as a completed Wiki.

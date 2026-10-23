@@ -1,88 +1,17 @@
-/* Desktop-only cascade: keep root specificity without descendant queries. */
-/* One slow, low-contrast colour wash. Only the decorative layer moves.
-   New Nubi pastel surfaces can opt in with .nubi-pastel-surface; no DOM observer,
-   per-frame JS, filter animation or provider-logo recolouring is needed. */
-:root:root{
- --nubi-pastel-duration:var(--nubi-ambient-wash);
- --nubi-pastel-surround-duration:var(--nubi-ambient-surround);
- --nubi-pastel-ease:cubic-bezier(.45,0,.55,1);
- --nubi-pastel-wash:radial-gradient(ellipse at 15% 30%,color-mix(in srgb,var(--deck-blue) 14%,transparent),transparent 60%),radial-gradient(ellipse at 85% 75%,color-mix(in srgb,var(--deck-teal) 12%,transparent),transparent 64%);
+/* Calm Liquid: one quiet scene, stable surfaces and the shared brand tokens. */
+:root:root {
+ --nubi-action-fill:var(--nuvi-brand-gradient-soft);
+ --nubi-liquid-strength:.24;
+ --nubi-liquid-secondary-strength:.18;
+ --nubi-liquid-blur:56px;
+ --nubi-liquid-secondary-blur:48px;
+ --nubi-liquid-ease:cubic-bezier(.45,0,.55,1);
+ --nubi-workspace-gradient:var(--nuvi-background);
+ --nubi-chat-surround:var(--nuvi-background);
+ --nubi-pastel-wash:radial-gradient(ellipse at 0% 0%,color-mix(in srgb,var(--nuvi-sky) 20%,transparent),transparent 65%),radial-gradient(ellipse at 100% 100%,color-mix(in srgb,var(--nuvi-aqua) 16%,transparent),transparent 65%);
 }
-:root:root :is( .nubi-pastel-surface,
- .nubi-brand-emblem,.nubi-beta,
- .nubi-catalog-tabs [role=tab][aria-selected=true],
- .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
- .nubi-wiki-insight-metrics>button[aria-pressed=true],
- .nubi-wiki-insight-document[aria-pressed=true],.nubi-wiki-reading-links ul,
- .nubi-wiki-candidate button,.nubi-wiki-links nav button,
- .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
- .nubi-skill-card-icon,.nubi-custom-skill-mark){
- position:relative;isolation:isolate;overflow:clip;
-}
-:root:root :is( .nubi-pastel-surface,
- .nubi-brand-emblem,.nubi-beta,
- .nubi-catalog-tabs [role=tab][aria-selected=true],
- .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
- .nubi-wiki-insight-metrics>button[aria-pressed=true],
- .nubi-wiki-insight-document[aria-pressed=true],.nubi-wiki-reading-links ul,
- .nubi-wiki-candidate button,.nubi-wiki-links nav button,
- .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
- .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{
- content:"";position:absolute;inset:-16%;z-index:-1;pointer-events:none;
- border-radius:inherit;background:var(--nubi-pastel-wash);
- animation:nubi-pastel-flow var(--nubi-pastel-duration) var(--nubi-pastel-ease) infinite alternate;
-}
-.desktop-shell{position:relative;isolation:isolate}
-.desktop-shell::before{
- content:"";position:absolute;inset:-10%;z-index:-1;pointer-events:none;
- background:var(--nubi-pastel-wash);
- animation:nubi-pastel-flow var(--nubi-pastel-surround-duration) var(--nubi-pastel-ease) infinite alternate;
-}
-/* Mail/wiki status belongs to the shell surround. Reveal the same moving wash
-   instead of restarting it in a separate coloured strip or animated layer. */
-.desktop-shell>.desktop-mail-progress{
- background:transparent;
- border-top:0;
- box-shadow:none;
-}
-@media(forced-colors:active){
- .desktop-shell>.desktop-mail-progress{background:Canvas;color:CanvasText;}
-}
-@keyframes nubi-pastel-flow{
- from{transform:translate3d(-5%,-3%,0) scale(1.04)}
- to{transform:translate3d(5%,3%,0) scale(1.08)}
-}
-/* Existing start/mail ambient blobs use the same quiet rhythm. */
-:root:root .desktop-shell .deck-ambient .deck-blob{
- animation-name:nubi-pastel-flow;animation-duration:var(--nubi-pastel-duration);
- animation-timing-function:var(--nubi-pastel-ease);animation-iteration-count:infinite;animation-direction:alternate;
-}
-:root:root .desktop-shell .deck-ambient .deck-blob-teal{animation-delay:-24s;animation-duration:var(--nubi-pastel-surround-duration)}
-:root:root .desktop-shell .deck-ambient .deck-blob-violet{animation-delay:-48s}
-/* Keep the host's pause/visibility policy, including modal attention. */
-:root:is([data-motion=paused],[data-motion-visibility=hidden]) .desktop-shell::before{animation-play-state:paused}
-:root:is([data-motion=paused],[data-motion-visibility=hidden]) :is( .nubi-pastel-surface,
- .nubi-brand-emblem,.nubi-beta,
- .nubi-catalog-tabs [role=tab][aria-selected=true],
- .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
- .nubi-wiki-insight-metrics>button[aria-pressed=true],
- .nubi-wiki-insight-document[aria-pressed=true],.nubi-wiki-reading-links ul,
- .nubi-wiki-candidate button,.nubi-wiki-links nav button,
- .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
- .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{animation-play-state:paused}
-:root[data-motion-panel] .desktop-shell::before,
-:root[data-motion-panel] :is( .nubi-pastel-surface,
- .nubi-brand-emblem,.nubi-beta,
- .nubi-catalog-tabs [role=tab][aria-selected=true],
- .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
- .nubi-wiki-insight-metrics>button[aria-pressed=true],
- .nubi-wiki-insight-document[aria-pressed=true],.nubi-wiki-reading-links ul,
- .nubi-wiki-candidate button,.nubi-wiki-links nav button,
- .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
- .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{animation-play-state:paused}
-@media(prefers-reduced-motion:reduce){
- .desktop-shell::before,
- :root:root :is( .nubi-pastel-surface,
+/* Retire the separate moving washes on badges, result rows and the shell. */
+:root:root :is(.desktop-shell,.nubi-pastel-surface,
  .nubi-brand-emblem,.nubi-beta,
  .nubi-catalog-tabs [role=tab][aria-selected=true],
  .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
@@ -91,14 +20,196 @@
  .nubi-wiki-candidate button,.nubi-wiki-links nav button,
  .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
  .nubi-skill-card-icon,.nubi-custom-skill-mark)::before,
- :root:root .desktop-shell .deck-ambient .deck-blob{animation-play-state:paused!important;}
+:root:root .desktop-shell .welcome-emblem::before {content:none;}
+:root:root .desktop-shell {background:var(--nuvi-background);}
+:root:root .desktop-shell .nubi-workbench {background:var(--nuvi-background);}
+:root:root .desktop-shell .welcome-title .welcome-accent {
+ background:none;color:var(--nuvi-primary-hover);-webkit-text-fill-color:currentColor;
 }
-@media(forced-colors:active){.desktop-shell::before,:root:root :is( .nubi-pastel-surface,
- .nubi-brand-emblem,.nubi-beta,
- .nubi-catalog-tabs [role=tab][aria-selected=true],
- .nubi-wiki-badge,.nubi-wiki-description,.nubi-wiki-insight-method,
- .nubi-wiki-insight-metrics>button[aria-pressed=true],
- .nubi-wiki-insight-document[aria-pressed=true],.nubi-wiki-reading-links ul,
- .nubi-wiki-candidate button,.nubi-wiki-links nav button,
- .nubi-mail-evidence-group>summary,.nubi-mail-result[aria-pressed=true],
- .nubi-skill-card-icon,.nubi-custom-skill-mark)::before{display:none}}
+.nubi-liquid-scene {
+ position:absolute;inset:0;z-index:0;overflow:clip;pointer-events:none;
+ contain:paint;user-select:none;
+}
+.nubi-liquid-scene::after {content:"";position:absolute;inset:0;pointer-events:none;background:var(--nubi-calm-reading-veil);}
+.nubi-liquid-drop {
+ position:absolute;display:block;width:clamp(560px,58vw,800px);height:auto;
+ overflow:visible;opacity:var(--nubi-liquid-strength);filter:blur(var(--nubi-liquid-blur));
+ transform-origin:50% 50%;pointer-events:none;
+}
+.nubi-liquid-drop-primary {left:-160px;top:-260px;}
+.nubi-liquid-drop>svg {display:block;width:100%;height:auto;overflow:visible;}
+.nubi-liquid-drop-secondary {
+ right:-160px;bottom:-190px;width:clamp(420px,44vw,620px);
+ opacity:var(--nubi-liquid-secondary-strength);filter:blur(var(--nubi-liquid-secondary-blur));
+}
+.nubi-liquid-stop-mint {stop-color:var(--nuvi-mint);}
+.nubi-liquid-stop-periwinkle {stop-color:var(--nuvi-periwinkle);}
+.nubi-liquid-stop-iris {stop-color:var(--nuvi-iris);}
+.nubi-liquid-stop-sky {stop-color:var(--nuvi-sky);}
+.nubi-liquid-stop-aqua {stop-color:var(--nuvi-aqua);}
+.nubi-liquid-stop-lavender {stop-color:var(--nuvi-lavender);}
+.nubi-liquid-stop-light {stop-color:var(--nuvi-surface);}
+.nubi-liquid-sheen {opacity:.32;}
+@layer nubi-ambient {
+ .desktop-shell .nubi-liquid-drop {
+  animation:nubi-liquid-drift var(--nubi-ambient-liquid-a) var(--nubi-liquid-ease) infinite!important;
+  animation-play-state:var(--nubi-ambient-play)!important;will-change:var(--nubi-ambient-will-change)!important;
+ }
+ .desktop-shell .nubi-liquid-drop-secondary {
+  animation-duration:var(--nubi-ambient-liquid-b)!important;animation-delay:var(--nubi-ambient-liquid-offset)!important;
+ }
+ .desktop-shell .nubi-workbench:is([data-workspace-screen=conversation],[data-workspace-screen=mail],[data-workspace-screen=wiki]) .nubi-liquid-drop {animation-play-state:paused!important;}
+}
+/* Five near-area-preserving poses; colours, opacity and blur remain constant. */
+@keyframes nubi-liquid-drift {
+ 0%,100% {transform:translate3d(0,0,0) rotate(-1deg) scale(1,1) skew(0,0);}
+ 20% {transform:translate3d(10px,-8px,0) rotate(0deg) scale(1.014,.9862) skew(.8deg,-.3deg);}
+ 40% {transform:translate3d(16px,4px,0) rotate(1deg) scale(.988,1.0121) skew(-.5deg,.5deg);}
+ 60% {transform:translate3d(7px,14px,0) rotate(.3deg) scale(1.01,.9901) skew(.3deg,-.6deg);}
+ 80% {transform:translate3d(-6px,7px,0) rotate(-.6deg) scale(.994,1.006) skew(-.7deg,.2deg);}
+}
+/* Pair the light brand fill with navy labels in the shell and body portals.
+   Provider controls and semantic danger actions retain their existing identity. */
+:root:root :is(.nubi-desktop-host,.deck-dialog) :is(.cx-button--primary,.nubi-sidebar-new,.composer-send):not(.provider-button,.provider-connect-button,[data-provider],.cx-button--danger),
+:root:root .desktop-shell .desktop-pane :is(header [data-action=save],form>.cx-kit-button[type=submit]) {
+ background:var(--nuvi-brand-gradient-soft);color:var(--nuvi-text);border-color:transparent;
+}
+:root:root :is(.nubi-desktop-host,.deck-dialog) :is(.cx-button--primary,.nubi-sidebar-new,.composer-send):not(.provider-button,.provider-connect-button,[data-provider],.cx-button--danger):hover:not(:disabled) {
+ background:var(--nuvi-brand-gradient-soft);color:var(--nuvi-text);
+}
+/* Near-white content cards carry only an 8 percent brand tint. Reading
+   surfaces, original mail content and provider controls retain their own fills. */
+:root:root :is(.desktop-shell,.nubi-project-connect) .nubi-start-card {background:var(--nuvi-content-gradient);}
+/* Portal controls retain provider identity. */
+:root:root :is(.nubi-reasoning-anchor,.nubi-reasoning-menu)[data-provider=chatgpt] {
+ --nubi-reasoning-ink:var(--nuvi-provider-openai-ink);
+ --nubi-reasoning-fill:linear-gradient(var(--nuvi-provider-openai-ink),var(--nuvi-provider-openai-ink));
+}
+:root:root .model-trigger[data-provider=chatgpt] {--nubi-model-ink:var(--nuvi-provider-openai-ink);}
+.desktop-shell>.desktop-mail-progress {background:transparent;border-top:0;box-shadow:none;}
+@media(max-width:760px) {
+ .nubi-liquid-drop-primary {left:-230px;top:-240px;}
+ .nubi-liquid-drop-secondary {right:-230px;bottom:-180px;}
+}
+@media(prefers-reduced-motion:reduce) {
+ @layer nubi-reduced {.desktop-shell .nubi-liquid-drop {animation-play-state:paused!important;will-change:auto!important;}}
+}
+@media(forced-colors:active) {
+ .nubi-liquid-scene {display:none;}
+ .desktop-shell>.desktop-mail-progress {background:Canvas;color:CanvasText;}
+}
+
+/* The same quiet brand roles continue from the modal into its parent page. */
+:root:root .desktop-shell .desktop-pane>header {background:var(--nubi-brand-page-header);}
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team),
+:root:root .desktop-shell .nubi-session-row[data-current=true],
+:root:root .desktop-shell .nubi-catalog-tabs [role=tab][aria-selected=true] {background:var(--nubi-brand-selection);color:var(--nuvi-text);}
+:root:root :is(.desktop-shell,.nubi-project-connect) :is(.nubi-start-tile,.nubi-start-go,.nubi-wiki-badge) {background:var(--nubi-brand-icon-tile);color:var(--nuvi-text);}
+/* Selected navigation keeps the same light identity on hover/focus. */
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled) {background:var(--nubi-brand-selection);color:var(--nuvi-text);}
+/* Keep hovered project arrows on a pale tile as their ink is now branded. */
+:root:root :is(.desktop-shell,.nubi-project-connect) button.nubi-start-card:hover:not(:disabled) .nubi-start-go {background:var(--nubi-brand-icon-tile);color:var(--nuvi-text);}
+@media(forced-colors:active) {
+ :root:root .desktop-shell :is(.nubi-window-toolbar,.nubi-workspace-rail,.desktop-pane>header) {background:Canvas;color:CanvasText;}
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team),
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled),
+ :root:root .desktop-shell .nubi-session-row[data-current=true],
+ :root:root .desktop-shell .nubi-catalog-tabs [role=tab][aria-selected=true] {background:Highlight;color:HighlightText;}
+ :root:root :is(.desktop-shell,.nubi-project-connect) :is(.nubi-start-tile,.nubi-start-go,.nubi-wiki-badge) {background:Canvas;color:CanvasText;}
+ :root:root :is(.desktop-shell,.nubi-project-connect) button.nubi-start-card:hover:not(:disabled) .nubi-start-go {background:Canvas;color:CanvasText;}
+}
+
+/* Glass lives on navigation and floating controls, never on the transcript,
+   source documents, provider controls or every row of a scrolling collection. */
+:root:root .desktop-shell .nubi-mail-history-bar,
+:root:root .desktop-shell .nubi-wiki-bar,
+:root:root .desktop-shell .nubi-skill-page-header {
+ background:var(--nubi-brand-page-header);box-shadow:var(--nubi-brand-heading-rule);
+}
+:root:root .desktop-shell {background:var(--nubi-glass-canvas);}
+:root:root .desktop-shell .nubi-workbench {background-image:var(--nubi-glass-navigation-tint);}
+:root:root .desktop-shell .nubi-sidebar,
+:root:root .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail {
+ background:var(--nubi-glass-chrome);
+ border-color:var(--nubi-glass-edge);
+ box-shadow:var(--nubi-glass-chrome-shadow);
+ -webkit-backdrop-filter:var(--nubi-glass-filter);
+ backdrop-filter:var(--nubi-glass-filter);
+}
+:root:root .desktop-shell .nubi-window-toolbar {
+ background:var(--nubi-glass-chrome);
+ border-bottom-color:var(--nubi-glass-edge);
+ box-shadow:inset 0 1px 0 var(--nubi-glass-highlight);
+ -webkit-backdrop-filter:var(--nubi-glass-filter);
+ backdrop-filter:var(--nubi-glass-filter);
+}
+:root:root .desktop-shell .nubi-bar .nubi-icon-button,
+:root:root .desktop-shell .nubi-jump-latest {
+ background:var(--nubi-glass-control);
+ border-color:var(--nubi-glass-edge);
+ box-shadow:var(--nubi-glass-shadow);
+ -webkit-backdrop-filter:var(--nubi-glass-filter);
+ backdrop-filter:var(--nubi-glass-filter);
+}
+/* Keep the text field milky and legible; its rim carries the glass depth. */
+:root:root .desktop-shell .nubi-workbench .nubi-compose-card {
+ background:var(--nubi-surface-milk);
+ border-color:var(--nubi-glass-edge);
+ box-shadow:var(--nubi-glass-shadow);
+ backdrop-filter:none;
+}
+:root:root .desktop-shell .nubi-workbench .nubi-compose-card:focus-within {
+ border-color:var(--deck-blue-soft);
+ box-shadow:var(--nubi-glass-focus-shadow);
+}
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team),
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled),
+:root:root .desktop-shell .nubi-session-row[data-current=true] {
+ background:var(--nubi-glass-selection);
+ color:var(--nubi-text-action);
+ box-shadow:var(--nubi-glass-selection-shadow);
+}
+/* The spring settles only the rim. Labels and glyphs remain fixed in place. */
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team) {position:relative;}
+:root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team)::after {
+ content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ box-shadow:inset 0 0 0 1px var(--nubi-glass-highlight);
+ animation:nubi-glass-settle var(--nubi-motion-enter) var(--nubi-ease-spring) both;
+}
+@keyframes nubi-glass-settle {
+ from {transform:scale(.9,.84);opacity:0;}
+ to {transform:scale(1);opacity:1;}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+ :root:root .desktop-shell .nubi-sidebar,
+ :root:root .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail,
+ :root:root .desktop-shell .nubi-window-toolbar,
+ :root:root .desktop-shell .nubi-bar .nubi-icon-button,
+ :root:root .desktop-shell .nubi-jump-latest {background:var(--nubi-surface-milk);}
+}
+@media(prefers-reduced-transparency:reduce) {
+ :root:root .desktop-shell .nubi-liquid-scene {display:none;}
+}
+@media(prefers-reduced-motion:reduce) {
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]::after {animation:none;}
+}
+@media(forced-colors:active) {
+ :root:root .desktop-shell .nubi-mail-history-bar,
+ :root:root .desktop-shell .nubi-wiki-bar,
+ :root:root .desktop-shell .nubi-skill-page-header {background:Canvas;box-shadow:none;}
+ :root:root .desktop-shell,
+ :root:root .desktop-shell .nubi-workbench,
+ :root:root .desktop-shell .nubi-sidebar,
+ :root:root .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail,
+ :root:root .desktop-shell .nubi-window-toolbar,
+ :root:root .desktop-shell .nubi-bar .nubi-icon-button,
+ :root:root .desktop-shell .nubi-jump-latest,
+ :root:root .desktop-shell .nubi-workbench .nubi-compose-card,
+ :root:root .desktop-shell .nubi-workbench .nubi-compose-card:focus-within {
+  background:Canvas;border-color:CanvasText;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team),
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled),
+ :root:root .desktop-shell .nubi-session-row[data-current=true] {background:Highlight;color:HighlightText;box-shadow:none;}
+ :root:root .desktop-shell .nubi-workspace-rail button[aria-pressed=true]::after {content:none;}
+}

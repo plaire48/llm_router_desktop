@@ -96,8 +96,18 @@ body {
 :root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-menu,.nubi-reasoning-menu,.nubi-approval-mode-menu) strong {
   font-weight:var(--nubi-weight-emphasis);
 }
-:root[data-desktop-shell="true"] :is(.nubi-skill-page-header h1,.nubi-mail-history-bar h1) {
+:root[data-desktop-shell="true"] :is(.nubi-skill-page-header h1,.nubi-mail-history-bar h1,.nubi-wiki-bar h1) {
   font-size:var(--deck-type-heading); line-height:var(--deck-line-heading); font-weight:var(--nubi-weight-emphasis);
+}
+
+/* Body portals use the same Korean type and hierarchy as their source screen. */
+:root:root .nubi-filter-panel,
+:root:root .desktop-tools-menu {
+ font-family:var(--nubi-font-family);line-height:var(--deck-line-body);letter-spacing:normal;
+}
+:root:root .deck-dialog .cx-panel-header h2,
+:root:root .desktop-shell .nubi-wiki-bar h1 {
+ color:var(--nubi-text-primary);font-weight:var(--nubi-weight-emphasis);letter-spacing:normal;
 }
 :root[data-desktop-shell="true"] :is(.deck-dialog,.nubi-skill-page,.nubi-mail-history,.desktop-pane) h3 {
   font-size:var(--deck-type-body); line-height:var(--deck-line-body); font-weight:var(--nubi-weight-emphasis);

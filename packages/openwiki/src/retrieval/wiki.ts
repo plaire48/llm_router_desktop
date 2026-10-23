@@ -1,4 +1,5 @@
 import { marked, type Token, type Tokens } from "marked";
+import { createHash } from "node:crypto";
 import { ClaimsStore } from "../claims/brains/code/store.js";
 import { normalizeWikiPagePath } from "../claims/brains/code/paths.js";
 import { parseFrontmatterFields } from "../okf/frontmatter.js";
@@ -360,6 +361,8 @@ interface SearchPageContext {
  * One parsed Markdown heading and its complete descendant-bounded section.
  */
 interface ParsedHeadingSection {
+  start: number;
+  end: number;
   /**
    * GitHub-compatible heading anchor, including duplicate suffixes.
    */
@@ -536,6 +539,32 @@ async function rankSearchUnits(
   limit: number,
   includeWiki: boolean,
 ): Promise<WikiSearchResults> {
+  const index = await createSearchIndex(units);
+  try {
+    return {
+      results: index
+        .rank(terms, paths, limit)
+        .map((unit) => renderSearchResult(unit, includeWiki)),
+    };
+  } finally {
+    index.close();
+  }
+}
+
+/** One native FTS index can serve an immutable snapshot without rebuilding it per query. */
+async function createSearchIndex(units: SearchUnit[]) {
+  const identifiers = new Map(
+    units.map((unit) => [
+      unit,
+      new Set(
+        (
+          [unit.title, unit.prose, unit.identifiers]
+            .join(" ")
+            .match(/[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+/gu) ?? []
+        ).map((value) => value.toLowerCase()),
+      ),
+    ]),
+  );
   const { DatabaseSync } = await import("node:sqlite");
   const database = new DatabaseSync(":memory:");
   try {
@@ -556,45 +585,70 @@ async function rankSearchUnits(
       ),
     );
 
-    // Only normalized word terms reach MATCH, and each is quoted as data.
-    const match = terms.map((term) => `"${term}"`).join(" OR ");
-    const ranked = database
-      .prepare(
-        "SELECT rowid, bm25(units, 8, 4, 6, 1, 3) AS score FROM units WHERE units MATCH ? ORDER BY score, rowid",
-      )
-      .all(match) as RankedSearchRow[];
-    const matchingRows = database.prepare(
-      "SELECT rowid FROM units WHERE units MATCH ?",
-    );
-    const coverage = new Map<number, number>();
-    for (const term of terms) {
-      for (const row of matchingRows.all(`"${term}"`)) {
-        const rowid = Number(row.rowid);
-        coverage.set(rowid, (coverage.get(rowid) ?? 0) + 1);
-      }
-    }
-    const pathScores = units.map((unit) => pathMatchCount(unit, paths));
-
-    ranked.sort((left, right) => {
-      const leftId = Number(left.rowid);
-      const rightId = Number(right.rowid);
-      return (
-        pathScores[rightId - 1] - pathScores[leftId - 1] ||
-        (coverage.get(rightId) ?? 0) - (coverage.get(leftId) ?? 0) ||
-        left.score - right.score ||
-        leftId - rightId
-      );
-    });
-
     return {
-      results: ranked
-        .slice(0, limit)
-        .map(({ rowid }) =>
-          renderSearchResult(units[Number(rowid) - 1], includeWiki),
-        ),
+      rank(
+        terms: readonly string[],
+        paths: readonly string[],
+        limit: number,
+        allowed?: Set<SearchUnit>,
+      ) {
+        if (!terms.length) return [];
+        const candidate = terms[0];
+        const identifier =
+          /^[a-z][a-z0-9]*_[a-z0-9_]+$/u.test(candidate) &&
+          terms.every(
+            (term) => term === candidate || candidate.split("_").includes(term),
+          )
+            ? candidate
+            : null;
+        // Only normalized word terms reach MATCH, and each is quoted as data.
+        const match = terms.map((term) => `"${term}"`).join(" OR ");
+        const ranked = database
+          .prepare(
+            "SELECT rowid, bm25(units, 8, 4, 6, 1, 3) AS score FROM units WHERE units MATCH ? ORDER BY score, rowid",
+          )
+          .all(match) as RankedSearchRow[];
+        const matchingRows = database.prepare(
+          "SELECT rowid FROM units WHERE units MATCH ?",
+        );
+        const coverage = new Map<number, number>();
+        for (const term of terms) {
+          for (const row of matchingRows.all(`"${term}"`)) {
+            const rowid = Number(row.rowid);
+            coverage.set(rowid, (coverage.get(rowid) ?? 0) + 1);
+          }
+        }
+        const pathScores = units.map((unit) => pathMatchCount(unit, paths));
+
+        const permitted = ranked.filter((row) => {
+          const unit = units[Number(row.rowid) - 1];
+          return (
+            (!allowed || allowed.has(unit)) &&
+            (!identifier || identifiers.get(unit)!.has(identifier))
+          );
+        });
+        permitted.sort((left, right) => {
+          const leftId = Number(left.rowid);
+          const rightId = Number(right.rowid);
+          return (
+            pathScores[rightId - 1] - pathScores[leftId - 1] ||
+            left.score - right.score ||
+            (coverage.get(rightId) ?? 0) - (coverage.get(leftId) ?? 0) ||
+            leftId - rightId
+          );
+        });
+
+        return permitted
+          .slice(0, limit)
+          .map(({ rowid }) => units[Number(rowid) - 1]);
+      },
+      close() {
+        database.close();
+      },
     };
-  } finally {
+  } catch (error) {
     database.close();
+    throw error;
   }
 }
 
@@ -682,6 +736,321 @@ export async function readWikiSections(
   return response;
 }
 
+export interface WikiSnapshotDocument {
+  id: string;
+  path: string;
+  text: string;
+  title?: string;
+  /** Host-validated Claim statements are navigation hints, never quoted text. */
+  searchHints?: string;
+  aliases?: readonly string[];
+}
+export interface WikiSnapshotHit {
+  documentId: string;
+  ref: string;
+  section: string;
+  start: number;
+  end: number;
+  matchedInHints?: boolean;
+}
+
+/**
+ * Native search/read over host-authorized immutable Markdown. This is the same
+ * section parser and FTS ranker as searchWiki/readWikiSections, without filesystem
+ * discovery or workspace expansion. The owner must close the reader on replacement.
+ */
+export async function createWikiSnapshotReader(
+  documents: readonly WikiSnapshotDocument[],
+  options: { retainText?: boolean } = {},
+) {
+  const records = new Map<
+    string,
+    {
+      doc: WikiSnapshotDocument;
+      sections: Map<string, { start: number; end: number }>;
+      originalOffset: (offset: number) => number;
+      bodyStart: number;
+      length: number;
+      hash: string;
+      tables: Array<{ start: number; end: number; headerEnd: number }>;
+    }
+  >();
+  const units: SearchUnit[] = [];
+  const locations = new Map<SearchUnit, WikiSnapshotHit>();
+  for (const supplied of documents) {
+    if (records.has(supplied.id))
+      throw new WikiRetrievalError("Duplicate snapshot document ID.");
+    const doc = { ...supplied };
+    const normalized = doc.text.replace(/\r\n?/gu, "\n");
+    const removed: number[] = [];
+    for (const match of doc.text.matchAll(/\r\n/gu))
+      removed.push(match.index - removed.length);
+    const originalOffset = (offset: number) => {
+      let lo = 0,
+        hi = removed.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (removed[mid] < offset) lo = mid + 1;
+        else hi = mid;
+      }
+      return offset + lo;
+    };
+    const body = markdownBody(normalized),
+      bodyStart = normalized.indexOf(body);
+    const tokens = marked.lexer(body),
+      headings = headingSections(tokens);
+    const tables: Array<{ start: number; end: number; headerEnd: number }> = [];
+    let tokenOffset = 0;
+    for (const token of tokens) {
+      if (token.type === "table") {
+        const first = token.raw.indexOf("\n"),
+          second = token.raw.indexOf("\n", first + 1);
+        tables.push({
+          start: originalOffset(bodyStart + tokenOffset),
+          end: originalOffset(bodyStart + tokenOffset + token.raw.length),
+          headerEnd: originalOffset(
+            bodyStart +
+              tokenOffset +
+              (second < 0 ? token.raw.length : second + 1),
+          ),
+        });
+      }
+      tokenOffset += token.raw.length;
+    }
+    const sections = new Map(
+      headings.map((section) => [
+        section.anchor,
+        {
+          start: originalOffset(bodyStart + section.start),
+          end: originalOffset(bodyStart + section.end),
+        },
+      ]),
+    );
+    const page = "/" + doc.path.replace(/^\//u, "");
+    const parsed = searchUnits(normalized, page, [], "");
+    // Snapshot hosts also have plain, heading-free text. Its only addressable
+    // section is the original document; never manufacture a source heading.
+    if (
+      !headings.length &&
+      body &&
+      (parseFrontmatterFields(normalized) ?? {}).status !== "deprecated"
+    ) {
+      sections.set("document", {
+        start: originalOffset(bodyStart),
+        end: originalOffset(bodyStart + body.length),
+      });
+      parsed.push({
+        ref: `${page.slice(1)}#document`,
+        title: doc.title ?? page.slice(1),
+        description: "",
+        heading: "",
+        prose: body,
+        introductionOnly: false,
+        identifiers: page,
+        sourcePaths: [],
+        excerpt: "",
+        wiki: "",
+      });
+    }
+    records.set(doc.id, {
+      doc,
+      sections,
+      originalOffset,
+      bodyStart,
+      length: doc.text.length,
+      hash: createHash("sha256").update(doc.text).digest("hex"),
+      tables,
+    });
+    for (const unit of parsed) {
+      const section = unit.ref.slice(unit.ref.lastIndexOf("#") + 1);
+      const heading = headings.find((item) => item.anchor === section);
+      const at = body.indexOf(
+        unit.prose,
+        unit.prose === body ? 0 : (heading?.start ?? 0),
+      );
+      if (at < 0)
+        throw new WikiRetrievalError("Snapshot section could not be located.");
+      if (doc.searchHints) unit.identifiers += " " + doc.searchHints;
+      if (doc.aliases?.length) unit.identifiers += " " + doc.aliases.join(" ");
+      locations.set(unit, {
+        documentId: doc.id,
+        ref: unit.ref,
+        section,
+        start: originalOffset(bodyStart + at),
+        end: originalOffset(bodyStart + at + unit.prose.length),
+      });
+      units.push(unit);
+    }
+  }
+  const index = await createSearchIndex(units);
+  if (options.retainText === false) {
+    for (const record of records.values()) record.doc.text = "";
+    for (const unit of units) unit.prose = "";
+  }
+  let closed = false;
+  const assertOpen = () => {
+    if (closed) throw new WikiRetrievalError("Snapshot reader is closed.");
+  };
+  const readRange = (id: string, start: number, end: number, text?: string) => {
+    assertOpen();
+    const record = records.get(id);
+    if (!record) throw new WikiRetrievalError("Unknown snapshot document.");
+    const source = text ?? record.doc.text;
+    if (
+      source.length !== record.length ||
+      (text !== undefined &&
+        createHash("sha256").update(source).digest("hex") !== record.hash)
+    )
+      throw new WikiRetrievalError(
+        "Snapshot text differs from the indexed source.",
+      );
+    return { documentId: id, start, end, text: source.slice(start, end) };
+  };
+  return {
+    search(
+      query: string,
+      options: {
+        documentIds?: readonly string[];
+        limit?: number;
+        paths?: readonly string[];
+      } = {},
+    ): WikiSnapshotHit[] {
+      assertOpen();
+      if (!query.trim() || query.length > WIKI_RETRIEVAL_LIMITS.queryCharacters)
+        throw new WikiRetrievalError("Invalid snapshot query.");
+      const limit = options.limit ?? WIKI_RETRIEVAL_LIMITS.defaultSearchResults;
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100_000)
+        throw new WikiRetrievalError("Invalid snapshot limit.");
+      const ids =
+        options.documentIds === undefined ? null : new Set(options.documentIds);
+      const allowed = ids
+        ? new Set(
+            units.filter((unit) => ids.has(locations.get(unit)!.documentId)),
+          )
+        : undefined;
+      const terms = queryTerms(query),
+        hintMatches = new Map<string, boolean>();
+      return index
+        .rank(
+          terms,
+          (options.paths ?? []).map(normalizeRepositoryPathHint),
+          limit,
+          allowed,
+        )
+        .map((unit) => {
+          const hit = locations.get(unit)!;
+          if (!hintMatches.has(hit.documentId)) {
+            const hints = records.get(hit.documentId)!.doc.searchHints;
+            const normalized = hints
+              ? normalizeSearchText(hints).toLowerCase()
+              : "";
+            hintMatches.set(
+              hit.documentId,
+              !!hints && terms.some((term) => normalized.includes(term)),
+            );
+          }
+          return { ...hit, matchedInHints: hintMatches.get(hit.documentId) };
+        });
+    },
+    read(documentId: string, section: string, text?: string) {
+      assertOpen();
+      const range = records.get(documentId)?.sections.get(section);
+      if (!range) throw new WikiRetrievalError("Unknown snapshot section.");
+      return readRange(documentId, range.start, range.end, text);
+    },
+    passage(
+      hit: WikiSnapshotHit,
+      query: string,
+      maximum = 2400,
+      text?: string,
+    ) {
+      assertOpen();
+      const known = [...locations.values()].some(
+        (item) =>
+          item.documentId === hit.documentId &&
+          item.section === hit.section &&
+          item.start === hit.start &&
+          item.end === hit.end,
+      );
+      if (
+        !known ||
+        !Number.isSafeInteger(maximum) ||
+        maximum < 1 ||
+        maximum > 10000
+      )
+        throw new WikiRetrievalError("Invalid snapshot passage.");
+      const whole = readRange(hit.documentId, hit.start, hit.end, text);
+      if (whole.text.length <= maximum) return whole;
+      const terms = queryTerms(query);
+      // Use the native excerpt block selection, retaining the exact original
+      // bytes and offsets instead of quoting the compact search orientation.
+      const blocks =
+        whole.text.match(/[^\r\n]+(?:\r?\n(?!\r?\n)[^\r\n]+)*/gu) ?? [];
+      const best = blocks
+        .map((text, order) => ({
+          text,
+          order,
+          score: terms.filter((term) =>
+            normalizeSearchText(text).toLowerCase().includes(term),
+          ).length,
+        }))
+        .sort((a, b) => b.score - a.score || a.order - b.order)[0];
+      const start = hit.start + (best ? whole.text.indexOf(best.text) : 0);
+      return readRange(
+        hit.documentId,
+        start,
+        Math.min(hit.end, start + maximum),
+        text,
+      );
+    },
+    context(documentId: string, start: number, end: number) {
+      assertOpen();
+      const record = records.get(documentId);
+      if (!record) throw new WikiRetrievalError("Unknown snapshot document.");
+      const ranges: Array<{
+        kind: "heading" | "table_header";
+        start: number;
+        end: number;
+      }> = [...record.sections.entries()]
+        .filter(
+          ([anchor, range]) =>
+            anchor !== "document" && range.start <= start && range.end >= end,
+        )
+        .map(([, range]) => range)
+        .map((range) => ({
+          kind: "heading" as const,
+          start: range.start,
+          end: Math.min(
+            record.doc.text.indexOf("\n", range.start) + 1 || range.end,
+            range.end,
+          ),
+        }));
+      ranges.push(
+        ...record.tables
+          .filter((table) => table.start < end && table.end > start)
+          .map((table) => ({
+            kind: "table_header" as const,
+            start: table.start,
+            end: table.headerEnd,
+          })),
+      );
+      return {
+        ranges: ranges.filter((range) => range.end > range.start).slice(-12),
+        truncated: ranges.length > 12,
+      };
+    },
+    close() {
+      if (!closed) {
+        closed = true;
+        index.close();
+        records.clear();
+        locations.clear();
+      }
+    },
+    method: "openwiki-section-fts5" as const,
+  };
+}
+
 /**
  * Removes a validated repository root from one public search identity.
  *
@@ -701,7 +1070,7 @@ function wikiIdentity(wiki: WikiSearchIdentity): WikiSearchIdentity {
  * @param wiki - Identity of the repository wiki supplying the page.
  * @returns Searchable introduction and H2 sections, or a page-level H1 fallback.
  */
-function searchUnits(
+export function searchUnits(
   markdown: string,
   page: string,
   terms: readonly string[],
@@ -713,7 +1082,17 @@ function searchUnits(
   if (!body) return [];
 
   const relativePage = page.slice(1);
-  const title = stringField(fields.title) ?? relativePage;
+  // Plain Markdown is a supported Wiki input too. Its H1 is the authored
+  // title; the filename alone loses the subject of every H2 section.
+  const title =
+    stringField(fields.title) ??
+    (
+      marked
+        .lexer(body)
+        .find((token) => token.type === "heading" && token.depth === 1) as
+        Tokens.Heading | undefined
+    )?.text ??
+    relativePage;
   const description = stringField(fields.description) ?? "";
   const tags = stringArray(fields.tags);
   const sourcePaths = sourceResources(fields).map(repositoryPathFromResource);
@@ -835,6 +1214,8 @@ function headingSections(tokens: Token[]): ParsedHeadingSection[] {
     }
     unaddressable.anchor = fallback;
   }
+  const offsets = [0];
+  for (const token of tokens) offsets.push(offsets.at(-1)! + token.raw.length);
   return headings.map((heading) => {
     let end = heading.index + 1;
     while (end < tokens.length) {
@@ -847,15 +1228,20 @@ function headingSections(tokens: Token[]): ParsedHeadingSection[] {
       }
       end += 1;
     }
+    const full = tokens
+      .slice(heading.index, end)
+      .map((token) => token.raw)
+      .join("");
+    const raw = full.trim();
+    const start =
+      offsets[heading.index] + full.length - full.trimStart().length;
     return {
+      start,
+      end: start + raw.length,
       anchor: heading.anchor,
       depth: heading.depth,
       heading: heading.heading,
-      raw: tokens
-        .slice(heading.index, end)
-        .map((token) => token.raw)
-        .join("")
-        .trim(),
+      raw,
     };
   });
 }
@@ -926,7 +1312,7 @@ function relevantExcerpt(raw: string, terms: readonly string[]): string {
  * @param query - Validated natural-language search query.
  * @returns Normalized terms safe to quote as FTS data.
  */
-function queryTerms(query: string): string[] {
+export function queryTerms(query: string): string[] {
   const all = [
     ...new Set(
       normalizeSearchText(query)
@@ -944,11 +1330,23 @@ function queryTerms(query: string): string[] {
  * @param text - Raw title, prose, or identifier text.
  * @returns Text containing both original and split token forms.
  */
-function normalizeSearchText(text: string): string {
-  return `${text} ${text
+export function normalizeSearchText(text: string): string {
+  const expanded = `${text.normalize("NFKC")} ${text
+    .normalize("NFKC")
     .replace(/([\p{Ll}\d])([\p{Lu}])/gu, "$1 $2")
     .replace(/([\p{Lu}])([\p{Lu}][\p{Ll}])/gu, "$1 $2")
     .replace(/[_./:#-]+/gu, " ")}`;
+  // Keep the original term as well as its Korean particle-free form. This
+  // makes a question such as "달빛의" find an authored title "달빛" without
+  // inventing synonyms or changing the Markdown returned by read.
+  return expanded.replace(/[\p{L}\p{N}]+/gu, (word) => {
+    if (!/[가-힣]/u.test(word)) return word;
+    const stripped = word.replace(
+      /(?:에서는|에서|으로|은|는|을|를|의|에|와|과)$/u,
+      "",
+    );
+    return stripped && stripped !== word ? `${word} ${stripped}` : word;
+  });
 }
 
 /**

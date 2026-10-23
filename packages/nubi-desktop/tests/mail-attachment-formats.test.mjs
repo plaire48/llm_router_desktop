@@ -31,6 +31,9 @@ test('TXT and MD decode UTF-8, BOM UTF-16 and Korean legacy bytes; declared char
  assert.equal((await extractDocument(Buffer.from([0xc7,0xd1,0xb1,0xdb]),'memo.txt','text/plain; charset=cp949')).text,'한글');
  assert.equal((await extractDocument(Buffer.from('# Markdown'),'첨부파일','text/markdown')).text,'# Markdown');
  assert.equal((await extractDocument(Buffer.from([0x63,0x61,0x66,0xe9]),'memo.txt','text/plain; charset=windows-1252')).text,'café');
+ assert.equal((await extractDocument(Buffer.from([0xc7,0xd1,0xb1,0xdb]),'한글.TXT','text/plain; charset=utf-8')).text,'한글');
+ assert.equal((await extractDocument(Buffer.from('한글 UTF-8'),'memo.txt','text/plain; charset=unknown-mail-charset')).text,'한글 UTF-8');
+ await assert.rejects(extractDocument(Buffer.from([0xff,0xfe,0x00]),'broken.txt','text/plain; charset=cp949'),/document_read_failed/);
  await assert.rejects(extractDocument(Buffer.from([0,1,2,3]),'binary.txt'),/document_read_failed/);
 });
 test('exported body HTML replaces fallback text, while genuine HTML attachments remain files',async()=>{

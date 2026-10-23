@@ -67,7 +67,7 @@ describe("createConnectorSynthesisGuidance", () => {
         continue;
       }
       expect(createConnectorSynthesisGuidance(registry[id])).not.toContain(
-        "openwiki_read_raw_item",
+        "LangSmith runtime evidence has been pulled",
       );
     }
   });

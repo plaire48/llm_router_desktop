@@ -1,3 +1,4 @@
+import {officeCacheUsable} from './mail-document-routing.mjs';
 import {importantFiles,coverageMap,coveragePlanningContext,coverageReport} from './wiki-coverage.mjs';
 import {wikiGeneration,wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
 import {folderPlan,planWikiRounds,inWikiFolders} from './wiki-folder-plan.mjs';
@@ -258,9 +259,9 @@ export function installDesktopFeatures(Service){
     }
     // Use the verified background result, or the same bounded worker. Parsing
     // directly in the host made manual preview bypass the ingestion limits.
-    const cachedDocument=!mimeMail&&attachment.contentState==='document_read'&&(!/\.(docx|docm|dotx|dotm)$/i.test(attachment.filename||'')||attachment.readerVersion>=4)&&typeof attachment.text==='string'&&attachment.text.trim()&&attachment.text.length<=DOCUMENT_MAX_TEXT;
+    const cachedDocument=!mimeMail&&officeCacheUsable(attachment)&&attachment.contentState==='document_read'&&(!/\.(docx|docm|dotx|dotm)$/i.test(attachment.filename||'')||attachment.readerVersion>=4)&&typeof attachment.text==='string'&&attachment.text.trim()&&attachment.text.length<=DOCUMENT_MAX_TEXT;
     const document=cachedDocument
-      ? {text:attachment.text,html:attachment.html,segments:attachment.segments||[],coverage:attachment.coverage||'첨부 본문 텍스트'}
+      ? {reader:attachment.reader,officeVersion:attachment.officeVersion,text:attachment.text,html:attachment.html,segments:attachment.segments||[],coverage:attachment.coverage||'첨부 본문 텍스트'}
       : await this.personalMail.extractAttachment(bytes,attachment,signal||new AbortController().signal,source.attachmentDirectory,{useActiveModel:true}).catch(error=>{if(action==='read'&&error.message==='document_empty'&&/^%PDF-/.test(bytes.subarray(0,5).toString()))return {text:'',segments:[],coverage:'추출된 텍스트가 없는 PDF예요. 화면은 볼 수 있지만 이미지 내용은 아직 읽지 않았어요.'};throw error;});
     if(signal?.aborted||this.personalMail.generation!==mailGeneration)fail('mail_cancelled');
     const observed=await this.personalMail.read(id,{includeKnowledge:action==='ask'});if(observed.sourceHash!==source.sourceHash||!extractedOnly&&hash(await readBytes())!==hash(bytes))fail('mail_source_changed');

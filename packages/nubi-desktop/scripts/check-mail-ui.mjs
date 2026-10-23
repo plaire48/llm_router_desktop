@@ -9,7 +9,7 @@ import {chromium} from 'playwright';
 // 다른 연결 방법 so these flows keep covering it. The Knox Desktop Message or POP3 choice is covered by check-desktop-mail-ui.mjs.
 import assert from 'node:assert/strict';
 const dir=path.resolve('verification/mail');await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/mail-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{'process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/mail-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file','.svg':'dataurl'},define:{'process.env.NODE_ENV':'"production"'}});
 // The fixture bundle is complete; do not keep its build service alive during browser teardown.
 stop();
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});

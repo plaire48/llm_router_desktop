@@ -1,6 +1,6 @@
 # Windows Office 첨부 읽기
 
-**2026-10-14 사용자 결정(이 문서의 아래 규칙을 대체):** 첨부는 먼저 누비의 문서 파서(DOCX mammoth, XLSX exceljs, PPTX XML)가 작업자 스레드에서 읽는다. 파서가 읽지 못한 바이트(`document_format`, `document_read_failed`, `document_password`, `document_empty`)만 Windows에서 Office 2016 COM으로 연다. NASCA 보호 파일은 올바른 ZIP이 아니라 파서가 실패하므로 자연히 Office 경로로 간다. 평문 파일은 Office를 열지 않는다. 캐시된 읽기 결과는 어느 읽기기(reader)든 그대로 쓴다.
+**2026-10-23 사용자 결정(이전 parser-first 규칙을 대체):** Windows의 Word/Excel/PowerPoint 첨부는 일반 파일도 Office COM으로 바로 연다. COM 실패를 내장 파서 성공으로 바꾸지 않는다. PDF/텍스트/일정 등은 기존 내장 worker로 읽으며, 이미지는 기존 연결 모델을 사용한다. macOS의 Office 파일은 기존 내장 파서를 사용하며 COM 실행으로 표시하지 않는다. Windows Office 파일의 과거 파서 캐시는 COM 근거로 사용하지 않고 다시 읽는다. 원본을 보관하지 않았던 추출 전용 자료는 원본 미보관 사실을 보존한다. 대화 위키 생성은 아직 읽지 않은 첨부를 순차적으로 읽고 원문과 파일 해시를 재확인한 뒤 근거에 포함한다. 읽지 못하거나 생성 예산에서 잘린 부분은 명시적인 부분 확인으로 남긴다.
 
 
 사용자 결정: 회사 NASCA 문서는 Office 2016에서 열어 읽는다. 2026-10-05 사용자가 `Office로 자동 열어 읽기`를 선택했다. 직접 바이너리/ZIP 파싱을 NASCA 지원으로 표시하지 않는다.
@@ -19,11 +19,11 @@ Windows의 자동 첨부 읽기와 수동 미리보기는 같은 `PersonalMail.e
 | Excel | ReadOnly 워크북의 모든 Worksheet UsedRange, OS/Office의 셀 표시 텍스트 | 이미지/숨겨진 개체, 독립 재계산 검증, `####` 등의 표시 잘림 |
 | PowerPoint | ReadOnly 슬라이드의 텍스트, 그룹 내 텍스트와 표 | 발표자 노트, 이미지, 서식 |
 
-Office 버전 16.x COM을 사용하므로 Office 2016 호환 구현이다. 버전 번호만으로 설치 제품이 Office 2016임을 증명하지 않는다. 원본/열린 문서 FullName, 실제 ReadOnly 상태를 확인한다. 10MiB 입력/100,000자 출력, 200개 시트/슬라이드, Excel 20,000셀과 60초 제한이며 넘으면 전체 읽기 성공으로 기록하지 않는다. COM 읽기는 호스트 내에서 순차 진행한다.
+Office 버전 16.x COM을 사용하므로 Office 2016 호환 구현이다. 버전 번호만으로 설치 제품이 Office 2016임을 증명하지 않는다. 원본/열린 문서 FullName, 실제 ReadOnly 상태를 확인한다. 128MiB 입력/8,000,000자 출력, 200개 시트/슬라이드, Excel 20,000셀과 60초 제한이며 넘으면 전체 읽기 성공으로 기록하지 않는다. COM 읽기는 호스트 내에서 순차 진행한다.
 
 AutomationSecurity ForceDisable을 사용하고 Excel EnableEvents를 중지하며 외부 링크 갱신을 0으로 지정한다. 기존 앱 설정은 복구한다. Excel 4.0 매크로는 이 속성만으로 차단되지 않아 Office 자체 보안 질문이 나타날 수 있다. 누비는 그 질문을 자동 확인하지 않는다. 닫기는 이번 Open이 반환한 문서만 대상으로 하며 사용자 문서를 열거/닫거나 Office 프로세스를 강제 종료하지 않는다. 제한 시간을 넘으면 보류로 남기고 Office에서 열린 문서와 읽기용 사본 정리 상태를 확인해야 한다.
 
-완료 기록은 `reader: office_com`, 실제 Office 버전과 읽은 범위를 보존한다. Windows의 기존 파서 캐시는 Office 성공으로 취급하지 않고 한 번 다시 읽도록 큐에 넣는다. 기존 사용자 위키와 이미 저장한 정리는 자동 덮어쓰지 않는다. 자동 정리 OFF/앱 종료는 활성 읽기 요청을 취소하며 새 Office 읽기를 시작하지 않는다. 메일 Agent는 검증된 첨부 본문/개인 위키의 출처 계약을 계속 사용한다.
+완료 기록은 `reader: office_com`, 실제 Office 버전과 읽은 범위를 보존한다. Windows의 기존 파서 캐시는 Office 성공으로 취급하지 않고 한 번 다시 읽도록 큐에 넣는다. Office 읽기는 한 번에 하나씩 실행하며 문서가 한도를 넘으면 전체 읽기 성공으로 기록하지 않는다. 기존 사용자 위키와 이미 저장한 정리는 자동 덮어쓰지 않는다. 자동 정리 OFF/앱 종료는 활성 읽기 요청을 취소하며 새 Office 읽기를 시작하지 않는다. 메일 Agent는 검증된 첨부 본문/개인 위키의 출처 계약을 계속 사용한다.
 
 수동 미리보기의 직접 파서 호출도 제거했다. 동일 해시의 검증된 캐시를 사용하거나 자동 수집과 같은 worker/Office 제한을 적용한다. 호스트 메인 프로세스에서 Office/PDF/OOXML 파서를 직접 실행하지 않는다.
 
@@ -42,3 +42,7 @@ MIT `word-extractor`, SheetJS의 구형 Excel 해석, Tesseract.js OCR을 검토
 ## 2026-10-16 읽기 실패 후속
 
 현재 소스의 PowerShell 본문 조합에 누락된 중괄호를 복구하고, 빌드/Windows 패키징의 실제 PowerShell 구문 검사와 안전한 실패 단계/HRESULT 보존을 추가했다. 재현/수정 및 macOS 검사와 실제 Windows Office/NASCA의 경계는 [후속 기록](OFFICE-READ-FAILURE-2026-10-16.md)을 따른다.
+
+## 2026-10-23 검증 범위
+
+로컬 검사에서 Windows Office 형식의 COM 직접 선택, COM 실패 뒤 파서 미호출, 과거 파서 캐시 거부, 다른 형식의 실제 내장 worker 읽기, 첨부 내용이 생성 모델/독립 검토 근거에 전달되고 파일 해시와 함께 위키에 저장되는 경로를 확인했다. COM 호출 선택 검사는 주입된 읽기 함수이며 실제 Windows PowerShell/Office/NASCA 실행은 미검증이다. macOS 빌드의 PS1 정적 검사도 실제 COM 검증을 대체하지 않는다.

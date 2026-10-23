@@ -409,7 +409,7 @@ After each run, OpenWiki validates every `mermaid` fence. A diagram that fails v
 
 ## Connect your sources
 
-Beyond repository docs, OpenWiki has nine built-in connectors. In `personal` mode, OpenWiki ingests knowledge from the tools you already use, synthesizing them into your local wiki. First-run onboarding offers setup for **Custom MCP, local git repositories, Notion, Gmail, X/Twitter, Web Search, and Hacker News**. Slack is also available with its OAuth app and HTTPS callback configured.
+Beyond repository docs, OpenWiki has ten built-in connectors. In `personal` mode, OpenWiki ingests knowledge from the tools you already use, synthesizing them into your local wiki. First-run onboarding offers setup for **Custom MCP, local git repositories, Notion, Gmail, X/Twitter, Web Search, Hacker News, and Knox local data**. Slack is also available with its OAuth app and HTTPS callback configured. The [Knox connector](KNOX-CONNECTOR.md) uses host-owned Node/Electron mail storage, connected Windows observations and JSM cache ports. It requires no Python server or Knox MCP token. Workspace registration and live Windows validation are separate.
 
 Start a personal wiki with `openwiki personal --init`, then authenticate and ingest sources as needed:
 
@@ -750,6 +750,8 @@ export DO_NOT_TRACK=1   # cross-tool standard
 To see exactly what a run would send, add `--telemetry-file=<path>` to any run.
 
 ## Host durability connection (optional)
+
+Hosts that publish only the Wiki can pass `createWorkflow: false` to `runNativeRepositoryGeneration` / `beginRepositoryRun`. This prevents an unpublished scheduled-update workflow from entering the analysis copy as apparent repository evidence. Pass the same option during preparation and resume; existing workflows are preserved. Omitting it retains the standalone CLI default (create a missing workflow on init). The option does not change the persisted run schema.
 
 `runNativeRepositoryGeneration` accepts an optional host-owned `durability` port. Omitting it preserves the CLI's existing lifecycle and persisted-state shape. A host may schedule only skipped pages through `requeueRepositoryPage`, after other available pages drain, using its persisted deadline and retry timestamp. After one exhausted output-limit continuation, it may propose two validated child pages while retaining the original page as a short routing overview and preserving completed page IDs and Claims. Partial runs keep `openwiki/.run.json`; the host journals completed/missing pages and verifies Claims, source/page hashes, publication readback and existing approvals before exposing results. The port does not add a model loop, credentials, dependencies or a new execution engine. Desktop's bounded policy and evidence limits are recorded in [`OPENWIKI-W0-2026-10-20.md`](../../docs/OPENWIKI-W0-2026-10-20.md).
 

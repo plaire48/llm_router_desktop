@@ -236,14 +236,14 @@
 .desktop-shell .nubi-workbench .composer-bottom { display:flex; align-items:center; flex-wrap:nowrap; gap:var(--nubi-control-gap); margin-top:var(--cx-space-1); }
 .desktop-shell .nubi-workbench .composer-leading { flex:1 1 auto; min-width:0; gap:var(--nubi-control-gap); align-items:center; }
 .desktop-shell .nubi-workbench .composer-tools { flex:none; margin-left:auto; gap:var(--nubi-control-gap); align-self:flex-end; }
-.desktop-shell .nubi-workbench :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger.cx-kit-button { background:transparent; color:var(--nubi-reasoning-ink,var(--deck-sub)); border:0; box-shadow:none; }
-.desktop-shell .nubi-workbench .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--deck-blue-deep); }
-.desktop-shell .nubi-workbench .model-trigger[data-provider="chatgpt"] { --nubi-model-surface:var(--provider-chatgpt); --nubi-model-ink:var(--deck-ink); }
-.desktop-shell .nubi-workbench .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
-.desktop-shell .nubi-workbench .model-trigger.cx-kit-button { background:var(--nubi-model-surface,var(--deck-blue-soft)); color:var(--nubi-model-ink,var(--deck-ink)); border:0; box-shadow:none; }
-.desktop-shell .nubi-workbench .model-trigger-label strong { color:inherit; }
-.desktop-shell .nubi-workbench .nubi-compose-card .nubi-reasoning-trigger.cx-kit-button:hover { background:var(--nubi-reasoning-soft,var(--deck-blue-soft)); }
-.desktop-shell .nubi-workbench .model-trigger.cx-kit-button:is(:hover,[aria-expanded="true"]) { background:var(--nubi-model-surface,var(--deck-blue-soft)); color:var(--nubi-model-ink,var(--deck-ink)); box-shadow:inset 0 0 0 1px var(--deck-line); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger.cx-kit-button { background:transparent; color:var(--nubi-reasoning-ink,var(--deck-sub)); border:0; box-shadow:none; }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--deck-blue-deep); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger[data-provider="chatgpt"] { --nubi-model-surface:var(--provider-chatgpt); --nubi-model-ink:var(--deck-ink); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger.cx-kit-button { background:var(--nubi-model-surface,var(--deck-blue-soft)); color:var(--nubi-model-ink,var(--deck-ink)); border:0; box-shadow:none; }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger-label strong { color:inherit; }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger.cx-kit-button:hover { background:var(--nubi-reasoning-soft,var(--deck-blue-soft)); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) .model-trigger.cx-kit-button:is(:hover,[aria-expanded="true"]) { background:var(--nubi-model-surface,var(--deck-blue-soft)); color:var(--nubi-model-ink,var(--deck-ink)); box-shadow:inset 0 0 0 1px var(--deck-line); }
 .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button.cx-kit-button { color:var(--deck-sub); background:transparent; border:0; }
 .desktop-shell .nubi-workbench .nubi-compose-card .composer-tools > [type="submit"] { border-radius:50%; }
 @media(forced-colors:active) { .desktop-shell .nubi-workbench .nubi-composer-surface { border-color:CanvasText; } }
@@ -444,7 +444,7 @@
 .desktop-shell .nubi-workbench .nubi-compose-card .model-trigger-label { display:flex; min-width:0; overflow:hidden; white-space:nowrap; }
 .desktop-shell .nubi-workbench .nubi-compose-card .model-trigger-label > * { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button[data-mode=commands] { color:var(--nubi-warning-ink); background:var(--deck-orange-soft); }
-.desktop-shell .nubi-workbench :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger > svg { color:var(--nubi-reasoning-ink,var(--nubi-ai-ink)); }
+:is(.desktop-shell .nubi-workbench,.nubi-project-connect) :is(.nubi-compose-card,.nubi-start-model,.nubi-wiki-model-chips) .nubi-reasoning-trigger > svg { color:var(--nubi-reasoning-ink,var(--nubi-ai-ink)); }
 @container workspace-composer (max-width:640px) {
  .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button.cx-kit-button { width:36px; min-width:36px; padding-inline:var(--cx-space-2); }
  .desktop-shell .nubi-workbench .nubi-compose-card .nubi-approval-mode-button > :is(span,svg:last-child) { display:none; }
@@ -910,12 +910,12 @@
 
 /* Claude Code: provider identity only, using the shared spacing and type scale. */
 :root:root { --provider-claude: #D97757; --provider-claude-ink: #8E422C; --provider-claude-soft: #F9EDE7; }
-.desktop-shell .model-trigger[data-provider="claude"] { --nubi-model-surface:var(--provider-claude-soft); --nubi-model-ink:var(--provider-claude-ink); }
+:is(.desktop-shell,.nubi-project-connect) .model-trigger[data-provider="claude"] { --nubi-model-surface:var(--provider-claude-soft); --nubi-model-ink:var(--provider-claude-ink); }
 :root:root :is(.provider-button,.provider-connect-button)[data-provider="claude"] { --provider-surface:var(--provider-claude-soft); --provider-ink:var(--provider-claude-ink); }
 /* Provider surfaces retain the original model picker colors, independent of app action tokens. */
 :root:root { --provider-aipro-soft:linear-gradient(112deg,var(--provider-aipro-start),var(--provider-aipro-end)); --provider-aipro-ink:var(--deck-blue-deep); --provider-fabrix-soft:var(--provider-fabrix-start); }
-.desktop-shell .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--provider-aipro-ink); }
-.desktop-shell .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
+:is(.desktop-shell,.nubi-project-connect) .model-trigger[data-provider="aipro"] { --nubi-model-surface:var(--provider-aipro-soft); --nubi-model-ink:var(--provider-aipro-ink); }
+:is(.desktop-shell,.nubi-project-connect) .model-trigger[data-provider="fabrix"] { --nubi-model-surface:linear-gradient(120deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --nubi-model-ink:var(--provider-fabrix-ink); }
 :root:root :is(.provider-button,.provider-connect-button)[data-provider="aipro"] { --provider-surface:var(--provider-aipro-soft); --provider-ink:var(--provider-aipro-ink); }
 :root:root :is(.provider-button,.provider-connect-button)[data-provider="fabrix"] { --provider-surface:linear-gradient(112deg,var(--provider-fabrix-start),var(--provider-fabrix-end)); --provider-ink:var(--provider-fabrix-ink); }
 :root:root .agent-tab-highlight [data-provider="aipro"] { background:var(--provider-aipro-soft); }
@@ -1186,7 +1186,7 @@
  margin:0; min-width:0;
 }
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-composer-surface {
- border-radius:var(--cx-space-5); background:var(--nubi-surface-base); box-shadow:none;
+ border-radius:var(--nubi-composer-radius); background:var(--nubi-surface-glass); box-shadow:var(--nubi-shadow-subtle);
 }
 .desktop-shell .nubi-workbench[data-workspace-screen="conversation"] .nubi-composer-surface:focus-within {
  border-color:var(--deck-line); box-shadow:none;
@@ -1199,7 +1199,7 @@
  width:fit-content; max-width:100%; column-gap:var(--cx-space-2); padding-block:var(--cx-space-2);
 }
 
-/* A white workspace within the pastel surround. Selection and hover carry
+/* Quiet milk chrome within the pastel surround. Selection and hover carry
    the accent; provider artwork and semantic status colors retain identity. */
 .desktop-shell .nubi-sidebar:not([data-open="false"]),
 .desktop-shell .nubi-workspace-navigation.nubi-workspace-rail { background:var(--nubi-surface-chrome); }

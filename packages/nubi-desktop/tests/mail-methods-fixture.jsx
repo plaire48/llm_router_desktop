@@ -1,0 +1,12 @@
+import React from 'react';import {createRoot} from 'react-dom/client';import '@e2e/cx-design-system/styles.css';import '../electron-app/workbench.css';import '../electron-app/shell.css';import '../electron-app/ios-tokens.css';import '../design/workspace-identity.css';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';import {MailLibrary} from '../ui/MailLibrary.jsx';import {WorkspaceToast} from '../ui/WorkspaceToast.jsx';
+const status={connectionMethod:'portal',protocol:'portal',serverProfile:'portal',connected:false,connecting:false,checking:false,autoWiki:false,watchPaused:false,summarizing:false,readingAttachments:false,localCount:0,counts:{received:0,saved:0,queued:0,attention:0},messages:[],catalogs:[],rawRoot:'C:\\Nubi\\Originals',wikiRoot:'C:\\Nubi\\Wiki',includeAttachments:true,encryption:{state:'on',migration:{state:'completed'}},requiresStorageSetup:false,desktop:{mode:'portal',transport:'uia',supported:true,connected:false,checking:false,connecting:false,profiles:[],rawRoot:'C:\\Nubi\\Originals'}};
+window.calls=[];
+async function api(method,args={}){if(method!=='mail')throw Error('fixture_method');if(args.action==='status')return structuredClone(status);window.calls.push(structuredClone(args));
+ if(args.action==='selectMethod'){status.connectionMethod=args.method;status.connected=false;status.desktop.mode=args.method==='desktop'?'desktop':'portal';status.desktop.connected=false;status.protocol=args.method==='pop3'?'pop3':args.method==='desktop'?'desktop':'portal';status.serverProfile=args.method==='pop3'?'company':'portal';}
+ if(args.action==='connect'){if(status.connectionMethod!=='pop3')throw Error('mail_method_changed');await new Promise(resolve=>window.completePop3=resolve);status.connected=true;}
+ if(args.action==='desktopConnect'){status.connected=true;status.desktop.connected=true;status.desktop.label='Knox Desktop Message';}
+ if(args.action==='disconnect'){status.connected=false;status.desktop.connected=false;}
+ if(args.action==='portalLogin')status.connected=true;
+ return structuredClone(status);}
+window.addEventListener('nubi-mail-login',()=>{void api('mail',{action:'portalLogin'});});
+createRoot(document.getElementById('root')).render(<main className="desktop-shell"><WorkspaceToast/><section style={{padding:24,maxWidth:760}}><MailLibrary api={api} provider={{connected:false}}/></section></main>);

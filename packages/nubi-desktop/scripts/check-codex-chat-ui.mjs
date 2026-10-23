@@ -9,7 +9,7 @@ import {auditSurfaceTokens} from './surface-token-audit.mjs';
 
 const label=process.argv[2]||'after',baseline=label==='before';
 const dir=path.resolve('../../artifacts/workspace-codex-chat-2',label);await mkdir(dir,{recursive:true});
-await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['tests/shared-ui-fixture.jsx'],outfile:path.join(dir,'app.js'),bundle:true,format:'esm',platform:'browser',nodePaths:[path.resolve('node_modules')],alias:{...Object.fromEntries(['react','react-dom','@e2e/cx-design-system'].map(name=>[name,path.resolve('node_modules',name)])),'@e2e/cx-design-system/styles.css':path.resolve('node_modules/@e2e/cx-design-system/dist/styles.css')},loader:{'.svg':'file','.webp':'file','.woff2':'file','.woff':'file'},define:{__APP_VERSION__:'"fixture"','process.env.NODE_ENV':'"production"'}});
 await cp('../../extensions/aipro-chat/public/icons',path.join(dir,'icons'),{recursive:true});
 await writeFile(path.join(dir,'index.html'),'<!doctype html><html lang="ko"><meta charset="utf-8"><title>누비 채팅 화면 검토</title><link rel="stylesheet" href="app.css"><body class="nubi-desktop-host"><div class="desktop-shell" data-toolbar="true" data-platform="darwin" data-layout="split"><div id="toolbar" class="desktop-titlebar"></div><div class="desktop-workspace-body"><div id="root" class="desktop-agent"></div></div></div><script type="module" src="app.js"></script></body></html>');
 const server=createServer(async(req,res)=>{try{const requested=path.resolve(dir,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!requested.startsWith(dir+path.sep))throw Error();const ext=path.extname(requested),data=await readFile(requested);res.writeHead(200,{'content-type':({'.html':'text/html; charset=utf-8','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.woff2':'font/woff2','.webp':'image/webp'})[ext]||'application/octet-stream'}).end(data);}catch{res.writeHead(404).end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -28,7 +28,7 @@ try{
    return {reading,composer,body:body.getBoundingClientRect().toJSON(),model:model.getBoundingClientRect().toJSON(),modelSize:getComputedStyle(model).fontSize,inputBackground:getComputedStyle(input).backgroundColor,answerBackground:getComputedStyle(answer).backgroundColor,overflow:document.documentElement.scrollWidth>innerWidth+1,controls:[...document.querySelectorAll('.composer-bottom button')].filter(e=>e.checkVisibility()).map(e=>({name:e.getAttribute('aria-label'),...e.getBoundingClientRect().toJSON()}))};
   });
   assert(!metrics.overflow);assert(Math.abs(metrics.reading.x-metrics.composer.x)<2);assert(Math.abs(metrics.reading.width-metrics.composer.width)<2);assert(metrics.controls.every(c=>c.x>=metrics.composer.x-1&&c.right<=metrics.composer.right+1));
-  if(!baseline){assert.equal(await page.locator('.nubi-answer-mark').evaluateAll(marks=>marks.every(mark=>mark.querySelectorAll('img').length===1&&!mark.querySelector('svg'))),true,'static transcript marks mount one frame, not animated mascot layers');assert(metrics.reading.width<=801);assert(metrics.model.top>=metrics.body.bottom-1,'model metadata follows the answer');assert.equal(metrics.answerBackground,'rgba(0, 0, 0, 0)');}
+  if(!baseline){assert.equal(await page.locator('.nubi-answer-mark').evaluateAll(marks=>marks.every(mark=>mark.querySelectorAll('img').length===1&&!mark.querySelector('svg'))),true,'static transcript marks mount one frame, not animated mascot layers');assert(metrics.reading.width<=1121);if(width>=1600)assert(metrics.reading.width>1000,'wide windows use the expanded transcript and composer');assert(metrics.model.top>=metrics.body.bottom-1,'model metadata follows the answer');assert.equal(metrics.answerBackground,'rgba(0, 0, 0, 0)');}
   if(!baseline){
    await page.getByRole('textbox',{name:'추가 요청',exact:true}).focus();await page.mouse.move(0,0);
    const fine=await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches);
@@ -60,5 +60,19 @@ try{
   }
   records.push({width,touch,...metrics});await page.close();
  }
- assert.deepEqual(errors,[]);await writeFile(path.join(dir,'result.json'),JSON.stringify({label,records,errors,boundary:'Production Workbench and final Electron styles in Chrome, synthetic conversation. No live provider, installed Codex measurement, Windows or Office proof.'},null,2));console.log(JSON.stringify({label,cases:records.length,errors}));
+ const entryRecords=[];
+ for(const [width,height] of [[1920,1000],[1280,900],[760,650],[440,650],[760,400]]){
+  const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(`http://127.0.0.1:${server.address().port}/?integrated&catalog&toolbar&context`);
+  await page.locator('.nubi-start[data-entry=conversation] .welcome-emblem').waitFor();await page.evaluate(()=>document.fonts.ready);
+  const measure=()=>page.evaluate(()=>{const box=s=>document.querySelector(s).getBoundingClientRect().toJSON(),main=document.querySelector('.nubi-main'),style=getComputedStyle(main),input=box('.nubi-start .nubi-compose-card'),bird=box('.nubi-start .welcome-emblem');return {input,bird,main:box('.nubi-main'),top:main.getBoundingClientRect().top+parseFloat(style.paddingTop),bottom:main.getBoundingClientRect().bottom-parseFloat(style.paddingBottom),overflow:document.documentElement.scrollWidth>innerWidth+1};});
+  const initial=await measure();await page.screenshot({path:path.join(dir,`entry-${width}-${height}.png`),animations:'disabled'});
+  assert(!initial.overflow);assert(Math.abs(initial.input.bottom-initial.bottom)<2,'initial composer stays at the bottom of the available area');
+  assert(Math.abs(initial.bird.y+initial.bird.height/2-(initial.top+initial.input.y)/2)<8,'bird is centered in the space above the composer');
+  const input=page.getByRole('textbox',{name:'작업 요청',exact:true});await input.fill('첫 번째 요청\n두 번째 줄\n세 번째 줄');
+  const typing=await measure();assert(Math.abs(typing.input.bottom-initial.input.bottom)<2,'typing grows upward while keeping the composer docked');
+  await page.locator('.nubi-window-toolbar').getByRole('button',{name:'새 대화',exact:true}).click();const reentered=await measure();assert(Math.abs(reentered.input.bottom-initial.input.bottom)<2,'new conversation retains bottom docking');
+  entryRecords.push({width,height,initial,typing,reentered});await page.close();
+ }
+ assert.deepEqual(errors,[]);await writeFile(path.join(dir,'result.json'),JSON.stringify({label,records,entryRecords,errors,boundary:'Production Workbench and final Electron styles in Chrome, synthetic conversation. No live provider, installed Codex measurement, Windows or Office proof.'},null,2));console.log(JSON.stringify({label,cases:records.length,entryCases:entryRecords.length,errors}));
 }finally{await browser.close();await new Promise(r=>server.close(r));stop();}

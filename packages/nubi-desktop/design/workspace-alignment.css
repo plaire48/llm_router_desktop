@@ -61,12 +61,15 @@
 .desktop-shell .nubi-mail-attachments h3>svg,
 .desktop-shell .nubi-mail-original>summary>svg{position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6))}
 .desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row{padding-inline-start:0;border-inline-start:0}
-.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment{position:relative;padding-inline-start:0;border-inline-start:0}
-.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment>:is(svg,.desktop-file-icon,.status-spinner){position:absolute;inset-inline-start:calc(-1 * var(--cx-space-6));width:var(--cx-space-4);height:var(--cx-space-4)}
+/* Include the leading glyph in the clickable/focus region without moving text. */
+.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment{position:relative;margin-inline-start:calc(-1 * var(--cx-space-6));padding-inline-start:var(--cx-space-6);width:calc(100% + var(--cx-space-6));max-width:calc(100% + var(--cx-space-6));box-sizing:border-box;border-inline-start:0}
+.desktop-shell .nubi-mail-reader-content .nubi-mail-attachment-row .nubi-mail-attachment>:is(svg,.desktop-file-icon,.status-spinner){position:absolute;inset-inline-start:0;width:var(--cx-space-4);height:var(--cx-space-4)}
 
 /* Row labels share their text axis. Date headings use the list's leading edge. */
 .desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select){border:0;padding-inline:var(--cx-space-3);gap:var(--cx-space-2)}
-.desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select)>svg:first-child{width:var(--cx-space-4);height:var(--cx-space-4);flex:0 0 var(--cx-space-4)}
+.desktop-shell .nubi-sidebar :is(.nubi-sidebar-project,.nubi-sidebar-new,.nubi-session-select)>svg:first-child{width:var(--nubi-glyph-size);height:var(--nubi-glyph-size);flex:0 0 var(--nubi-glyph-size)}
+/* Keep the shared text axis while the conversation glyph uses its inline token. */
+.desktop-shell .nubi-sidebar .nubi-session-select>svg:first-child{margin-inline:calc((var(--nubi-icon-control) - var(--nubi-icon-inline)) / 2)}
 .desktop-shell .nubi-sidebar nav[aria-label="대화 목록"] h3{padding-inline:var(--cx-space-3);text-align:start}
 
 /* The bottom surround includes its status text: reserve the same complete
@@ -89,3 +92,14 @@
 }
 .desktop-shell .desktop-mail-progress .nubi-mail-progress-open>strong{font:inherit;font-weight:var(--nubi-weight-label)}
 .desktop-shell .desktop-mail-progress .nubi-mail-progress-open>:is(svg,.status-spinner){width:var(--nubi-text-row-icon);height:var(--nubi-text-row-icon);flex:0 0 var(--nubi-text-row-icon)}
+
+/* Action groups share spacing tokens instead of shrinking to two pixels.
+   Compact pointer layouts retain 4px; coarse pointers keep the full 8px. */
+.desktop-shell .nubi-window-toolbar .nubi-toolbar-actions {gap:var(--nubi-control-gap);}
+.desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--nubi-control-gap);}
+@container workspace-agent (max-width:26rem) {
+ .desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--cx-space-1);}
+}
+@media(pointer:coarse) {
+ .desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--nubi-control-gap);}
+}

@@ -33,7 +33,7 @@ function researchModel({onRead=()=>{}}={}){
 test('large UTF-8 snapshots retain every character without widening source edit reads',async t=>{
   const {root}=await fixture(t),text='한글 문서\n'.repeat(100000);
   await writeFile(path.join(root,'large.md'),text);
-  await assert.rejects(()=>readSource(root,'large.md'),/file_too_large/);
+  await assert.rejects(()=>readSource(root,'large.md',{maxBytes:1024*1024}),/file_too_large/);
   const docs=await documentSnapshot(root,['large.md'],signal());
   assert.equal(docs[0].text,text);assert.equal(docs[0].path,'large.md');assert.match(docs[0].version,/^sha256:/);
 });

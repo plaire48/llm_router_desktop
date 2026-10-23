@@ -40,7 +40,7 @@ function Release-Com($value) {
 }
 function Check-Text([string]$text) {
   $script:characters += $text.Length
-  if ($script:characters -gt 2000000) { throw 'document_limit' }
+  if ($script:characters -gt 8000000) { throw 'document_limit' }
   return $text
 }
 function Read-Shape($shape, [int]$depth = 0) {
@@ -156,7 +156,7 @@ try {
   if (-not [string]::Equals([IO.Path]::GetFullPath([string]$document.FullName), [IO.Path]::GetFullPath([string]$request.file), [StringComparison]::OrdinalIgnoreCase)) { throw 'mail_source_changed' }
   $text = ($segments | ForEach-Object { if ($_.sheet) { "시트: $($_.sheet)`n$($_.text)" } elseif ($_.slide) { "슬라이드 $($_.slide)`n$($_.text)" } else { $_.text } }) -join "`n`n"
   if ([string]::IsNullOrWhiteSpace($text)) { throw 'document_empty' }
-  if ($text.Length -gt 2000000) { throw 'document_limit' }
+  if ($text.Length -gt 8000000) { throw 'document_limit' }
   if ((Get-FileHash -LiteralPath $request.file -Algorithm SHA256).Hash.ToLowerInvariant() -ne $request.expectedHash) { throw 'mail_source_changed' }
   $reply = @{document=@{text=$text;segments=$segments.ToArray();coverage=$coverage;reader='office_com';officeVersion=$officeVersion}}
 } catch {

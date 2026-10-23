@@ -1,5 +1,5 @@
-import {createSourceSynthesisPolicy} from "./personal-policy.js";
-export {createConnectorSynthesisGuidance} from "./personal-policy.js";
+import { createSourceSynthesisPolicy } from "./personal-policy.js";
+export { createConnectorSynthesisGuidance } from "./personal-policy.js";
 import path from "node:path";
 import {
   createConnectorRegistry,
@@ -62,6 +62,7 @@ export type OpenWikiIngestionOptions = Pick<
   OpenWikiRunOptions,
   "debug" | "modelId" | "onEvent"
 > & {
+  connectorHosts?: import("../connectors/registry.js").ConnectorHosts;
   scheduledOnly?: boolean;
   target: IngestionTarget;
 };
@@ -74,7 +75,7 @@ export async function runOpenWikiIngestion(
   await loadOpenWikiEnv();
   await ensureOpenWikiHome();
   const config = await readOpenWikiOnboardingConfig();
-  const registry = createConnectorRegistry();
+  const registry = createConnectorRegistry(options.connectorHosts);
   const sourceInstances = resolveIngestionSourceInstances(
     options.target,
     config,
@@ -294,7 +295,7 @@ Run an OpenWiki source update for ${getSourceDisplayName(connector, sourceConfig
 Scope:
 - This is one source-specific ingestion run.
 - Source instance: ${sourceConfig.id}${sourceConfig.name ? ` (${sourceConfig.name})` : ""}.
-- Use the last ${INGESTION_WINDOW_HOURS} hours of newly pulled data for this source.
+- ${connector.supportsTimeWindow === false ? "Use the bounded local copies according to their coverage metadata. Their collection time does not establish event time; no recent-time-window coverage is claimed." : `Use the last ${INGESTION_WINDOW_HOURS} hours of newly pulled data for this source.`}
 - Update the wiki only with information relevant to this source and the user's goals.
 
 User wiki goal:

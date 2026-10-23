@@ -1,6 +1,7 @@
 import { createGitRepoConnector } from "./sources/git-repo.js";
 import { createGmailConnector } from "./sources/gmail.js";
 import { createHackerNewsConnector } from "./sources/hackernews.js";
+import { createKnoxConnector, type KnoxConnectorHost } from "./sources/knox.js";
 import { createLangSmithConnector } from "./sources/langsmith/index.js";
 import { createMcpConnector } from "./sources/mcp.js";
 import { createSlackConnector } from "./sources/slack.js";
@@ -17,14 +18,16 @@ export const CONNECTOR_IDS = [
   "google",
   "web-search",
   "hackernews",
+  "knox",
   "langsmith",
   "slack",
 ] as const satisfies readonly ConnectorId[];
 
-export function createConnectorRegistry(): Record<
-  ConnectorId,
-  ConnectorRuntime
-> {
+export type ConnectorHosts = { knox?: KnoxConnectorHost };
+
+export function createConnectorRegistry(
+  hosts: ConnectorHosts = {},
+): Record<ConnectorId, ConnectorRuntime> {
   return {
     "custom-mcp": createMcpConnector({
       description: `Generic read-only MCP knowledge source. Point OpenWiki at any MCP server via ${openWikiConnectorsDisplayPath}/custom-mcp/config.json (HTTP or stdio transport). Prefer allowedTools and/or MCP readOnlyHint; do not guess mutating tools.`,
@@ -37,6 +40,7 @@ export function createConnectorRegistry(): Record<
     "git-repo": createGitRepoConnector(),
     google: createGmailConnector(),
     hackernews: createHackerNewsConnector(),
+    knox: createKnoxConnector(hosts.knox),
     langsmith: createLangSmithConnector(),
     notion: createMcpConnector({
       description:

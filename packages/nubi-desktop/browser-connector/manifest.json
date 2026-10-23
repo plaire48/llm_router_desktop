@@ -1,12 +1,40 @@
 {
   "manifest_version": 3,
   "name": "누비 브라우저 연결",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "열린 브라우저 탭을 누비 Workspace의 기존 에이전트에 연결합니다.",
   "minimum_chrome_version": "125",
-  "permissions": ["activeTab", "tabs", "debugger", "scripting"],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
-  "background": {"service_worker": "background.js", "type": "module"},
-  "action": {"default_popup": "connect.html", "default_title": "누비에 연결"},
-  "icons": {"128": "nubi.png"}
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "debugger",
+    "scripting"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "connect.html",
+    "default_title": "누비에 연결"
+  },
+  "icons": {
+    "128": "nubi.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1/nubi-browser-connect/*"
+      ],
+      "js": [
+        "quick-connect.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
 }

@@ -21,6 +21,7 @@ import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
 import '../design/workspace-pastel.css';
+import '../design/workspace-alignment.css';
 const wikiChatFixture=new URLSearchParams(location.search).has('wiki-chat');if(wikiChatFixture)window.wikiChatCalls=[];
 let selected='aipro',connected=false,pending=null,model='qwen-fixture',catalogAt=1;
 if(new URLSearchParams(location.search).has('catalog')){connected=true;window.catalogCalls=0;window.catalogDelay=0;window.catalogFailure=false;}
@@ -240,7 +241,6 @@ async function waitForSendGate(kind){await new Promise((resolve,reject)=>{window
 const attachedDocument={id:'doc-fixture',sourceHash:'document-hash',filename:'분기 보고서.pdf',coverage:'2쪽 텍스트. 이미지와 OCR은 미확인',bytes:200};
 if(new URLSearchParams(location.search).has('documents'))connected=true;
 const routineRows=[];
-const routineWorkflow={slug:'synthetic-routine',name:'합성 예약 절차',version:1,valid:true,trigger:{kind:'routine',schedule:'daily 09:00'},definitionHash:'synthetic-definition',qualified:false,routine:null,proposal:{state:'proposed'},inputs:{subject:{type:'string',required:true},count:{type:'integer',default:0},include:{type:'boolean',default:false}}};
 if(new URLSearchParams(location.search).has('routines'))connected=true;
 // A saved command exists before the final answer anchors its activity above a message.
 // Keep the host snapshot immutable to the renderer, just like the worker transport.
@@ -265,8 +265,6 @@ async function api(method,args={}){
   if(method==='routineNotice')return workflowOffFixture&&!sessionStorage.getItem('routine-notice-acknowledged')?{show:true,text:'루틴은 다음 판에서 다시 켜집니다. 저장한 루틴은 그대로 있어요.'}:{show:false};
   if(method==='acknowledgeRoutineNotice'){window.routineNoticeAcknowledged=(window.routineNoticeAcknowledged||0)+1;sessionStorage.setItem('routine-notice-acknowledged','1');return {show:false};}
   if(method==='listRoutines'){if(window.routineFailure)throw Error('fixture_read_failure');return {items:structuredClone(routineRows),projects:[{id:project.projectId,name:project.name}]};}
-  if(method==='listRoutineWorkflows')return [structuredClone(routineWorkflow)];
-  if(method==='resolveRoutinePromotion'){const row=routineRows.find(row=>row.id===args.id);if(!row?.promotion)throw Error('routine_promotion_unavailable');row.promotion.state=args.action==='dismiss'?'dismissed':'accepted';return {slug:'synthetic-promoted',projectId:row.projectId};}
   if(method==='saveRoutine'){const row={...args,id:args.id||'routine-fixture'},index=routineRows.findIndex(r=>r.id===row.id);if(index<0)routineRows.push(row);else routineRows[index]=row;return row;}
   if(method==='deleteRoutine'){if(args.confirmed!==true)throw Error('routine_confirmation');routineRows.splice(routineRows.findIndex(r=>r.id===args.id),1);return {deleted:true};}
 

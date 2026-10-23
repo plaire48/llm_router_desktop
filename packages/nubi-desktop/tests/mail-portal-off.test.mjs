@@ -12,7 +12,7 @@ async function hostDispatch(){
  const main=await readFile('electron-app/main.cjs','utf8');const start=main.indexOf('const dispatch=async('),end=main.indexOf('\n const terminalLog=boundedLog(',start);assert(start>=0&&end>start);
  const portalCalls=[],hostCalls=[];
  const mailPortal=new Proxy({status:()=>({connected:false,connecting:false,checking:false,folders:[],fallback:null})},{get(target,name){if(name in target)return target[name];if(typeof name!=='string'||name==='then')return undefined;return async()=>{portalCalls.push(name);return {};};}});
- const invoke=async(_method,args)=>{hostCalls.push(args.action);if(args.action==='connect')hostCalls.connect=args;return {connected:true,serverProfile:'company',protocol:'pop3',error:null,folders:[]};};
+ const invoke=async(_method,args)=>{hostCalls.push(args.action);if(args.action==='connect')hostCalls.connect=args;return {connectionMethod:'pop3',connected:true,serverProfile:'company',protocol:'pop3',error:null,folders:[],desktop:{connected:false}};};
  const statusLine=main.split('\n').find(line=>line.startsWith('async function portalMailStatus('));assert(statusLine);
  const dispatch=vm.runInNewContext(statusLine+'\n'+main.slice(start,end)+'\ndispatch',{installingUpdate:false,DESKTOP_FEATURES:{computerUse:false,mailPortal:false},invoke,mailPortal,mailSourceStatus,mailLoginNotices:{reset(){},clear(){}},hostEvent(){},browserDock:null});
  return {dispatch,portalCalls,hostCalls};
@@ -32,7 +32,7 @@ test('a POP3 refresh from the mail screen checks POP3 instead of the portal',asy
 });
 test('mail source status skips the portal entirely when it is off',async()=>{
  let restored=0;const portal={restore(){restored++;},status:()=>({connected:false,connecting:false,checking:false,folders:[]})};
- const status=await mailSourceStatus({snapshot:{connected:false,serverProfile:'company',folders:[]},invoke:async()=>({}),portal,portalEnabled:false});
+ const status=await mailSourceStatus({snapshot:{connected:false,serverProfile:'company',folders:[],desktop:{connected:false,connecting:false,checking:false}},invoke:async()=>({}),portal,portalEnabled:false});
  assert.equal(restored,0);assert.notEqual(status.protocol,'portal');assert.equal(status.portal.connected,false);
 });
 test('with the portal off, POP3 connects directly and passes the 아이디 기억 choice to the mail runtime',async()=>{

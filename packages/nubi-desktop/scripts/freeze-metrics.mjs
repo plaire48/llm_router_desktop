@@ -2,7 +2,6 @@ export const FREEZE_SCENES=Object.freeze([
  {id:'chat',name:'500개 대화와 스트리밍 입력',durationMs:6000},
  {id:'wiki',name:'위키 150노드와 문서',durationMs:6000},
  {id:'mail',name:'메일 1000건과 필터',durationMs:6000},
- {id:'workflow',name:'1000단계 60초 폴링',durationMs:60000},
  {id:'terminal',name:'5000줄 출력 스트리밍',durationMs:6000},
  {id:'navigation',name:'화면 10회와 프로젝트 전환',durationMs:10000}
 ]);

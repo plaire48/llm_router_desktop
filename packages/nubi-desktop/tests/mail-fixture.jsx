@@ -18,21 +18,23 @@ import '../design/workspace-icons.css';
 window.mailCalls=[];window.mailFail=false;window.mailSlow=false;
 const status={serverProfile:'company',protocol:'portal',encryption:{state:'on',migration:{state:'completed'}},connected:false,connecting:false,autoWiki:true,watchPaused:false,checking:false,summarizing:false,readingAttachments:false,counts:{received:0,queued:0,saved:0,attention:0},messages:[],storageRoot:'/fixture/personal',wikiRoot:'/fixture/personal/wiki',rawRoot:'/fixture/personal/raw',baselineCount:0,catalogs:[{provider:'aipro',models:[{id:'fixture',label:'Fixture'}]}],destination:null,localImport:null,localCount:0,localKinds:[]};
 const desktopCase=new URLSearchParams(location.search).get('desktop');
-if(desktopCase)status.desktop={mode:'desktop',supported:true,connected:false,connecting:false,checking:false,error:null,profiles:[]};
+if(desktopCase)status.desktop={mode:'desktop',transport:'uia',storageMode:'desktop_uia',supported:desktopCase!=='unsupported',connected:false,connecting:false,checking:false,error:null,profiles:[],rawRoot:status.rawRoot};
+if(['portal-compat','pop3-compat'].includes(desktopCase)){status.connectionMethod=desktopCase.split('-')[0];status.localCount=1;status.counts.received=1;status.localKinds=['other'];}
 // ?pop3User=: a login ID the host remembered. ?portal=1: the portal login, kept in code but off in the product (2026-10-23).
 const fixtureParams=new URLSearchParams(location.search);if(fixtureParams.get('pop3User'))status.pop3User=fixtureParams.get('pop3User');
 window.setMailImportFixture=progress=>{status.localImport=progress;};
 async function api(method,args={}){
  if(method==='importMailFolder'){window.mailCalls.push({action:'importMailFolder'});status.localImport={state:'completed',total:1,completed:1,imported:1,duplicates:0,failures:[],startedAt:new Date().toISOString()};status.localCount=1;status.localKinds=['AUTO_INBOX','other'];return structuredClone(status);}
  if(method==='copyMailStoragePath')return {copied:true};
+ if(method==='chooseMailRawRoot'){window.mailCalls.push({action:'chooseMailRawRoot'});status.rawRoot='/fixture/selected/uia-originals';if(status.desktop)status.desktop.rawRoot=status.rawRoot;return structuredClone(status);}
  if(method!=='mail')throw Error('fixture_method');
  if(args.action==='status')return structuredClone(status);
  window.mailCalls.push(structuredClone(args));
  if(args.action==='desktopConnect'){
-  if(desktopCase==='multiple'&&!args.profileId){status.desktop.requiresSelection=true;status.desktop.profiles=[{id:'one',label:'P100_owner'},{id:'two',label:'P200_other'}];}
-  else{status.connected=true;Object.assign(status.desktop,{connected:true,requiresSelection:false,profileId:args.profileId||'one',label:'P100_owner',directory:'C:\\mySingle\\Company Desktop Message\\P100_owner\\Very long archive location'});status.localCount=2;status.counts.received=2;status.localKinds=['inbox','notice'];status.localImport={source:'desktop',state:'completed',total:2,completed:2,imported:2,duplicates:0,failures:[]};}
+  if(desktopCase==='multiple'&&!args.profileId){status.desktop.requiresSelection=true;status.desktop.profiles=[{id:'one',label:'Knox Desktop 첫 창'},{id:'two',label:'Knox Desktop 다른 창'}];}
+  else{status.connected=true;Object.assign(status.desktop,{connected:true,requiresSelection:false,profileId:args.profileId||'one',label:args.profileId==='two'?'Knox Desktop 다른 창':'Knox Desktop 첫 창'});status.localCount=2;status.counts.received=2;status.localKinds=['other'];status.localImport=null;}
  }
- if(args.action==='desktopSync'){status.desktop.checking=false;status.localImport={...status.localImport,imported:0,duplicates:2};}
+ if(args.action==='desktopSync'){status.desktop.checking=false;}
  if(args.action==='pauseWatch')status.watchPaused=true;
  if(args.action==='resumeWatch')status.watchPaused=false;
  if(args.action==='resumeImport')status.localImport={...status.localImport,state:'importing',startedAt:new Date().toISOString()};

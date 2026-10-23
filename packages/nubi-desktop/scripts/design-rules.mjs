@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {auditCxSurface} from './cx-surface-audit.mjs';
 const accessibilityExceptions=JSON.parse(await readFile(new URL('./design-exceptions.json',import.meta.url),'utf8')).exceptions;
-export const DESIGN_MOTION_FILES=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/workflow.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css','ui/computer-use.css','ui/tool-arguments.css','ui/project-switch-cover.css','electron-app/external-browser.css','electron-app/workbench.css'];
+export const DESIGN_MOTION_FILES=['design/workspace-identity.css','design/workspace-density.css','design/workspace-typography.css','design/workspace-icons.css','design/workspace-pastel.css','ui/loading-note.css','electron-app/ios-tokens.css','electron-app/modal-motion.css','ui/computer-use.css','ui/tool-arguments.css','ui/project-switch-cover.css','electron-app/external-browser.css','electron-app/workbench.css'];
 export function sourceDesignIssues(file,source,{colors=false,layout=false,has=false}={}){
  const clean=source.replace(/\/\*[\s\S]*?\*\//g,''),issues=[],add=(rule,offset)=>issues.push({rule,file,offset});
  if(colors)for(const m of clean.matchAll(/#[0-9a-fA-F]{3,8}\b/g))add('color_literal',m.index);

@@ -13,7 +13,7 @@ const {ProjectServices}=await import('./project-services.mjs');
 const {installAgent}=await import('./agent.mjs');
 installAgent(ProjectService);
 // Conversation memory runs in the product only; evaluations and tests measure runs without it.
-const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;service.progressNarration=true;
+const service = new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT});service.memoryExtraction=true;service.mailFacts=true;service.mailSemanticReview=true;service.progressNarration=true;
 service.notifyAnswer=value=>{if(process.connected)process.send?.({answerCompleted:value},()=>{});};
 service.notifyWiki=value=>{if(process.connected)process.send?.({wikiCompleted:value},()=>{});};
 installWorkspaceBrowser(service);
@@ -21,7 +21,7 @@ installWikiGitBridge(service);
 installConnectionVault(service);
 // Warm the MCP catalog off the first chat's critical path. No browser is launched.
 const mcp=service.mcpRegistry();mcp.warming=mcp.connectEnabled().catch(()=>{});
-const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true}),resolveRoot:resolveProjectFolder});
+const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true,mailSemanticReview:true}),resolveRoot:resolveProjectFolder});
 const routineStore=new Store(path.join(service.storageRoot,'routines'),{ownerWaitMs:2400}),routineProjects=new ProjectCatalog(service.storageRoot);
 service.routines=createRoutineManager({onActivity:event=>{if(process.connected)process.send?.({routineActivity:event},()=>{});},store:routineStore,listProjects:()=>routineProjects.list(),serviceFor:project=>projects.service(project),canStart:()=>!projects.updateLocked&&!projects.opening});
 service.routines.start();

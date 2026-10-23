@@ -51,3 +51,26 @@ test('without a usable vault the state is unavailable and nothing is written',as
   assert.equal(await vault.ready(),false);assert.equal(vault.state,'unavailable');assert.deepEqual(await vault.hydrate(),{pages:0,migrated:0});
   await vault.persist('x.md','plain');await assert.rejects(stat(store));await vault.dispose();
 });
+
+test('closing immediately after a wiki edit saves the last text before wiping the session',async t=>{
+  const {store,session}=await fixture(t),secrets=memorySecrets();
+  const vault=new MailWikiVault({storeRoot:store,sessionRoot:session,secrets});await vault.ready();await vault.hydrate();
+  await vault.persist('page.md','original');await writeFile(path.join(session,'page.md'),'last edit before closing');vault.touch('page.md');
+  await vault.dispose();await assert.rejects(stat(session));
+  const again=new MailWikiVault({storeRoot:store,sessionRoot:session,secrets});t.after(()=>again.dispose());
+  await again.ready();await again.hydrate();
+  assert.equal(await readFile(path.join(session,'page.md'),'utf8'),'last edit before closing');
+});
+
+test('closing waits for an in-flight page save and concurrent close calls share the flush',async t=>{
+  const {store,session}=await fixture(t),secrets=memorySecrets();
+  const vault=new MailWikiVault({storeRoot:store,sessionRoot:session,secrets});await vault.ready();await vault.hydrate();
+  await vault.persist('page.md','original');await writeFile(path.join(session,'page.md'),'in-flight edit');
+  let entered,release;const saving=new Promise(resolve=>{entered=resolve;}),gate=new Promise(resolve=>{release=resolve;}),persist=vault.persist.bind(vault);
+  vault.persist=async(...args)=>{entered();await gate;return persist(...args);};
+  vault.touch('page.md');const sync=vault.sync();await saving;
+  const close=vault.dispose(),closeAgain=vault.dispose();release();
+  await Promise.all([sync,close,closeAgain]);
+  assert.equal(decryptPage(Buffer.from(secrets.map.get(KEY_NAME),'hex'),await readFile(path.join(store,'page.md.enc'))),'in-flight edit');
+  await assert.rejects(stat(session));
+});

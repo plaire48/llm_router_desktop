@@ -22,7 +22,7 @@ test('the worker reads Word, Excel and PowerPoint attachment bytes',async()=>{
  }
 });
 
-test('Windows accepts a verified parser result and local folder attachments work without portal credentials',async t=>{
+test('Windows requires COM receipts for Office caches; local text attachments work without portal credentials',async t=>{
  const root=await mkdtemp(path.join(os.tmpdir(),'mail-attachment-recovery-'));const mail=new PersonalMail({storageRoot:root},{personalRoot:path.join(root,'mail')});
  t.after(async()=>{mail.dispose();await Promise.all([mail.rawDisposed,mail.wikiDisposed]);await rm(root,{recursive:true,force:true});});
  mail.autoWiki=true;mail.drain=async()=>{};const id='a'.repeat(64),bytes=Buffer.from('한글 첨부 본문'),attachment={id:'000-'+sha(bytes).slice(0,16),filename:'letter.txt',sha256:sha(bytes),contentState:'text_read',text:bytes.toString()};
@@ -32,7 +32,7 @@ test('Windows accepts a verified parser result and local folder attachments work
  assert.equal(mail.store.get('mail:'+id).attachmentState,'complete');assert.equal((await mail.read(id)).mail.attachments[0].text,'한글 첨부 본문');
  // The Windows-only regression was in cache consumption, not in the parser.
  attachment.filename='letter.docx';const descriptor=Object.getOwnPropertyDescriptor(process,'platform');
- try{Object.defineProperty(process,'platform',{value:'win32'});const result=await mail.read(id);assert.equal(result.mail.attachments[0].contentState,'document_read');assert.equal(result.mail.attachments[0].text,'한글 첨부 본문');}
+ try{Object.defineProperty(process,'platform',{value:'win32'});const old=await mail.read(id);assert.equal(old.mail.attachments[0].contentState,'document_attention');assert.equal(old.mail.attachments[0].text,'');const key='attachment:'+id+':'+attachment.id;mail.store.set(key,{...mail.store.get(key),reader:'office_com',officeVersion:'16.0'});const result=await mail.read(id);assert.equal(result.mail.attachments[0].contentState,'document_read');assert.equal(result.mail.attachments[0].text,'한글 첨부 본문');}
  finally{Object.defineProperty(process,'platform',descriptor);}
 });
 

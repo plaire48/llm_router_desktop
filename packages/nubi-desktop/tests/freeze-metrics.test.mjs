@@ -7,8 +7,8 @@ test('freeze measurements retain every late task and frame instead of filtering 
  assert.equal(result.longTasks,2);assert.equal(result.freezes,1);assert.equal(result.maxTaskMs,201);assert.equal(result.frameP95Ms,220);assert.equal(result.inputMaxMs,60);assert.equal(result.heapBytes,42);
  assert.deepEqual(freezeViolations(result),['long_tasks','freezes','missed_frames','frame_max','input_delay','samples_insufficient']);
 });
-test('all six scenes require input and frame samples, including the full 60 second poll scene',()=>{
- assert.equal(FREEZE_SCENES.length,6);assert.equal(FREEZE_SCENES.find(x=>x.id==='workflow').durationMs,60000);
+test('the five retained scenes require input and frame samples',()=>{
+ assert.equal(FREEZE_SCENES.length,5);assert.ok(!FREEZE_SCENES.some(x=>x.id==='workflow'));
  assert.deepEqual(freezeViolations(measure({tasks:[],frames:[],inputs:[]})),['samples_missing']);
 });
 test('p95 is recorded against the measured display interval without discarding frames',()=>{

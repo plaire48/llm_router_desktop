@@ -79,5 +79,5 @@ nsis:
   runAfterFinish: true
   createDesktopShortcut: true
   shortcutName: 누비 Workspace
-  uninstallDisplayName: 누비 Workspace Beta ${version}
+  uninstallDisplayName: 누비 Workspace ${version}
 publish: null

@@ -1,7 +1,7 @@
 // The document is parsed in a bounded worker; model/UI reads are independent
 // windows. A successful window must never imply that the whole document was read.
-export const DOCUMENT_MAX_BYTES=64*1024*1024;
-export const DOCUMENT_MAX_TEXT=2_000_000;
+export const DOCUMENT_MAX_BYTES=128*1024*1024;
+export const DOCUMENT_MAX_TEXT=8_000_000;
 export const DOCUMENT_WINDOW=60_000;
 export function documentWindow(document,{offset=0,limit=DOCUMENT_WINDOW}={}){
  if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>DOCUMENT_WINDOW)throw Error('input_invalid');

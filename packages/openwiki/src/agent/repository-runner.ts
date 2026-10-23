@@ -323,6 +323,8 @@ export interface RepositoryHostDurability {
 }
 
 export interface NativeRepositoryGenerationOptions {
+  /** Omit host-unpublished workflow scaffolding; omission keeps the CLI default. */
+  createWorkflow?: boolean;
   /** Optional host-owned durability; omission preserves the original lifecycle. */
   durability?: RepositoryHostDurability;
   /** Optional host-owned, read-only structural hints. Never persisted as instructions or Claims. */
@@ -490,6 +492,7 @@ async function beginNativeRepositoryRun(
   return beginRepositoryRun({
     root: options.root,
     mode: options.mode,
+    createWorkflow: options.createWorkflow,
     language: options.language ?? undefined,
     force: options.force,
     planningContext: options.planningContext ?? undefined,

@@ -34,7 +34,7 @@
     "heading": 18,
     "line": 24,
     "headingLine": 26.1,
-    "updatedAt": "2026-10-12",
+    "updatedAt": "2026-10-23",
     "source": "workspace-identity.css; rem tokens based on a 16px root",
     "largeBody": 17,
     "largeCaption": 16,
@@ -50,7 +50,7 @@
     "workControl": {
       "height": 40,
       "touchHeight": 44,
-      "radius": 12,
+      "radius": 14,
       "icon": 16,
       "iconLabelGap": 8,
       "labelWeight": 500,
@@ -69,7 +69,7 @@
       "sectionGap": 20,
       "fieldGap": 8,
       "footerBottom": 32,
-      "radius": 20,
+      "radius": 28,
       "choiceWidth": 420,
       "compactWidth": 480,
       "standardWidth": 600,
@@ -97,7 +97,7 @@
     "workspaceFrame": {
       "wideInset": 16,
       "narrowInset": 8,
-      "radiusRem": 0.75,
+      "radiusRem": 1.5,
       "border": 1,
       "background": "--deck-background",
       "readingSurface": "--nubi-surface-base",
@@ -107,11 +107,140 @@
       "readingWidthRem": 48,
       "answerBody": 16,
       "caption": 14,
-      "composerRadiusRem": 1.25,
+      "composerRadiusRem": 1.5,
       "transcriptTop": 24,
       "turnGap": 32,
       "actions": "hover or keyboard focus; always visible on coarse pointers",
       "providerColors": "preserved"
+    },
+    "surfaceMotion": {
+      "concept": "mochi",
+      "radiusScale": [
+        14,
+        16,
+        18,
+        20,
+        28
+      ],
+      "glassOpacity": 0.94,
+      "readingSurface": "opaque white",
+      "spring": "existing workspace-motion.css 300/26/1 step response",
+      "surfaceOvershootMax": 0.03,
+      "contentEasing": "ease-out; no text scaling",
+      "reducedMotion": "opacity only, 120ms"
+    },
+    "theme": {
+      "name": "Calm Liquid",
+      "source": "User supplied nuvi_calm_liquid_theme.html and motion_interaction_atlas.html, 2026-10-23; retain the earlier six-stop mascot gradient",
+      "palette": {
+        "blue": "#2873EE",
+        "blue-deep": "#1765DB",
+        "blue-lite": "#9BCFE8",
+        "blue-soft": "#EAF5F8",
+        "ink": "#26334B",
+        "sub": "#53617A",
+        "card": "#FFFFFF",
+        "tint": "#FAFCFF",
+        "line": "#E5EAF3",
+        "violet": "#625A86",
+        "violet-soft": "#F3F0FA",
+        "teal": "#2D6870",
+        "teal-soft": "#ECF8F8"
+      },
+      "background": {
+        "drops": 2,
+        "strength": [
+          0.24,
+          0.18
+        ],
+        "periodSeconds": [
+          24,
+          28
+        ],
+        "poses": 5,
+        "motionProperties": [
+          "transform"
+        ],
+        "blurPixels": [
+          56,
+          48
+        ]
+      },
+      "gradient": "linear-gradient(110deg, #74CDD4 0%, #8EDAD9 20%, #9BCFE8 40%, #A2BFEA 60%, #B3B8E5 80%, #CEC7EB 100%)",
+      "brandColors": [
+        "#74CDD4",
+        "#8EDAD9",
+        "#9BCFE8",
+        "#A2BFEA",
+        "#B3B8E5",
+        "#CEC7EB"
+      ],
+      "actionForeground": "#26334B",
+      "mascot": {
+        "source": "design/brand/calm-liquid/mascot-master.png",
+        "frames": [
+          "bird",
+          "blink",
+          "wing",
+          "smile",
+          "sad"
+        ],
+        "provenance": "design/brand/calm-liquid/asset-provenance.json"
+      },
+      "softGradient": "linear-gradient(110deg, #C7EBEE 0%, #D2F0F0 20%, #D7ECF6 40%, #DAE5F7 60%, #E1E3F5 80%, #EBE9F7 100%)",
+      "contentGradient": "linear-gradient(110deg, #F4FBFC 0%, #F6FCFC 20%, #F7FBFD 40%, #F8FAFD 60%, #F9F9FD 80%, #FBFBFD 100%)",
+      "presentation": {
+        "actionWhiteBlend": 0.6,
+        "contentWhiteBlend": 0.92,
+        "mascot": "original approved gradient retained per user correction"
+      },
+      "welcome": {
+        "scope": "empty conversation only",
+        "birdSize": "clamp(176px, min(31vh, 42vw), 280px)",
+        "topInset": "clamp(16px, 4vh, 40px)",
+        "alignment": "start"
+      },
+      "selectionGradient": "linear-gradient(110deg, #E3F5F6 0%, #E8F8F7 20%, #EBF5FA 40%, #ECF2FB 60%, #F0F1FA 80%, #F5F4FB 100%)",
+      "application": {
+        "primitiveSource": "design/brand/nubi-brand.css",
+        "weights": {
+          "action": 0.4,
+          "selection": 0.2,
+          "content": 0.08
+        },
+        "modal": "near-white gradient heading; opaque white body and fields",
+        "page": "near-white toolbar and rail; pale selected navigation",
+        "icons": "one static SVG paint server; readable teal/blue/lavender ink on pale tiles",
+        "preserve": [
+          "mascot files",
+          "provider logos and controls",
+          "success/warning/error",
+          "authored and original document content"
+        ],
+        "forcedColors": "system colours; no gradients",
+        "guide": "docs/NUBI-BRAND-GUIDE.md"
+      },
+      "identityReferences": [
+        {
+          "file": "../../design-reference/nuvi_calm_liquid_theme.html",
+          "sha256": "20c3096d4c3ed42c73dda3e2d851570f511efdefb112a50aab4ea54eaae3a929"
+        },
+        {
+          "file": "../../design-reference/motion_interaction_atlas.html",
+          "sha256": "b06a234146a291bfc3ee5d359ec4f6457bf9a2a23c7fa9740bd3ac722a66c35c"
+        }
+      ],
+      "calmAccentPalette": {
+        "primary": "#2873EE",
+        "deep": "#1765DB",
+        "sky": "#A9D9FF",
+        "aqua": "#A8EDEA",
+        "lavender": "#C5BBFA",
+        "canvas": "#FAFCFF",
+        "ink": "#26334B"
+      },
+      "readingCenter": "white radial veil; no added scene behind glass controls",
+      "motionReference": "21-pattern atlas: adapt existing transitions and selection, preserve bounded motion and reduced preferences"
     }
   }
 }

@@ -1,0 +1,20 @@
+.nubi-liquid-glass-host {position:relative;isolation:isolate;}
+.nubi-liquid-glass {position:absolute;inset:auto;z-index:0;display:none;overflow:hidden;border-radius:inherit;pointer-events:none;user-select:none;contain:strict;}
+.nubi-liquid-glass canvas {position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;}
+.nubi-liquid-glass .nubi-liquid-glass__backdrop {display:none;}
+.nubi-liquid-glass__selection {position:absolute;inset:0 auto auto 0;box-sizing:border-box;background:var(--nubi-liquid-selection-fill);border:1px solid var(--nubi-liquid-selection-edge);box-shadow:var(--nubi-liquid-selection-shadow);pointer-events:none;}
+.nubi-liquid-glass__selection[hidden] {display:none;}
+.nubi-liquid-glass-host[data-liquid-glass=webgl]>.nubi-liquid-glass {display:block;}
+.nubi-liquid-glass-host>button,
+.nubi-liquid-glass-host>.nubi-rail-footer,
+.nubi-liquid-glass-host>.desktop-workspace-tab,
+.nubi-liquid-glass-host>.agent-tab-controls {position:relative;z-index:1;}
+/* The shader owns only selection paint. Real controls keep focus and hit areas. */
+:root:root .desktop-shell .nubi-workspace-rail[data-liquid-glass=webgl] button[aria-pressed=true]:not(.nubi-rail-team),
+:root:root .desktop-shell .nubi-workspace-rail[data-liquid-glass=webgl] button[aria-pressed=true]:not(.nubi-rail-team):is(:hover,:focus-visible):not(:disabled) {background:transparent;box-shadow:none;}
+:root:root .desktop-shell .nubi-workspace-rail[data-liquid-glass=webgl] button[aria-pressed=true]::after {content:none;}
+:root:root .desktop-shell .desktop-file-tabs[data-liquid-glass=webgl] .desktop-workspace-tab,
+:root:root .desktop-shell .desktop-file-tabs[data-liquid-glass=webgl]>button[aria-selected=true] {background:transparent;box-shadow:none;}
+:root:root .desktop-shell .nubi-catalog-tabs[data-liquid-glass=webgl]>.agent-tabs {position:relative;z-index:1;background:transparent;}
+:root:root .desktop-shell .nubi-catalog-tabs[data-liquid-glass=webgl] .agent-tab-highlight {visibility:hidden;}
+@media(forced-colors:active),(prefers-reduced-transparency:reduce){.nubi-liquid-glass-host>.nubi-liquid-glass {display:none;}}

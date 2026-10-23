@@ -1,6 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {lintPages} from '../eval/wiki-quality/run.mjs';
+import {lintPages,gradeWikiUse} from '../eval/wiki-quality/run.mjs';
+
+test('usage grading normalizes page paths but requires current target-source evidence beyond a plan link',()=>{
+ const row={path:'openwiki/guide.md',freshness:'unverified',sourceReferences:[]},linked=['openwiki/guide.md'];
+ assert.deepEqual(gradeWikiUse('src/retry.mjs',[row],linked),{linked:true,grounded:false});
+ assert.deepEqual(gradeWikiUse('src/retry.mjs',[{...row,path:'guide.md',freshness:'source_matched',sourceReferences:[{path:'src/retry.mjs',state:'source_matched'}]}],linked),{linked:true,grounded:true});
+ assert.equal(gradeWikiUse('src/retry.mjs',[{...row,freshness:'source_matched',sourceReferences:[{path:'src/other.mjs',state:'source_matched'}]}],linked).grounded,false);
+ assert.equal(gradeWikiUse('src/retry.mjs',[{...row,freshness:'source_changed',sourceReferences:[{path:'src/retry.mjs',state:'source_matched'}]}],linked).grounded,false);
+});
 
 test('wiki quality lint counts empty sections, broken relative links and thin pages without a model',()=>{
  const pages={
@@ -14,4 +22,10 @@ test('wiki quality lint counts empty sections, broken relative links and thin pa
  assert.equal(result.thinPages,1);
  const index=result.rows.find(r=>r.page==='index.md');
  assert.equal(index.links,2);assert.equal(index.brokenLinks,1);assert.equal(index.emptySections,1);assert.equal(index.thin,false);
+});
+
+test('repository-aware evaluation accepts an existing source README link and still reports missing links',()=>{
+ const pages={'guide.md':'# Guide\n\n[Source](../README.md)\n[Missing](../missing.md)\n'};
+ const result=lintPages(pages,{repositoryPaths:['README.md']});
+ assert.equal(result.brokenLinks,1);assert.equal(result.rows[0].issues[0].target,'missing.md');
 });

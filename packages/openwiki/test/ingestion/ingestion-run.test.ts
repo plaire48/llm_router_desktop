@@ -171,6 +171,43 @@ afterEach(() => {
 });
 
 describe("runOpenWikiIngestion", () => {
+  test("routes native Knox evidence through the host reader and existing wiki agent without a false 24-hour claim", async () => {
+    const connector = makeConnector("knox", { supportsTimeWindow: false });
+    const pull = makeIngestResult("knox");
+    vi.mocked(connector.ingest).mockResolvedValue(pull);
+    const source = makeSourceInstance({
+      connectorId: "knox",
+      id: "knox-work",
+      connectorConfig: { enabled: true, streams: ["mail", "memo"] },
+    });
+    primeRun(makeConfig([source]), { knox: connector });
+    const connectorHosts = {
+      knox: { sourceId: "native-profile", read: vi.fn() },
+    };
+    const result = await runOpenWikiIngestion("/some/cwd", {
+      target: { kind: "source-instance", id: "knox-work" },
+      connectorHosts,
+    });
+    expect(createConnectorRegistry).toHaveBeenCalledWith(connectorHosts);
+    expect(result.results[0]?.status).toBe("agent-updated");
+    expect(connector.ingest).toHaveBeenCalledWith({
+      connectorConfig: source.connectorConfig,
+      instanceId: "knox-work",
+      windowHours: 24,
+    });
+    const message =
+      vi.mocked(runOpenWikiAgent).mock.calls[0][2].userMessage ?? "";
+    expect(message).toContain(
+      "bounded local copies according to their coverage metadata",
+    );
+    expect(message).toContain("/commitments.md");
+    expect(message).toContain("Memo partial=true");
+    expect(message).toContain(
+      'openwiki_read_raw_item using connectorId "knox"',
+    );
+    expect(message).not.toContain("Use the last 24 hours of newly pulled data");
+  });
+
   test("runs a single deterministic source and composes the pull-aware message", async () => {
     // A deterministic connector is pulled first, and the composed agent message
     // must carry the pull result, the raw file paths, and the synthesis policy

@@ -25,17 +25,6 @@ test('safety delta has a fixed base and enough checkout history and full safety 
  const packaging=parse(await readFile(new URL('nubi-desktop-windows.yml',root),'utf8')).jobs.windows;assert.ok(packaging.steps.some(s=>s.run?.includes('package-windows'))||packaging.steps.some(s=>s.run?.includes('package:windows')));
 
 });
-// Workflows are off in this release (design light-flow §5.1): their checks stay in the gate and say they skipped.
-test('off-feature workflow checks stay gated and report a skip instead of running',async()=>{
- const {execFileSync}=await import('node:child_process');const {DESKTOP_FEATURES}=await import('../runtime/beta-features.mjs');
- const baseline=JSON.parse(await readFile(new URL('../scripts/gate-baseline.json',import.meta.url),'utf8'));const listed=JSON.stringify(baseline);
- for(const [script,check] of [['check-workflow-ui.mjs','workflow-ui'],['check-electron-workflow.mjs','electron-workflow']]){
-  assert.ok(listed.includes('node scripts/'+script),script+' stays in the gate');
-  if(DESKTOP_FEATURES.workflows)continue;
-  const out=execFileSync(process.execPath,['scripts/'+script],{cwd:new URL('..',import.meta.url),encoding:'utf8',timeout:60000});
-  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()),{check,skipped:'workflows_feature_off'});
- }
-});
 test('the workflow freeze scene is skipped and recorded while workflows are off',async()=>{
  const source=await readFile(new URL('../scripts/check-freeze-scenes.mjs',import.meta.url),'utf8');
  assert.match(source,/skipped:'workflows_feature_off'/);

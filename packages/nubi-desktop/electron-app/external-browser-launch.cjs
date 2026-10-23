@@ -16,13 +16,14 @@ class BrowserLaunch {
   // flags, enables debugging, or uses the shell to interpret a URL.
   this.preference={mode:'external',executable:file};await this.save();return this.status();
  }
- async mode(mode){if(!['external','internal'].includes(mode))throw Error('browser_action_invalid');this.preference.mode=mode;await this.save();return this.status();}
- async save(){await mkdir(this.storage,{recursive:true});await writeFile(path.join(this.storage,'browser-preference.json'),JSON.stringify(this.preference),{mode:0o600});}
- async open(value){
+ async mode(mode){if(!['external','internal'].includes(mode))throw Error('browser_action_invalid');const next={...this.preference,mode};await this.save(next);this.preference=next;return this.status();}
+ async save(preference=this.preference){await mkdir(this.storage,{recursive:true});await writeFile(path.join(this.storage,'browser-preference.json'),JSON.stringify(preference),{mode:0o600});}
+ async open(value,{executable=this.preference.executable}={}){
   const url=httpBrowserAddress(value);
-  if(!this.preference.executable){await this.shell.openExternal(url);return {opened:true,external:true,automation:false,loginSession:'system-default-browser',userInteractionRequired:true};}
+  if(!executable){try{await this.shell.openExternal(url);}catch{throw Error('external_browser_launch_failed');}return {opened:true,external:true,automation:false,loginSession:'system-default-browser',userInteractionRequired:true};}
   if(this.platform!=='win32')throw Error('external_browser_windows_required');
-  await new Promise((resolve,reject)=>{const child=this.launch(this.preference.executable,[url],{shell:false,detached:true,stdio:'ignore'});child.once('error',()=>reject(Error('external_browser_launch_failed')));child.once('spawn',()=>{child.unref();resolve();});});
+  if(!path.win32.isAbsolute(executable)||path.win32.extname(executable).toLowerCase()!=='.exe')throw Error('external_browser_executable_invalid');
+  await new Promise((resolve,reject)=>{const child=this.launch(executable,[url],{shell:false,detached:true,stdio:'ignore'});child.once('error',()=>reject(Error('external_browser_launch_failed')));child.once('spawn',()=>{child.unref();resolve();});});
   return {opened:true,external:true,automation:false,loginSession:'original-browser',userInteractionRequired:true};
  }
 }

@@ -1,11 +1,29 @@
 .nubi-project-switch-cover {
  display:none;position:fixed;inset:var(--nubi-toolbar-height,48px) 0 0;
  z-index:2147482000;background:var(--nubi-surface-base);
- background-image:var(--nubi-workspace-gradient,none);
+ background-image:var(--nubi-brand-motion-glass);
  place-content:center;justify-items:center;gap:calc(var(--cx-space-1) * 6.5);
 }
 .nubi-project-switch-cover .nubi-preparing-bar { width:min(300px,60vw); }
 html[data-project-switching] .nubi-project-switch-cover { display:grid; }
+/* Hold the covered workspace at its current phase, including toolbar and
+   shell decoration. The visible progress track is the only ambient exception. */
+:root:root[data-project-switching] { --nubi-ambient-play:paused; --nubi-ambient-will-change:auto; }
+.nubi-project-switch-scene { display:grid; justify-items:center; gap:calc(var(--cx-space-1) * 6.5); }
+.nubi-project-switch-scene .nubi-preparing-brand { animation:none; }
+html[data-project-switching] .nubi-project-switch-scene { animation:nubi-view-project-loader-enter var(--nubi-motion-enter) var(--nubi-ease-spring) both; }
+.nubi-project-stage-label { animation:nubi-view-project-stage-reveal var(--nubi-motion-state) var(--nubi-ease-out) both; }
+.nubi-project-switch-cover[data-leaving] { display:grid; pointer-events:none; animation:nubi-view-project-loader-exit var(--nubi-motion-exit) var(--nubi-ease-exit) both; }
+@keyframes nubi-view-project-loader-enter { from { opacity:.65; transform:translateY(var(--nubi-entry-offset)); } to { opacity:1; transform:none; } }
+@keyframes nubi-view-project-stage-reveal { from { opacity:.65; } to { opacity:1; } }
+@keyframes nubi-view-project-loader-exit { from { opacity:1; } to { opacity:0; } }
+@keyframes nubi-view-project-loader-fade { from { opacity:.65; } to { opacity:1; } }
+@media(prefers-reduced-motion:no-preference) {
+ :root:root[data-project-switching]:not([data-nubi-transition]):not([data-nubi-window-hidden]):not([data-motion-visibility=hidden]):not([data-motion=paused]) .nubi-project-switch-cover :is(.nubi-progress,.nubi-preparing-bar)>span { --nubi-ambient-play:running; }
+}
+@media(prefers-reduced-motion:reduce) {
+ html[data-project-switching] .nubi-project-switch-scene { animation-name:nubi-view-project-loader-fade; }
+}
 html[data-project-switching] .desktop-workspace-body {
  opacity:0!important;pointer-events:none!important;
 }
@@ -21,14 +39,8 @@ html[data-project-switching] body > :not(#root):not(script):not(style):not(link)
 .nubi-git-clone-heading time { margin-left:auto;color:var(--nubi-text-secondary);font-size:var(--cx-type-caption);font-variant-numeric:tabular-nums; }
 .nubi-git-clone-stage { justify-content:space-between;margin-bottom:calc(var(--cx-space-1) * 2.5); }
 .nubi-git-clone-stage strong { color:var(--deck-blue);font-variant-numeric:tabular-nums; }
-.nubi-git-clone-progress progress { display:block;width:100%;height:6px;border:0;border-radius:999px;overflow:hidden;appearance:none;background:var(--deck-line);accent-color:var(--deck-blue); }
-.nubi-git-clone-progress progress::-webkit-progress-bar { background:var(--deck-line);border-radius:999px; }
-.nubi-git-clone-progress progress::-webkit-progress-value { background:var(--deck-blue);border-radius:999px;transition:opacity var(--nubi-motion-state) var(--nubi-ease-out); }
-.nubi-git-clone-progress progress:indeterminate { background:linear-gradient(var(--deck-blue),var(--deck-blue)) center / 30% 100% no-repeat var(--deck-line);animation:nubi-live-breathe var(--nubi-ambient-progress) var(--nubi-ease-out) infinite;animation-play-state:var(--nubi-ambient-play); }
-.nubi-git-clone-progress progress:indeterminate::-webkit-progress-bar { background:transparent; }
+.nubi-git-clone-progress .nubi-progress { width:100%;margin-top:0; }
 .nubi-git-clone-detail { justify-content:space-between;flex-wrap:nowrap;min-height:20px;margin-top:calc(var(--cx-space-1) * 2.5);color:var(--nubi-text-secondary);font-size:var(--cx-type-caption);font-variant-numeric:tabular-nums; }
-
-@media(prefers-reduced-motion:reduce){.nubi-git-clone-progress progress:indeterminate{animation-play-state:paused;background-position:left center}.nubi-git-clone-progress progress::-webkit-progress-value{transition:none}}
 
 .nubi-git-clone-detail > span { min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 

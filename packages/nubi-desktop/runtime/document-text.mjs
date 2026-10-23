@@ -4,7 +4,10 @@ export function decodeDocumentText(bytes,contentType=''){
  const declared=/charset\s*=\s*["']?([^\s;"']+)/i.exec(contentType)?.[1];
  const charset=({'cp949':'euc-kr','ms949':'euc-kr','windows-949':'euc-kr'})[declared?.toLowerCase()]||declared;
  const bom=bytes[0]===0xef&&bytes[1]===0xbb&&bytes[2]===0xbf?'utf-8':bytes[0]===0xff&&bytes[1]===0xfe?'utf-16le':bytes[0]===0xfe&&bytes[1]===0xff?'utf-16be':null;
- const encodings=bom?[bom]:charset?[charset]:['utf-8','euc-kr'];
+ // Some gateways retain a UTF-8 label when the actual TXT is CP949. Honor a
+ // valid declaration first, then try strict decoders instead of replacement
+ // characters. A BOM remains authoritative; damaged BOM files do not fall back.
+ const encodings=bom?[bom]:[...new Set([charset,'utf-8','euc-kr'].filter(Boolean))];
  for(const encoding of encodings){
   try{
    const text=new TextDecoder(encoding,{fatal:true}).decode(bytes);

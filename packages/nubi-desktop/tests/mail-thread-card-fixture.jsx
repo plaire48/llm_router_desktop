@@ -4,6 +4,7 @@ import '../electron-app/workbench.css';import '../electron-app/shell.css';import
 import '../design/workspace-identity.css';import '../ui/shell-state-auto.mjs';import '../design/workspace-typography.css';import '../design/workspace-density.css';import '../design/workspace-dialogs.css';import '../design/workspace-icons.css';
 import {MailReader} from '../ui/MailReader.jsx';
 const api=async(method,args)=>{
+ if(args.action==='topicWiki'){const result={summary:'첨부 예산 자료와 대화의 승인 조건을 함께 정리했습니다.',coverage:{messages:50,totalMessages:65,complete:false}};if(window.deferTopic)return new Promise(resolve=>window.finishTopic=()=>resolve(result));return result;}
  if(args.action==='threadCard'){
   if(window.failThread)throw Error('fixture_offline');
   return {count:65,firstAt:'2026-10-01',lastAt:'2026-10-21',participants:['team@example.test','review@example.test'],attachmentCount:7,state:'saved',grouping:'headers',offset:args.offset,hasMore:args.offset+20<65,items:Array.from({length:Math.min(20,65-args.offset)},(_,i)=>({id:'m'+(i+args.offset),sourceHash:'h'+(i+args.offset),subject:'합성 출시 검토 '+(i+args.offset),date:'2026-10-21'}))};

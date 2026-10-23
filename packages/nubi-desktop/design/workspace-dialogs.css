@@ -27,7 +27,7 @@
   line-height:var(--deck-line-body);
   font-weight:var(--nubi-weight-regular);
   color:var(--nubi-text-primary);
-  background:var(--nubi-surface-base);
+  background:var(--nubi-surface-dialog);
   border:0;
   border-radius:var(--nubi-dialog-radius);
   box-shadow:var(--nubi-dialog-shadow);
@@ -166,7 +166,7 @@
 :root:root .deck-dialog :is(.cx-kit-button,.cx-action-button) > svg {
   width:var(--nubi-work-control-icon); height:var(--nubi-work-control-icon); flex:none;
 }
-:root:root .deck-dialog :is(.cx-kit-button,.cx-action-button):not([role=switch],[role=tab],.model-option,.nubi-history-item,.nubi-marketplace-card,.nubi-page-chip) {
+:root:root .deck-dialog :is(.cx-kit-button,.cx-action-button):not([role=switch],[role=tab],.model-option,.model-trigger,.nubi-history-item,.nubi-marketplace-card,.nubi-page-chip) {
   background-image:none;
 }
 :root:root .deck-dialog .cx-panel-header-actions { display:flex; align-items:center; justify-content:flex-end; align-self:flex-start; margin:0; }
@@ -540,3 +540,39 @@
 }
 :root:root .deck-dialog.context-dialog .context-compaction-policy { padding-block-start:0; border-top:0; }
 :root:root .deck-dialog.context-dialog .context-details { margin-block:var(--cx-space-3) 0; }
+
+/* Common brand chrome: tinted heading, opaque white reading/form body.
+   Geometry, focus, controls and status/provider surfaces retain their owners. */
+:root:root .deck-dialog:not(.nubi-anchored-dialog) {
+ background:var(--nubi-surface-base);
+ box-shadow:var(--nubi-brand-panel-shadow);
+ outline:1px solid var(--nubi-brand-panel-edge);outline-offset:-1px;
+}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) > .cx-panel-header {
+ background:var(--nubi-brand-modal-header);
+ box-shadow:var(--nubi-brand-heading-rule);
+ border-start-start-radius:var(--nubi-dialog-radius);border-start-end-radius:var(--nubi-dialog-radius);
+}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) > :is(.cx-panel-body,.cx-panel-footer) {background:var(--nuvi-surface);}
+:root:root .deck-dialog .nubi-panel-title-icon {background:var(--nubi-brand-icon-tile);color:var(--nuvi-text);}
+:root:root .deck-dialog .nubi-filter-choice[aria-pressed=true] {background:var(--nubi-brand-selection);color:var(--nuvi-text);}
+:root:root .deck-dialog :is(input:not([type=checkbox],[type=radio],[type=range]),textarea,select):not([aria-invalid=true]) {
+ background-color:var(--nubi-brand-field-surface);
+}
+:root:root .deck-dialog :is(input:not([type=checkbox],[type=radio],[type=range]),textarea,select):not([aria-invalid=true]):focus-visible {
+ border-color:var(--nubi-text-action);box-shadow:var(--nubi-brand-field-focus);
+}
+@media(forced-colors:active) {
+ :root:root .deck-dialog:not(.nubi-anchored-dialog) {outline-color:CanvasText;box-shadow:none;}
+ :root:root .deck-dialog:not(.nubi-anchored-dialog)>.cx-panel-header {box-shadow:none;}
+ :root:root .deck-dialog:not(.nubi-anchored-dialog) > :is(.cx-panel-header,.cx-panel-body,.cx-panel-footer),
+ :root:root .deck-dialog .nubi-panel-title-icon,
+ :root:root .deck-dialog .nubi-filter-choice[aria-pressed=true] {background-image:none;background-color:Canvas;color:CanvasText;}
+ :root:root .deck-dialog :is(input,textarea,select):not([aria-invalid=true]) {background-color:Canvas;}
+}
+
+/* Separate frequent model refresh/edit actions from account disconnection. */
+:root:root .deck-dialog.model-dialog > .cx-panel-footer .provider-account-actions {
+ display:flex;align-items:center;width:100%;gap:var(--nubi-work-control-gap);
+}
+:root:root .deck-dialog.model-dialog > .cx-panel-footer .provider-account-actions [data-action=logout] {margin-inline-start:auto;}

@@ -4,6 +4,10 @@ import MiniSearch from 'minisearch';
 
 const stop = new Set(['the', 'and', 'for', 'with', 'from', 'this', 'that', 'what', 'where', 'how', 'are', 'does', '대한', '어디', '어디서', '어떻게', '알려줘', '알려주세요', '설명해줘', '찾아줘', '찾아주세요', '해주세요', '해줘']);
 export const normalizeSearch = value => String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+// A standalone code/error identifier is an exact lookup, not an OR query for
+// its component words. Natural-language and multi-identifier queries keep BM25.
+export const searchIdentifier = value => /^`?([a-z][a-z\d]*(?:_[a-z\d]+)+)`?$/i.exec(String(value||'').trim())?.[1].toLowerCase()||null;
+export const identifierTerms = value => new Set((String(value||'').match(/\b[a-z][a-z\d]*(?:_[a-z\d]+)+\b/gi)||[]).map(term=>term.toLowerCase()));
 export function searchTerms(value) {
   const words = normalizeSearch(String(value || '').replace(/([a-z\d])([A-Z])/g, '$1 $2')).match(/[\p{L}\p{N}]+/gu) || [];
   return [...new Set(words.map(word => /^[가-힣]{3,}$/.test(word) ? word.replace(/(?:에서는|에서|으로|은|는|을|를|의|에|와|과)$/, '') : word).filter(word => word && !stop.has(word)))];

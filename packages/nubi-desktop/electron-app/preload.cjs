@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('nubi',{installationId,desktop:true,platform:pro
  const listener=(_event,value)=>callback(value);ipcRenderer.on('nubi:host-event',listener);
  if(lastVisibility)callback(lastVisibility);
  return()=>ipcRenderer.removeListener('nubi:host-event',listener);
+},onBrowserMirror:callback=>{
+ if(typeof callback!=='function')throw Error('callback_invalid');
+ const listener=(_event,value)=>callback(value);ipcRenderer.on('nubi:browser-mirror',listener);
+ return()=>ipcRenderer.removeListener('nubi:browser-mirror',listener);
 },onBrowserEvent:callback=>{
  if(typeof callback!=='function')throw Error('callback_invalid');
  const listener=(_event,value)=>callback(value);ipcRenderer.on('nubi:browser-event',listener);

@@ -138,7 +138,7 @@ export function createResearchProgress({taskId, task, onStep = () => {}, documen
     },
   };
 }
-export async function delegateWikiQuestion(args, {complete, execute, signal, modelId, onStep = () => {}, researchHandoffs, onResearchHandoff}) {
+export async function delegateWikiQuestion(args, {complete, execute, signal, modelId, onStep = () => {}, researchHandoffs, onResearchHandoff, createWikiSearch}) {
   signal.throwIfAborted();
   if(args?.restart_research!==undefined&&typeof args.restart_research!=='boolean')throw Error('tool_arguments_invalid');
   if (!['internal','external'].includes(args.wiki) || typeof args.question !== 'string' || !args.question.trim() || args.question.length > 4000) throw new Error('tool_arguments_invalid');
@@ -165,8 +165,10 @@ export async function delegateWikiQuestion(args, {complete, execute, signal, mod
   const task = `${args.wiki === 'internal' ? '내장 위키' : '외부 위키'}: ${args.question.slice(0,100)}`;
   const progress = createResearchProgress({taskId,task,onStep,documents:input.documents});
   const handoff=await createResearchHandoff({kind:args.wiki,owner:snapshot.wikiId,question:args.question,modelId,handoffs:args.restart_research?undefined:researchHandoffs,onHandoff:onResearchHandoff});
+  let search;
   try {
-    const result = await runWikiQuestion(input, {signal:researchSignal, model, modelId, search:createWikiQuestionSearch(), onProgress:progress.progress,...handoff});
+    search = createWikiSearch ? await createWikiSearch(input.documents) : createWikiQuestionSearch();
+    const result = await runWikiQuestion(input, {signal:researchSignal, model, modelId, search, onProgress:progress.progress,...handoff});
     // Re-read through the same lease/provider/folder binding before exposing a stale answer.
     const current = await execute('ask_openwiki', {wiki:args.wiki,question:args.question});
     signal.throwIfAborted();
@@ -187,5 +189,5 @@ export async function delegateWikiQuestion(args, {complete, execute, signal, mod
     // The framework or a cancelled peer can wrap the initial error. Preserve
     // its normalized code/status for the host's existing re-login handling.
     throw signal.aborted ? error : authentication.signal.reason || error;
-  }
+  } finally { search?.close?.(); }
 }

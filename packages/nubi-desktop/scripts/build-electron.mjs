@@ -23,9 +23,8 @@ await copyReleaseTree('extension/lib/node',out+'/backend',{recursive:true,filter
 await build({...rendererBundleOptions(),outdir:out+'/frontend',minify:true}).then(async result=>{if(Object.keys(result.metafile.inputs).some(p=>p.includes('node_modules/@theia/')))throw Error('theia_in_active_bundle');await writeFile('generated/electron-bundle.json',JSON.stringify(result.metafile,null,2));});
 await build({entryPoints:['node_modules/monaco-editor/esm/vs/editor/editor.worker.js'],outfile:out+'/frontend/chunks/editor.worker.js',bundle:true,format:'esm',platform:'browser',target:'chrome146',minify:true});
 await build({entryPoints:['ui/wiki-layout-worker.mjs'],outfile:out+'/frontend/chunks/wiki-layout-worker.js',bundle:true,format:'esm',platform:'browser',target:'chrome146',minify:true});
-await build({entryPoints:['ui/workflow-blueprint-worker.mjs'],outfile:out+'/frontend/chunks/workflow-blueprint-worker.js',bundle:true,format:'esm',platform:'browser',target:'chrome146',minify:true});
-await build({entryPoints:['ui/workflow-layout-worker.mjs'],outfile:out+'/frontend/chunks/workflow-layout-worker.js',bundle:true,format:'esm',platform:'browser',target:'chrome146',minify:true});
-let html=await readFile('electron-app/index.html','utf8');
+const packageVersion=JSON.parse(await readFile('package.json','utf8')).version;
+let html=(await readFile('electron-app/index.html','utf8')).replace('<title>누비 Workspace</title>',`<title>누비 Workspace ${packageVersion}</title>`);
 for(const asset of ['renderer.js','renderer.css']){
   const hash=createHash('sha256').update(await readFile(out+'/frontend/'+asset)).digest('hex').slice(0,16);
   html=html.replace(`./${asset}`,`./${asset}?v=${hash}`);
@@ -33,6 +32,8 @@ for(const asset of ['renderer.js','renderer.css']){
 await writeFile(out+'/frontend/index.html',html);
 
 await copyReleaseTree('../../extensions/aipro-chat/public/icons',out+'/frontend/icons',{recursive:true});
+// Desktop branding overlays the shared mascot frames without changing other hosts.
+await copyReleaseTree('design/brand/calm-liquid/icons',out+'/frontend/icons',{recursive:true});
 await copyReleaseTree('vendor/licenses',out+'/licenses',{recursive:true});
 
 await copyFile('../../extensions/aipro-chat/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',out+'/frontend/chunks/pdf.worker.mjs');

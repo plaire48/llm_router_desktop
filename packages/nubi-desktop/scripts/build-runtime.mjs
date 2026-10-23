@@ -93,6 +93,8 @@ await rm('extension/lib/node/process-host',{recursive:true,force:true});
 try{await cp('generated/process-host','extension/lib/node/process-host',{recursive:true});}catch(error){if(process.platform==='win32'||error.code!=='ENOENT')throw error;}
 await copyFile('extension/src/node/git-askpass.cjs','extension/lib/node/git-askpass.cjs');
 await copyFile('runtime/computer-pointer.ps1','extension/lib/node/computer-pointer.ps1');
+await copyFile('runtime/mail-desktop-uia.ps1','extension/lib/node/mail-desktop-uia.ps1');
+await copyFile('runtime/app-screen-capture.ps1','extension/lib/node/app-screen-capture.ps1');
 // Optional native host is an explicit build artifact, never another app's live
 // install directory. Remove a stale earlier bundle when it is absent.
 await rm('extension/lib/node/external-office-native',{recursive:true,force:true});

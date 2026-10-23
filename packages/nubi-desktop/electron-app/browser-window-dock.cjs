@@ -2,7 +2,7 @@ const {randomUUID}=require('node:crypto');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class BrowserWindowDock {
  constructor({native,external,launch,notify=()=>{},platform=process.platform,delay=pause}){Object.assign(this,{native,external,launch,notify,platform,delay});this.phase='idle';this.error=null;this.epoch=0;this.layoutValue=null;this.exact=false;this.layoutAt=0;this.operation=null;this.disposed=false;native.onEvent=event=>this.event(event);}
- status(){return {supported:this.platform==='win32',phase:this.phase,windowDocked:this.phase==='docked',displayMode:'native-window-overlay',transitionMode:this.transitionMode||'placeholder',error:this.error,requestId:this.requestId,browserName:this.browserName,automationReady:this.automationReady===true};}
+ status(){return {supported:this.platform==='win32',phase:this.phase,windowDocked:this.phase==='docked',displayMode:this.external.quickConnect?'tab-content':'native-window-overlay',transitionMode:this.transitionMode||'placeholder',error:this.error,requestId:this.requestId,browserName:this.browserName,automationReady:this.automationReady===true};}
  publish(){this.notify({type:'browser_dock_changed',dock:this.status()});}
  async ready(){if(this.disposed)throw Error('dock_disposed');if(this.platform!=='win32')throw Error('external_browser_windows_required');if(this.launch.preference.mode!=='external')throw Error('dock_external_required');await this.native.start(this.launch.preference.executable||'');}
  async layout(value){
@@ -23,7 +23,23 @@ class BrowserWindowDock {
  }
  async bring({candidateId,signal,source='chat'}={}){
   if(this.phase==='docked')return {docked:true,alreadyDocked:true};if(this.operation)throw Error('dock_busy');
-  const run=this.perform({candidateId,signal,source});this.operation=run;try{return await run;}finally{if(this.operation===run)this.operation=null;}
+  const run=this.external.quickConnect?this.connectContent({candidateId,signal,source}):this.perform({candidateId,signal,source});this.operation=run;try{return await run;}finally{if(this.operation===run)this.operation=null;}
+ }
+ async connectContent({candidateId,signal,source}){
+  const epoch=++this.epoch,controller=new AbortController();this.contentAbort=controller;
+  const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
+  const check=()=>{if(controller.signal.aborted||epoch!==this.epoch||this.disposed)throw Error('dock_cancelled');};
+  this.requestId=randomUUID();this.phase='connecting';this.error=null;this.publish();this.notify({type:'external_browser_opened',source});
+  try{
+   check();await this.ready();check();const selected=await this.native.request('choose',{candidateId});check();this.browserName=selected.browserName;
+   const resolveProof=async nonces=>{
+    check();for(const nonce of nonces){try{const result=await this.native.request('resolveProof',{candidateId:selected.candidateId,nonce});check();if(result.candidateId===selected.candidateId)return nonce;}catch(error){check();if(!['dock_proof_pending','dock_window_mismatch'].includes(error.message))throw error;}}
+    throw Error('dock_window_mismatch');
+   };
+   await this.external.quickConnect({resolveProof,signal:controller.signal,replace:true,...(selected.executable?{open:url=>this.launch.open(url,{executable:selected.executable})}: {})});check();
+   this.phase='idle';this.automationReady=true;this.publish();return {connected:true,displayMode:'tab-content',browserPreserved:true};
+  }catch(error){if(epoch===this.epoch){this.phase=error.message==='dock_cancelled'?'idle':'error';this.error=error.message;this.publish();}throw error;}
+  finally{signal?.removeEventListener('abort',abort);if(this.contentAbort===controller)this.contentAbort=null;}
  }
  async perform({candidateId,signal,source}){
   const epoch=++this.epoch;this.requestId=randomUUID();let nonce=null,generation=null;
@@ -64,7 +80,7 @@ class BrowserWindowDock {
    if(epoch===this.epoch){this.phase=error.message==='dock_cancelled'?'idle':'error';this.error=error.message;this.publish();}throw error;
   }finally{signal?.removeEventListener('abort',abort);if(nonce&&generation===this.external.generation)await this.external.command('windowProofEnd',{nonce}).catch(()=>{});}
  }
- async cancel(){const uncertain=['docked','attaching'].includes(this.phase);this.epoch++;try{await this.native.request('cancel');}catch(error){if(error.message==='dock_restore_unconfirmed'||uncertain){this.phase='error';this.error=error.message;this.publish();return {cancelled:false,restoreUnconfirmed:true};}}this.phase='idle';this.error=null;this.publish();return {cancelled:true};}
+ async cancel(){const uncertain=['docked','attaching'].includes(this.phase);this.epoch++;this.contentAbort?.abort();try{await this.native.request('cancel');}catch(error){if(error.message==='dock_restore_unconfirmed'||uncertain){this.phase='error';this.error=error.message;this.publish();return {cancelled:false,restoreUnconfirmed:true};}}this.phase='idle';this.error=null;this.publish();return {cancelled:true};}
  async detach(){this.epoch++;this.phase='detaching';this.publish();try{await this.native.request('detach');this.phase='idle';this.publish();return {detached:true,browserPreserved:true};}catch(error){this.phase='error';this.error=error.message;this.publish();throw error;}}
  async dispose(){this.disposed=true;await this.cancel();await this.operation?.catch(()=>{});await this.native.close();}
 }

@@ -96,7 +96,7 @@ test('cancelled connection cannot activate or persist a late result',async t=>{
 });
 test('oversize retrieval is quarantined without starving later mail; duplicate UIDLs remain usable',async t=>{
  const f=await fixture(t);f.mailbox.push({uidl:'huge',raw:Buffer.alloc(10*1024*1024+100,65)},{uidl:'small',raw:simple('small')});
- const result=await pullPop3({...credentials,endpoint:f.endpoint,known:[]});assert.equal(result.failed[0].error,'mail_size_limit');assert.equal(result.failed[0].uidl,'huge');
+ const result=await pullPop3({...credentials,endpoint:f.endpoint,known:[],maxMailBytes:1024*1024});assert.equal(result.failed[0].error,'mail_size_limit');assert.equal(result.failed[0].uidl,'huge');
  const next=await pullPop3({...credentials,endpoint:f.endpoint,known:[],skip:['huge']});assert.equal(next.mails[0].uidl,'small');
  f.mailbox.splice(0,2,{uidl:'duplicate',raw:simple('one')},{uidl:'duplicate',raw:simple('one')});
  const duplicates=await pullPop3({...credentials,endpoint:f.endpoint,known:[]});assert.deepEqual(duplicates.uidls,['duplicate']);assert.equal(duplicates.mails.length,1);

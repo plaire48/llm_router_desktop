@@ -1,8 +1,8 @@
 import {simpleParser} from 'mailparser';
 import {htmlToText} from 'html-to-text';
 
-const MAX_MAIL=10*1024*1024;
-export const MAIL_CONTENT_VERSION=5;
+const MAX_MAIL=32*1024*1024;
+export const MAIL_CONTENT_VERSION=6;
 const meaningful=value=>typeof value==='string'&&value.replace(/[\s\u200b-\u200f\u2060\ufeff]/g,'').length>0;
 
 // MIME alternatives can contain an empty text/plain part. MailParser then

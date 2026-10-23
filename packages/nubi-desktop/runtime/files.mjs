@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
-import {realpath, lstat, readFile, readdir} from 'node:fs/promises';
+import {realpath, lstat, readFile, readdir,open} from 'node:fs/promises';
+import {constants} from 'node:fs';
 import path from 'node:path';
 import {runGit} from './git-runtime.mjs';
 import {isUtf8} from 'node:buffer';
@@ -30,21 +31,24 @@ export async function scopedFile(root, value, {newFile = false} = {}) {
   if (inside.startsWith('..' + path.sep) || inside === '..' || path.isAbsolute(inside) || !inside) fail('path_scope');
   return target;
 }
-export async function readSource(root, rel, {maxBytes = 1024 * 1024} = {}) {
+export async function readSource(root, rel, {maxBytes = 64 * 1024 * 1024} = {}) {
   const target = await scopedFile(root, rel), stat = await lstat(target);
   if (!stat.isFile() || stat.size > maxBytes) fail('file_too_large');
-  const bytes = await readFile(target);
+  const handle=await open(target,constants.O_RDONLY|(constants.O_NOFOLLOW||0));let bytes;
+  try{const before=await handle.stat();if(!before.isFile()||before.size>maxBytes)fail('file_too_large');bytes=await handle.readFile();const after=await handle.stat(),current=await lstat(target);if(before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||current.ino!==after.ino||current.dev!==after.dev||current.isSymbolicLink()||bytes.length!==after.size)fail('source_stale');}finally{await handle.close();}
   if (bytes.includes(0)) fail('binary_file');
   if (!isUtf8(bytes)) fail('file_encoding');
   const content = bytes.toString('utf8');
-  return {path: rel, content, hash: hash(bytes), lines: content.split('\n').length};
+  let lines=1;for(let at=bytes.indexOf(10);at>=0;at=bytes.indexOf(10,at+1))lines++;
+  return {path: rel, content, hash: hash(bytes), lines};
 }
-export async function listFiles(root, {within} = {}) {
+export async function listFiles(root, {within,maxFiles=1000000} = {}) {
+  if(!Number.isSafeInteger(maxFiles)||maxFiles<1||maxFiles>1000000)fail('file_list_limit');
   if(within)relativeFile(within);
   // Narrow at Git enumeration, before the cap, so a large repository remains searchable.
-  let raw;try {raw = await git(root, ['--literal-pathspecs', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', ...(within?['--',within]:[])]);}catch(error){if(gitOpenFailure(error)!=='not_git_repository'&&gitOpenFailure(error)!=='git_unavailable')throw error;const paths=[];async function walk(dir,base=''){for(const entry of await readdir(dir,{withFileTypes:true})){const rel=base+entry.name;if(privatePath(rel)||/(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(rel))continue;if(paths.length>=20001)return;if(entry.isDirectory())await walk(path.join(dir,entry.name),rel+'/');else if(entry.isFile())paths.push(rel);}}await walk(root);raw=paths.filter(p=>!within||p.startsWith(within+'/')||p===within).join('\0');}
+  let raw;try {raw = await git(root, ['--literal-pathspecs', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', ...(within?['--',within]:[])],{maxBuffer:128*1024*1024});}catch(error){if(gitOpenFailure(error)!=='not_git_repository'&&gitOpenFailure(error)!=='git_unavailable')throw error;const paths=[];async function walk(dir,base=''){for(const entry of await readdir(dir,{withFileTypes:true})){const rel=base+entry.name;if(privatePath(rel)||/(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(rel))continue;if(paths.length>maxFiles)return;if(entry.isDirectory())await walk(path.join(dir,entry.name),rel+'/');else if(entry.isFile())paths.push(rel);}}if(within){try{const start=await scopedFile(root,within),info=await lstat(start);if(info.isSymbolicLink())fail('path_scope');if(info.isDirectory())await walk(start,within+'/');else if(info.isFile())paths.push(within);}catch(error){if(error.code!=='ENOENT')throw error;}}else await walk(root);raw=paths.join('\0');}
   const all = [...new Set(raw.split('\0').filter(Boolean))].filter(p => !privatePath(p) && !/(^|\/)(?:dist|build|coverage|verification|\.next)(\/|$)/.test(p));
-  return {paths: all.slice(0, 20000), truncated: all.length > 20000};
+  return {paths: all.slice(0, maxFiles), truncated: all.length > maxFiles};
 }
 export async function snapshot(root) {
   const head = (await git(root, ['rev-parse', '--verify', 'HEAD'])).trim();

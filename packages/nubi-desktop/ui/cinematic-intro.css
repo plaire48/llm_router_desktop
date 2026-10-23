@@ -1,6 +1,6 @@
 /* Opening scene seen through the bird's eyes (2026-10-14): a continuous flight drawn on a canvas (ui/introFlight.js)
    over the distant view ahead, accelerating to warp; the light floods in and we come out over calm air, where the
-   title fades in over white. Timeline: flight to 4.7s, white settles at 4.85s, logo at 5s, bar at 5.2s. */
+   title fades in over white. Timeline: flight to 4.7s, white settles at 4.85s, logo at 5s. */
 .nubi-intro { position:fixed; inset:0; z-index:2147483000; overflow:hidden; background:var(--nubi-intro-stage); cursor:default; }
 .nubi-intro-cut { position:absolute; inset:0; overflow:hidden; opacity:0; }
 .nubi-intro-image { position:absolute; inset:-8%; background-size:cover; background-position:center; will-change:transform; }
@@ -36,20 +36,30 @@
 @keyframes nubi-intro-whiteout { from{opacity:0} to{opacity:1} }
 .nubi-intro-title { position:absolute; left:50%; top:50%; display:grid; justify-items:center; gap:var(--cx-space-7); transform:translate(-50%,-50%); opacity:0;
   animation:nubi-intro-title .8s cubic-bezier(.4,0,.2,1) 5s both; }
-.nubi-intro-brand { display:flex; align-items:center; gap:calc(var(--cx-space-1) * 3.5); color:var(--deck-blue-deep); font-size:calc(var(--cx-type-title) * 1.6); font-weight:var(--nubi-weight-emphasis); letter-spacing:var(--nubi-tracking-ui); }
-.nubi-intro-brand img.nubi-wordmark { height:48px; width:auto; }
-.nubi-intro-brand-bird { display:inline-flex; animation:nubi-intro-brand-bird 2.4s ease-in-out 6s infinite; }
-@keyframes nubi-intro-brand-bird { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-6px) rotate(-4deg)} }
+.nubi-intro-lockup { display:grid; justify-items:center; gap:var(--cx-space-3); }
+:root .nubi-intro .nubi-workspace-brand[data-variant="intro"] {
+  --nubi-brand-emblem-size:var(--nubi-intro-emblem-size);
+  --nubi-brand-wordmark-height:var(--nubi-intro-wordmark-height);
+  --nubi-brand-wordmark-width:var(--nubi-intro-wordmark-width);
+  gap:var(--cx-space-4);
+}
+:root .nubi-intro .nubi-brand-emblem { background:transparent; }
+.nubi-intro .nubi-brand-emblem .agent-mark { width:var(--nubi-intro-emblem-size); height:var(--nubi-intro-emblem-size); }
+:root .nubi-intro .nubi-workspace-brand .nubi-logo-product {
+  display:inline;
+  font-size:var(--nubi-intro-product-type); font-weight:var(--nubi-weight-emphasis);
+  color:var(--deck-blue-deep); letter-spacing:var(--nubi-tracking-ui);
+}
+.nubi-intro-version { font:var(--nubi-weight-emphasis) var(--nubi-intro-version-type)/var(--deck-line-body) var(--cx-font-family); color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
 @keyframes nubi-intro-title { from{opacity:0} to{opacity:1} }
-.nubi-intro[data-mode="full"] .nubi-intro-brand-bird { animation:none; }
-.nubi-intro-progress { opacity:0; animation:nubi-intro-show-bar .6s ease-out 5.2s both; position:relative; width:min(320px,60vw); height:6px; border-radius:999px; overflow:hidden; background:var(--deck-line); }
-.nubi-intro-progress > span { position:absolute; inset:0; border-radius:inherit; transform-origin:0 50%; transform:scaleX(0);
-  background:linear-gradient(90deg,var(--deck-teal),var(--deck-blue)); animation:nubi-intro-fill 2.4s cubic-bezier(.3,.6,.3,1) 5.6s both; }
-.nubi-intro-progress > span::after { content:""; position:absolute; inset:0; background:var(--nubi-intro-sheen); transform:translateX(-100%); animation:nubi-intro-shine 1.4s ease-in-out 5.8s infinite; }
-@keyframes nubi-intro-show-bar { to { opacity:1; } }
-@keyframes nubi-intro-fill { from{transform:scaleX(0)} to{transform:scaleX(.88)} }
-@keyframes nubi-intro-shine { to{transform:translateX(100%)} }
-.nubi-intro[data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
+:root:root .nubi-intro[data-mode="full"] .nubi-brand-emblem .agent-mark { animation:none; }
+.nubi-intro-loading { width:min(var(--nubi-intro-progress-width),calc(100vw - var(--cx-space-7) * 2)); display:grid; gap:var(--cx-space-3); }
+.nubi-intro-progress { position:relative; height:var(--nubi-intro-progress-height); border-radius:var(--cx-radius-pill,999px); overflow:hidden; background:var(--deck-line); }
+.nubi-intro-progress > span { position:absolute; inset:0; border-radius:inherit; transform-origin:0 50%; background:linear-gradient(90deg,var(--deck-teal),var(--deck-blue)); }
+.nubi-intro-progress[data-ready="false"] > span { width:36%; animation:nubi-intro-wait var(--nubi-ambient-progress) ease-in-out infinite; }
+@keyframes nubi-intro-wait { from{transform:translateX(-100%)} to{transform:translateX(280%)} }
+.nubi-intro-progress-status { display:flex; align-items:center; justify-content:space-between; gap:var(--cx-space-4); font:var(--deck-font-caption); color:var(--deck-sub); }
+.nubi-intro-progress-value { font-weight:var(--nubi-weight-emphasis); color:var(--deck-blue-deep); font-variant-numeric:tabular-nums; }
 
 /* The white title screen dissolves into the ready app without changing scale. */
 .nubi-intro[data-phase="leave"] { pointer-events:none; animation:nubi-intro-leave .62s cubic-bezier(.4,0,.2,1) both; }
@@ -61,15 +71,9 @@
 .nubi-intro[data-mode="brief"] :is(.nubi-intro-horizon,.nubi-intro-echo,.nubi-intro-tunnel,.nubi-intro-flash) { display:none; }
 .nubi-intro[data-mode="brief"] .nubi-intro-progress { background:var(--deck-line); }
 .nubi-intro[data-mode="brief"] .nubi-intro-title { animation:nubi-intro-title-brief .45s ease-out both; }
-.nubi-intro[data-mode="brief"] .nubi-intro-progress { animation:nubi-intro-show-bar .3s ease-out .2s forwards; }
-.nubi-intro[data-mode="brief"] .nubi-intro-progress > span { animation:nubi-intro-fill 1.6s cubic-bezier(.3,.6,.3,1) .25s both; }
-.nubi-intro[data-mode="brief"] .nubi-intro-progress > span::after { animation-delay:.4s; }
-.nubi-intro[data-mode="brief"] .nubi-intro-brand-bird { animation-delay:.6s; }
 @keyframes nubi-intro-title-brief { from{opacity:0;transform:translate(-50%,-47%)} to{opacity:1;transform:translate(-50%,-50%)} }
 /* Nothing of the app shows through before the scene: the waiting bird stays hidden while it plays. */
 [data-intro="true"] body .nubi-preparing { visibility:hidden; }
-/* Completing wins over either form's fill animation. */
-.nubi-intro[data-mode][data-phase="complete"] .nubi-intro-progress > span, .nubi-intro[data-mode][data-phase="leave"] .nubi-intro-progress > span { animation:none; transform:scaleX(1); transition:transform .38s cubic-bezier(.2,.8,.2,1); }
 /* Until the scene starts it holds its first frame (startup work first, then the flight in real time). */
 .nubi-intro:not([data-started]), .nubi-intro:not([data-started]) *, .nubi-intro:not([data-started]) *::before, .nubi-intro:not([data-started]) *::after { animation-play-state:paused !important; }
 

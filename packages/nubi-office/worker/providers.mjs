@@ -15,17 +15,18 @@ import {ACCOUNT_USAGE_VERSION, fetchAccountUsage, freshAccountUsage, normalizeAc
 export {safeError} from './connection-errors.mjs';
 
 // The answer size requested from an OpenAI-compatible server: the output limit the catalog or the connection reports,
-// otherwise the reserve the context budget keeps (OUTPUT_TOKENS), at most 32,768. A server that refuses that size
+// otherwise AI Pro's Qwen/GLM default or the context reserve (OUTPUT_TOKENS), at most 32,768. A server that refuses that size
 // keeps 4,096, the size used before, for the rest of the session.
-const OUTPUT_TOKEN_CEILING = 32768, FALLBACK_OUTPUT_TOKENS = 4096;
+const OUTPUT_TOKEN_CEILING = 32768, FALLBACK_OUTPUT_TOKENS = 4096, AIPRO_OUTPUT_TOKENS = 24576;
 const positiveCount = value => Number.isSafeInteger(value) && value > 0;
-export function outputTokens(session) {
+export function outputTokens(session, provider) {
   if (positiveCount(session?.outputTokens)) return session.outputTokens;
   const selected = session?.models?.find?.(item => item.id === session.model);
   const reported = positiveCount(selected?.maxOutputTokens) ? selected.maxOutputTokens : positiveCount(session?.credential?.maxOutputTokens) ? session.credential.maxOutputTokens : null;
   const capacity = selected?.contextLength;
   const windowLimit = positiveCount(capacity) ? Math.max(1024, Math.floor(capacity * .15)) : OUTPUT_TOKEN_CEILING;
-  return Math.min(reported ?? OUTPUT_TOKENS, OUTPUT_TOKEN_CEILING, windowLimit);
+  const aiproTemplate = provider === 'aipro' && aiproReasoning(session?.model);
+  return Math.min(reported ?? (aiproTemplate ? AIPRO_OUTPUT_TOKENS : OUTPUT_TOKENS), aiproTemplate ? AIPRO_OUTPUT_TOKENS : OUTPUT_TOKEN_CEILING, windowLimit);
 }
 const refusesOutputSize = text => /max[_ ]?(?:completion_|output_|new_)?tokens|maximum context|context length|output tokens/i.test(text);
 // A server that does not take the usage option names it (OpenAI: param stream_options; vLLM: detail[].loc) or quotes it.
@@ -47,9 +48,9 @@ const catalog = payload => (payload?.modelList || []).map(m => ({
 // Prefer the enterprise catalog's actual Qwen 3.8 27B ID. Never fabricate a
 // public model ID/context size, filter alternatives, or replace a user choice.
 // GLM first on AI Pro (user decision 2026-10-14), then the catalog's Qwen 3.8 27B, then the first listed.
-// AI Pro reasoning levels per model family (사용자 지시 2026-10-21): GLM 5.2 takes high (default) or max, Qwen3.8 27B
-// takes low, medium (default) or high. Other AI Pro models keep the earlier list, where xhigh means the server default.
-export const AIPRO_REASONING=Object.freeze([{match:/glm[-_ ]?5\.2/i,options:['high','max'],default:'high'},{match:/qwen[-_ ]?3\.8[-_ ]?27b/i,options:['low','medium','high'],default:'medium'}]);
+// AI Pro uses template effort and GLM separated thinking. User-confirmed choices (2026-10-23):
+// GLM high (default) or max; Qwen low, medium (default) or high. Other models retain their earlier contract.
+export const AIPRO_REASONING=Object.freeze([{match:/glm[-_ ]?5\.2/i,options:['high','max'],default:'high',thinking:true},{match:/qwen[-_ ]?3\.8[-_ ]?27b/i,options:['low','medium','high'],default:'medium'}]);
 export const aiproReasoning=modelId=>AIPRO_REASONING.find(family=>family.match.test(String(modelId??'')))??null;
 export function defaultOfficeModel(models) {
   const glm=value=>/(?:^|[^a-z])glm(?:[^a-z]|$)/i.test(value||'');
@@ -137,7 +138,7 @@ export function createProviders(deps = {}) {
     const maxToolCalls=options.maxToolCalls??8;
     if(![8,16].includes(maxToolCalls))throw new Error('response_invalid');
     if(options.maxTokens!==undefined&&!(options.provider==='chatgpt'&&options.maxTokens===null)&&(!positiveCount(options.maxTokens)||options.maxTokens>OUTPUT_TOKEN_CEILING))throw new Error('response_invalid');
-    return {purpose:'wiki',provider:options.provider,model:model.id,connectionId:options.connectionId,effort,maxToolCalls,maxTokens:options.provider==='chatgpt'?null:Math.min(options.maxTokens??outputTokens(selected),outputTokens(selected))};
+    return {purpose:'wiki',provider:options.provider,model:model.id,connectionId:options.connectionId,effort,maxToolCalls,maxTokens:options.provider==='chatgpt'?null:Math.min(options.maxTokens??outputTokens(selected,options.provider),outputTokens(selected,options.provider))};
   };
   const usageStatus = () => {
     const chatgpt = sessions.get('chatgpt');
@@ -294,7 +295,9 @@ export function createProviders(deps = {}) {
       // Fabrix takes no response_format; the ChatGPT adapter makes its own request.
       const format = options.responseFormat && provider !== 'fabrix' ? options.responseFormat : undefined;
       const send = maxTokens => {
-        const reasoning = provider === 'aipro' && session.reasoningEffort && session.reasoningEffort !== 'xhigh' ? {reasoning_effort: session.reasoningEffort} : {};
+        const family = provider === 'aipro' ? aiproReasoning(session.model) : null;
+        const reasoning = family ? {chat_template_kwargs: {...(family.thinking ? {enable_thinking: true, clear_thinking: true} : {}), reasoning_effort: session.reasoningEffort}, ...(family.thinking ? {separate_reasoning: true} : {})}
+          : provider === 'aipro' && session.reasoningEffort && session.reasoningEffort !== 'xhigh' ? {reasoning_effort: session.reasoningEffort} : {};
         const body = {model: session.model, messages, stream: true, max_tokens: maxTokens, ...reasoning, ...(session.usageRefused ? {} : {stream_options: {include_usage: true}}), ...(format && !session.formatRefused ? {response_format: format} : {}), ...(tools.length ? {tools, tool_choice: toolChoice} : {})};
         return provider === 'fabrix'
           ? api.fabrixCompletion(body, {...session.credential, modelId: session.model}, {signal, fetchImpl: inferenceFetch,...(wiki?{purpose:'wiki',maxToolCalls:wiki.maxToolCalls}:{})})
@@ -304,7 +307,7 @@ export function createProviders(deps = {}) {
       // Summaries use a smaller per-call budget. Never change the interactive
       // session's output setting when the host limits this one request.
       const callLimit=Number.isSafeInteger(options.maxTokens)&&options.maxTokens>0?options.maxTokens:Infinity;
-      let maxTokens = Math.min(outputTokens(session),callLimit), response = await send(maxTokens);
+      let maxTokens = Math.min(outputTokens(session,provider),callLimit), response = await send(maxTokens);
       // A refused option is dropped for the rest of the session and the request is sent again, at most three times: the
       // usage option, the output format, then an answer size the server does not accept.
       for (let attempt = 0; attempt < 3 && [400, 422].includes(response.status); attempt++) {

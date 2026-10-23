@@ -3,6 +3,7 @@ import '@e2e/cx-design-system/styles.css';
 // database or native-write success is inferred from this visual fixture.
 import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import {BrandIconDefinitions} from '../ui/BrandIconDefinitions.jsx';
 import {createPortal} from 'react-dom';
 import {DetailPanel} from '@e2e/cx-design-system';
 import {NubiLogo} from '../../../extensions/aipro-chat/src/AgentMark.jsx';
@@ -40,6 +41,10 @@ import '../design/workspace-typography.css';
 import '../design/workspace-density.css';
 import '../design/workspace-dialogs.css';
 import '../design/workspace-icons.css';
+import '../electron-app/modal-motion.css';
+import '../electron-app/workspace-tabs.css';
+import '../design/workspace-pastel.css';
+import '../design/workspace-alignment.css';
 const params=new URLSearchParams(location.search),screen=params.get('screen')||'workbench';
 const modelRows=Array.from({length:40},(_,i)=>({id:`model-${i}`,name:`model-${i}`,label:`업무 문서를 분석하는 모델 ${i+1}`,displayName:`업무 문서를 분석하는 모델 ${i+1}`,contextLength:32000}));
 const provider={provider:'aipro',connected:true,model:'model-0',models:modelRows,providers:[{id:'aipro',connected:true},{id:'chatgpt',connected:false},{id:'fabrix',connected:false}]};
@@ -99,4 +104,4 @@ function Samples(){
  return null;
 }
 if(screen==='workbench')await import('./shared-ui-fixture.jsx');
-else createRoot(document.getElementById('root')).render(<><header className="nubi-bar"><NubiLogo size={28} product="Workspace" versionLabel="Beta"/></header><main className="nubi-workbench"><div className="nubi-main"><Samples/></div></main><WorkspaceToast/></>);
+else createRoot(document.getElementById('root')).render(<><BrandIconDefinitions/><header className="nubi-bar"><NubiLogo size={28} product="Workspace" versionLabel="Beta"/></header><main className="nubi-workbench"><div className="nubi-main"><Samples/></div></main><WorkspaceToast/></>);

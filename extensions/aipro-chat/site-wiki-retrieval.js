@@ -4,7 +4,7 @@ import {gfmFromMarkdown} from 'mdast-util-gfm';
 import {gfm} from 'micromark-extension-gfm';
 import {toString} from 'mdast-util-to-string';
 import {visitParents} from 'unist-util-visit-parents';
-import {rankEvidence, searchTerms} from './evidence-search.js';
+import {createEvidenceSearch, searchTerms,searchIdentifier,identifierTerms} from './evidence-search.js';
 
 const WINDOW = 900, OVERLAP = 180, MAX_CHUNKS = 64, CONTEXT = 600;
 const range = (start, end) => ({unit: 'character', start, end});
@@ -111,20 +111,24 @@ export function wikiChunks(markdown) {
 // Only horizontal spacing inside Hangul is ignored. Do not join paragraphs,
 // punctuation, URLs or arbitrary syllable order; this is not semantic search.
 const compactHangul = value => String(value || '').normalize('NFKC').toLowerCase().replace(/(?<=[가-힣])[ \t]+(?=[가-힣])/gu, '');
-export function rankWikiEvidence(documents, query) {
+export function createWikiEvidenceSearch(documents) {
+  // The authorized snapshot owns these derived fields and its BM25 index.
+  // Follow-up queries must not rebuild either from identical Markdown.
+  const searchable = documents.map(document => ({...document, text: document.searchText ?? document.text}));
+  const lexical = createEvidenceSearch(searchable);
+  const compact = searchable.map(document => ({id:document.id,fields:Object.fromEntries(['name', 'context', 'text'].map(key => [key, compactHangul(document[key])]))}));
+  const identifiers=new Map(searchable.map(document=>[document.id,identifierTerms([document.name,document.context,document.text].join('\n'))]));
+  return query => {
   const terms = searchTerms(query).slice(0, 24);
   if (!documents.length || !terms.length) return [];
-  // Search derived Markdown text while retaining untouched source excerpts.
-  const searchable = documents.map(document => ({...document, text: document.searchText ?? document.text}));
-  const exact = rankEvidence(searchable, query);
+  const identifier=searchIdentifier(query),exact=lexical(query).filter(hit=>!identifier||identifiers.get(hit.id)?.has(identifier));
   const korean = terms.filter(term => /^[가-힣]{2,}$/.test(term));
-  const spacing = korean.length ? searchable.flatMap(document => {
-    const fields = Object.fromEntries(['name', 'context', 'text'].map(key => [key, compactHangul(document[key])]));
+  const spacing = korean.length ? compact.flatMap(({id,fields}) => {
     const matched = korean.filter(term => Object.values(fields).some(text => text.includes(term)));
     if (!matched.length) return [];
     const matchedFields = Object.keys(fields).filter(key => matched.some(term => fields[key].includes(term)));
     const score = matched.reduce((sum, term) => sum + (fields.text.includes(term) ? 4 : 0) + (fields.context.includes(term) ? 2 : 0) + (fields.name.includes(term) ? 1 : 0), 0);
-    return [{id: document.id, score, match: {terms: matched, fields: matchedFields, coverage: matched.length / terms.length}}];
+    return [{id, score, match: {terms: matched, fields: matchedFields, coverage: matched.length / terms.length}}];
   }).sort((a, b) => b.match.coverage - a.match.coverage || b.score - a.score) : [];
   const merged = new Map();
   // Reciprocal rank fusion avoids comparing two unrelated score scales.
@@ -140,4 +144,9 @@ export function rankWikiEvidence(documents, query) {
     });
   }
   return [...merged.values()].sort((a, b) => b.match.coverage - a.match.coverage || b.score - a.score);
+  };
+}
+export function rankWikiEvidence(documents, query) {
+  if (!documents.length || !searchTerms(query).length) return [];
+  return createWikiEvidenceSearch(documents)(query);
 }

@@ -14,7 +14,7 @@ function readStored(provider) {
 
 // value and onApply make it a controlled chip for a saved setting (the wiki generation model), with leadingOptions such as
 // 자동 before the provider levels and resetTo for the reset button; without them it applies to the conversation as before.
-export function ReasoningPicker({api, provider, disabled, value, onApply, leadingOptions = [], resetTo}) {
+export function ReasoningPicker({api, provider, disabled, value, onApply, leadingOptions = [], resetTo, onProviderChange}) {
   const claude=provider?.provider==='claude';
   const optional = provider?.provider === 'chatgpt' && provider?.connected ? ['none','minimal'].filter(id=>provider.reasoningOptions?.includes(id)).map(id=>({id,label:reasoningLabel('chatgpt',id)})) : [];
   const options = [...leadingOptions, ...(claude
@@ -77,6 +77,7 @@ export function ReasoningPicker({api, provider, disabled, value, onApply, leadin
       if (!mounted.current || currentSelection.current !== selection) return;
       confirmed.current = item.id;
       if (providerId !== 'claude') try { localStorage.setItem(`nubi-reasoning:${providerId}`, item.id); } catch {}
+      onProviderChange?.(result);
     } catch (error) {
       if (!mounted.current || currentSelection.current !== selection) return;
       setEffort(previous);

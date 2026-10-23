@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function prepareAppIcon(){
-  const source=path.resolve(root,'../../extensions/aipro-chat/design/brand/bird-master.png');
+  const source=path.resolve(root,'design/brand/calm-liquid/mascot-master.png');
   const bytes=await readFile(source);
   if(!bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))||bytes.readUInt32BE(16)<256||bytes.readUInt32BE(20)<256)throw Error('app_icon_resolution');
   const directory=path.join(root,'electron-app/resources');

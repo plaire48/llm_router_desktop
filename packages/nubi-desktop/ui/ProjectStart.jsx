@@ -1,4 +1,4 @@
-import React, {useId, useRef, useState} from 'react';
+import React, {useEffect, useId, useRef, useState} from 'react';
 import {CxButton, CxInput, CxNotice, Icon} from '@e2e/cx-design-system';
 import {WorkspaceAction as ActionButton} from './WorkspaceAction.jsx';
 import {gitCloneError} from './git-clone-error.mjs';
@@ -6,12 +6,14 @@ import './git-clone-error.css';
 import {remoteAddress} from './remote-address.mjs';
 import {BranchMark, FolderMark} from './marks.jsx';
 import {notifyWorkspaceToast} from './WorkspaceToast.jsx';
+import {transitioned} from './viewTransition.js';
 
 // Select the model first. Git clones into a new child of the chosen parent.
 export function ProjectStart({projects=[],onSelectProject,busy, blocked=false, modelControl, onOpenFolder, onClone, onStartConversation, onCancel}) {
   const [remote, setRemote] = useState(''), [gitOpen, setGitOpen] = useState(false);
   const input = useRef(null), gitForm = useId();
   const [cloneError,setCloneError]=useState(null);
+  useEffect(()=>{if(gitOpen)input.current?.focus({preventScroll:true});},[gitOpen]);
   async function clone(event) {
     event.preventDefault();
     const url = remote.trim();
@@ -31,7 +33,7 @@ export function ProjectStart({projects=[],onSelectProject,busy, blocked=false, m
         <span className="nubi-start-text">최상위 폴더 선택</span>
         <span className="nubi-start-go" aria-hidden="true"><Icon name="arrowRight" size={18}/></span>
       </button>
-      {onClone&&<button type="button" className="nubi-start-card" disabled={busy||blocked} aria-expanded={gitOpen} aria-controls={gitForm} onClick={()=>{setGitOpen(value=>!value);requestAnimationFrame(()=>input.current?.focus());}}>
+      {onClone&&<button type="button" className="nubi-start-card" disabled={busy||blocked} aria-expanded={gitOpen} aria-controls={gitForm} onClick={()=>transitioned(()=>setGitOpen(value=>!value))}>
         <span className="nubi-start-tile" data-tone="blue"><BranchMark/></span>
         <strong>Git URL</strong>
         <span className="nubi-start-text">새 폴더로 복제</span>
@@ -53,7 +55,7 @@ export function ProjectStart({projects=[],onSelectProject,busy, blocked=false, m
     </form>}
     <p className="nubi-start-privacy"><Icon name="infoCircle" size={14}/>프로젝트 내용이 선택한 모델에 전달돼요.</p>
     <div className="nubi-start-secondary">
-      {onCancel&&<ActionButton action="back" label="대화로 돌아가기" disabled={busy} onClick={onCancel}/>}
+      {onCancel&&<ActionButton action="back" label="돌아가기" disabled={busy} onClick={onCancel}/>}
       {onStartConversation&&<CxButton disabled={busy||blocked} onClick={onStartConversation}><Icon name="message" size={16}/>프로젝트 없이 대화</CxButton>}
     </div>
   </section>;

@@ -79,7 +79,7 @@ export async function discoverDesktopMail({platform=process.platform,configFile=
 // receipts and the Personal Wiki queue. This class only selects and polls its
 // read-only Desktop Message source. No portal, browser or network fallback.
 export class DesktopMailSource{
- constructor(mail,{discover=discoverDesktopMail,intervalMs=60000,discoveryTimeoutMs=15000}={}){
+ constructor(mail,{discover=discoverDesktopMail,intervalMs=300000,discoveryTimeoutMs=15000}={}){
   this.mail=mail;this.discover=discover;this.intervalMs=intervalMs;this.discoveryTimeoutMs=discoveryTimeoutMs;this.saved=mail.store.get(SETTING)||{};
   this.profiles=[];this.supported=process.platform==='win32';this.epoch=0;
  }

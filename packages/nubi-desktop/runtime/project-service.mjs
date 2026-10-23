@@ -1,4 +1,3 @@
-import {installWorkflowService} from './workflow-service.mjs';import {guardWorkflowMethods} from './workflow-feature.mjs';
 import {summarizeTaskMetrics} from './run-metrics.mjs';
 import {conversationMarkdown,conversationFilename} from './conversation-export.mjs';
 import {setAfterEditCheck,queueAfterEditCheck} from './after-edit-check.mjs';
@@ -12,7 +11,6 @@ import {listWikiPages} from './wiki-snapshot.mjs';
 import {installDesktopFeatures} from './desktop-features.mjs';
 import {appliedFileSummary} from './applied-file-summary.mjs';
 import {installProjectBrowser} from './project-browser.mjs';
-import {installBrowserTeach} from './browser-teach-host.mjs';
 import {installDocumentForms} from './document-forms-service.mjs';
 import {agentInput} from './agent-input.mjs';
 import {wikiChatBlocked,wikiChatJob,requireWikiChatReady} from './wiki-chat-admission.mjs';
@@ -41,7 +39,7 @@ import {checkCodeQuality,requireCodeQuality,codeOutline,checkTypes} from './code
 import {inspectCode} from './code-intelligence.mjs';
 import {inspectDevServer} from './development-server.mjs';
 import {disposeDevelopmentBrowser} from './browser-agent-host.mjs';
-import {queryWiki} from './wiki-evidence.mjs';
+import {queryWiki,disposeWikiQuery} from './wiki-evidence.mjs';
 import {connectKnowledge} from './knowledge.mjs';
 import {Store} from './store.mjs';
 import {summarizeDiff} from './source-edits.mjs';
@@ -79,7 +77,7 @@ export class ProjectService {
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
     if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}await this.resumeWikiUpdates();return this.overview();}
-    if (this.workflowActive || this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
+    if (this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId));
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
     this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
@@ -89,7 +87,7 @@ export class ProjectService {
     for(const action of this.store.list('computer-action:').filter(v=>v.state==='starting'))this.store.set('computer-action:'+action.id,{...action,state:'attention',execution:'unknown',error:'computer_outcome_unknown'});
     for(const action of this.store.list('computer-action:').filter(v=>v.review?.state==='running'))this.store.set('computer-action:'+action.id,{...action,review:{...action.review,state:'interrupted'}});
     this.disposed=false;this.recoveryQueue=new Set();this.idleProcessQueue=new Set();
-    this.processes = new Processes(this.store,{onFinished:record=>{const task=this.store.get('task:'+record.taskId);if(task?.kind==='workflow'){void this.workflowRunner?.notify(task.workflowRunId).catch(()=>{});}else this.processFinished?.(record);},onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
+    this.processes = new Processes(this.store,{onFinished:record=>this.processFinished?.(record),onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
     // A restarted host cannot establish the outcome of an earlier process.
     for (const p of this.store.list('process:').filter(p => ['running','stopping','checking'].includes(p.state))) this.store.set('process:' + p.id, {...p, state: 'interrupted',execution:'unknown',recoveryState:'attention'});
     for(const task of this.store.list('task:').filter(t=>t.question?.processIdle)){this.resolveProcessIdle(this.store.get('process:'+task.question.processIdle.id),'restart');}
@@ -201,7 +199,7 @@ export class ProjectService {
     return root;
   }
   async read({path: rel, taskId, start = 1, end, full = false, room, measure = text => text.length}) {
-    this.ready(); const root = await this.target(taskId), file = {...await readSource(root, rel),projectRules:await projectRules(root,rel)};
+    this.ready(); const root = await this.target(taskId), file = {...await readSource(root, rel,{maxBytes:1024*1024}),projectRules:await projectRules(root,rel)};
     if (full) return {...file, uri: pathToFileURL(path.join(root, rel)).href};
     const requestedEnd = end;
     end ??= start + READ_LINES - 1;
@@ -222,7 +220,7 @@ export class ProjectService {
   }
   async inspectPath({taskId,path}) {return inspectNewPath(await this.target(taskId),path);}
   async proposeNewFile(args) {return proposeNewFile.call(this,args);}
-  async applyNewFile(args) {const pending=this.store.get('proposal:'+args?.proposalId);if(pending?.kind==='create'&&pending.state==='proposed')await checkpointBefore(this,pending.taskId,'before_new_file',{proposalId:pending.id});const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied'){await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));}return result;}
+  async applyNewFile(args) {const pending=this.store.get('proposal:'+args?.proposalId);if(pending?.kind==='create'&&pending.state==='proposed')await checkpointBefore(this,pending.taskId,'before_new_file',{proposalId:pending.id});const result=await applyNewFile.call(this,args);const proposal=this.store.get('proposal:'+args.proposalId);if(proposal?.state==='applied'){await queueAfterEditCheck(this,proposal.taskId);}return result;}
   async search(args) { return searchSource.call(this,args); }
   async codeOutline(args) { this.ready();return codeOutline.call(this,args); }
   async inspectCode(args) { this.ready();return inspectCode.call(this,args); }
@@ -278,14 +276,8 @@ export class ProjectService {
   async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[],origin}, routine) {
     this.ready(); requireWikiChatReady(this); request = limited(request);
     if(origin!==undefined){
-      if(origin?.kind==='workflow_step'){
-        const run=this.store.get('workflow-run:'+origin.runId),step=run?.workflow.steps.find(s=>s.id===origin.stepId);
-        if(!run||run.cursor!==origin.stepId||step?.kind!=='agent'||run.steps[origin.stepId]?.taskId||['complete','partial','cancelled','failed'].includes(run.status))fail('task_origin_invalid');
-        origin={kind:'workflow_step',runId:origin.runId,stepId:origin.stepId};
-      }else{
-        if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
-        origin={kind:'side_task',taskId:origin.taskId,sideTaskId:origin.sideTaskId,runId:origin.runId};
-      }
+      if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
+      origin={kind:'side_task',taskId:origin.taskId,sideTaskId:origin.sideTaskId,runId:origin.runId};
     }
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
@@ -295,16 +287,12 @@ export class ProjectService {
     this.store.set('task:' + key, task); this.store.event('task_created', {id: key}); return task;
   }
   listRoutines(args){if(!this.routines)fail('routine_not_ready');return this.routines.list(args);}
-  listRoutineWorkflows(args){if(!this.routines)fail('routine_not_ready');return this.routines.catalog(args);}
-  resolveRoutinePromotion(args){if(!this.routines)fail('routine_not_ready');return this.routines.resolvePromotion(args);}
   saveRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.save(args);}
   deleteRoutine(args){if(!this.routines)fail('routine_not_ready');return this.routines.delete(args);}
   runRoutineNow(args){if(!this.routines)fail('routine_not_ready');return this.routines.runNow(args);}
-  routineNotice(){return this.routines?this.routines.notice():{show:false};}
-  acknowledgeRoutineNotice(){return this.routines?this.routines.acknowledgeNotice():{show:false};}
   taskUsage({taskId}) {this.task(taskId);return summarizeTaskMetrics(this.store,taskId);}
   exportConversation({taskId}) {
-    const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task,{workflowRun:task.kind==='workflow'?this.store.get('workflow-run:'+task.workflowRunId):undefined})};
+    const task=this.task(taskId);return {filename:conversationFilename(task),markdown:conversationMarkdown(task)};
   }
   async exportRequirement({taskId}) {
     const task = this.task(taskId), slug = 'nubi-' + task.id.slice(0, 8), base = 'openspec/changes/' + slug;
@@ -357,14 +345,14 @@ export class ProjectService {
   }
   async propose({taskId, path: rel, expectedHash, content, reason = '',signal,rulesFingerprint}) {
     this.ready(); if (typeof content !== 'string' || Buffer.byteLength(content, 'utf8') > 1024 * 1024) fail('content_limit');
-    const root = await this.target(taskId), current = await readSource(root, rel);
+    const root = await this.target(taskId), current = await readSource(root, rel,{maxBytes:1024*1024});
     const rules=await projectRules(root,rel);await validateProjectRules(root,rel,rulesFingerprint);
     if (current.hash !== expectedHash) fail('source_stale');
     const quality=await checkCodeQuality(rel,current.content,content,{signal});requireCodeQuality(quality);
     const typeCheck=await checkTypes(root,rel,current.content,content,{signal});
     if(signal?.aborted)fail('cancelled');
     await validateProjectRules(root,rel,rules.fingerprint);
-    if((await readSource(root,rel)).hash!==expectedHash)fail('source_stale');
+    if((await readSource(root,rel,{maxBytes:1024*1024})).hash!==expectedHash)fail('source_stale');
     const previous=this.store.list('proposal:').find(p=>p.taskId===taskId&&p.path===rel&&p.expectedHash===expectedHash&&p.rulesFingerprint===rules.fingerprint&&p.afterHash===hash(content)&&p.state==='proposed');if(previous){previous.sourceChanged=false;previous.mergeConflicted=false;previous.quality=quality;previous.typeCheck=typeCheck;this.store.set('proposal:'+previous.id,previous);return {...previous,reused:true};}
     const key = id(), folder = path.join(this.store.directory, 'proposals', key); await mkdir(folder, {recursive: true});
     const before = path.join(folder, 'before' + path.extname(rel)), after = path.join(folder, 'after' + path.extname(rel));
@@ -397,7 +385,7 @@ export class ProjectService {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal) fail('proposal_missing');
     if(!['proposed','applied'].includes(proposal.state))fail('proposal_missing');
     if(proposal.kind==='create')return prepareNewFile.call(this,proposal);
-    const root = await this.target(proposal.taskId), current = await readSource(root, proposal.path);
+    const root = await this.target(proposal.taskId), current = await readSource(root, proposal.path,{maxBytes:1024*1024});
     if(proposal.state!=='applied')await validateProjectRules(root,proposal.path,proposal.rulesFingerprint);
     if (proposal.state === 'applied' && current.hash !== proposal.afterHash) fail('applied_changed');
     if(current.hash===proposal.afterHash)return {...await this.confirmProposal({proposalId}),alreadyApplied:true,uri:pathToFileURL(path.join(root,proposal.path)).href};
@@ -408,13 +396,13 @@ export class ProjectService {
   async confirmProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal) fail('proposal_missing');
     if(proposal.kind==='create'&&proposal.state!=='applied')fail('write_unconfirmed');
-    const actual = await readSource(await this.target(proposal.taskId), proposal.path);
+    const actual = await readSource(await this.target(proposal.taskId), proposal.path,{maxBytes:1024*1024});
     if (actual.hash !== proposal.afterHash) fail('write_unconfirmed');
-    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); await queueAfterEditCheck(this,proposal.taskId);const origin=this.task(proposal.taskId).origin;if(origin?.kind==='workflow_step')queueMicrotask(()=>this.workflowRunner?.notify(origin.runId).catch(()=>{}));return proposal;
+    proposal.appliedAt ||= new Date().toISOString(); proposal.state = 'applied'; this.store.set('proposal:' + proposalId, proposal); this.store.event('proposal_applied', {proposalId, hash: actual.hash}); await queueAfterEditCheck(this,proposal.taskId);return proposal;
   }
   async mergeProposal({proposalId}) {
     const proposal = this.store.get('proposal:' + proposalId); if (!proposal || proposal.kind==='create' || proposal.state !== 'proposed') fail('proposal_missing');
-    const current = await readSource(await this.target(proposal.taskId), proposal.path);
+    const current = await readSource(await this.target(proposal.taskId), proposal.path,{maxBytes:1024*1024});
     const ours = path.join(path.dirname(proposal.before), 'current' + path.extname(proposal.path)); await writeFile(ours, current.content);
     let merged, conflicted = false;
     try { merged = (await exec('git', ['merge-file', '-p', '-L', '현재 문서', '-L', '생성 기준', '-L', '누비 제안', ours, proposal.before, proposal.after], {maxBuffer: 2e6})).stdout; }
@@ -443,22 +431,18 @@ export class ProjectService {
   async invoke(method, args = {}) {
     if(this.appUpdateLocked)fail('update_installing');
     if(method==='prepareAppUpdate')return this.prepareAppUpdate();
-    const allowed = new Set(['importBlueprint','importE2eTask','listWorkflows','validateWorkflow','dryRunWorkflow','startWorkflow','workflowRun','cancelWorkflow','resumeWorkflow','editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
-    for(const name of ['checkpoints','revertCheckpoint','undoRevert'])allowed.add(name);
-    allowed.add('routineNotice');allowed.add('acknowledgeRoutineNotice');allowed.add('wikiCoverage');allowed.add('browserTeach');allowed.add('documentForm');allowed.add('registerWorkflowRoutine');allowed.add('listRoutineWorkflows');allowed.add('resolveRoutinePromotion');allowed.add('wikiGeneration');allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
+    const allowed = new Set(['checkpoints','revertCheckpoint','undoRevert','editorLink','liveEditor','reviseNativeOfficeDraft','nativeOfficeStatus','importDocumentSelection','chatDocument','capture','captureWorkspace','previewFile','browseDirectory','terminalCommand','projectPath','proposalText','artifactText','initializeWiki','wikiInitialization','saveSource','commitHistory','mailDocument','mail','wikiUpdate','analysisHistory','memories','listSkills','removeSkill','skillMarketplace','connectSkillMarketplace','disconnectSkillMarketplace','importSkill','importVoc','queryVoc','readVoc','computer','applyNewFile','decideSetupAction','collaboration','codeOutline','recoverySnapshot','resumeAgent','diagnoseProcess','applyCommandRepair','knowledgeMap','knowledgeQuery','initializeKnowledgeCatalog','exportKnowledgeMap','databaseConnection','open','knowledgeStatus','recordKnowledge','comparison','connectKnowledge','overview','state','setShellPreference','read','search','wikiQuery','createTask','exportConversation','taskUsage','listRoutines','saveRoutine','deleteRoutine','runRoutineNow','exportRequirement','createWorktree','propose','prepareProposal','proposalArtifacts','confirmProposal','mergeProposal','diff','run','exportReport','compare','provider','fabrix','agentInput','startAgent','answerAgent','saveQuestionDraft','stopAgent','deleteTask','approvalPolicy','setApprovalMode','allowCommand','removeAllowedCommand','autoApprovals']);
+    allowed.add('wikiCoverage');allowed.add('documentForm');allowed.add('wikiGeneration');allowed.add('wikiLifecycle');allowed.add('inspectCode');allowed.add('inspectDevServer');allowed.add('mcp');allowed.add('removeAllowedMcpTool');allowed.add('rejectCommandRepair');allowed.add('cancelProposal');allowed.add('gitAvailability');allowed.add('conversationHistory');allowed.add('usage');for(const method of ['setAfterEditCheck','retryAfterEditCheck','startSideTask','dismissSideTask','markTaskRead','archiveTask','setAutoArchiveDays','setPinnedTasks'])allowed.add(method);allowed.add('editorSource');allowed.add('regenerateAnswer');allowed.add('skillTrash');
     if (method === 'poll') { this.ready(); return this.processes.poll(args.id); }
     if (method === 'stop') { this.ready(); return this.processes.stop(args.id); }
     if (method === 'events') { this.ready(); return this.store.events(args.after); }
     if ((!allowed.has(method)&&!['workspaceChanges','appliedFileSummary'].includes(method)) || typeof this[method] !== 'function') fail('method_invalid');
     return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot,sourceKind:args.sourceKind}):this[method](args);
   }
-  dispose() { this.workflowRunner?.dispose();this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
+  dispose() { disposeWikiQuery(this);this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
 }
 
 installDesktopFeatures(ProjectService);
 installProjectBrowser(ProjectService);
-installBrowserTeach(ProjectService);
 installDocumentForms(ProjectService);
 
-installWorkflowService(ProjectService);
-guardWorkflowMethods(ProjectService);

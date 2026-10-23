@@ -24,7 +24,7 @@ const priority=animation=>/nubi-modal-|nubi-view-/.test(animation.animationName|
 // (spinners, live progress, wiki scan, working-bird moods) still run, because they say work is happening; the brand
 // bird's float is the one decoration kept.
 export const IDLE_AMBIENT_HELD=Object.freeze(new Set(['nubi-pastel-flow','deck-twinkle','nubi-water-aura','nubi-water-drift','nubi-ambient-blue','nubi-ambient-teal','nubi-ambient-violet','nubi-start-drift-a','nubi-start-drift-b','nubi-start-drift-c','nubi-emblem-drift','bird-idle-base','bird-idle-smile','bird-idle-wing','bird-blink','nubi-bird-flight','nubi-bird-curious','nubi-bird-swim']));
-export function reconcileMotion(animations,{registry,paused,reduced=false,owned,limit=3,metadataCache,held=null}){
+export function reconcileMotion(animations,{registry,paused,projectSwitching=false,reduced=false,owned,limit=3,metadataCache,held=null}){
  const targets=new Set();let ambient=0,unknown=0;
  for(const animation of [...animations].sort((a,b)=>priority(a)-priority(b))){
   if(!animation.effect||animation.playState==='idle'||animation.playState==='finished')continue;
@@ -32,7 +32,7 @@ export function reconcileMotion(animations,{registry,paused,reduced=false,owned,
   if(entry){
    ambient++;
    if(!entry.durations.includes(timing.duration)||props.some(property=>!entry.properties.includes(property))){animation.cancel();unknown++;continue;}
-   const hold=paused||!!held?.has(name);
+   const hold=paused||!!held?.has(name)||projectSwitching&&!animation.effect.target?.closest?.('.nubi-project-switch-cover');
    if(hold&&animation.playState==='running'){owned.add(animation);animation.pause();}
    else if(!hold&&owned.delete(animation)&&animation.playState==='paused')animation.play();
    continue;
@@ -72,7 +72,7 @@ export function installMotionPolicy(doc=document){
  const paused=()=>doc.hidden||root.hasAttribute('data-nubi-window-hidden')||reduced.matches||root.hasAttribute('data-nubi-transition')||root.hasAttribute('data-motion-panel');
  const sync=()=>{
   const animations=doc.getAnimations().filter(animation=>!animation.effect?.target?.closest?.('.nubi-intro,.nubi-connecting'));
-  return reconcileMotion(animations,{registry,paused:paused(),reduced:reduced.matches,owned,metadataCache,held:IDLE_AMBIENT_HELD});
+  return reconcileMotion(animations,{registry,paused:paused(),projectSwitching:root.hasAttribute('data-project-switching'),reduced:reduced.matches,owned,metadataCache,held:IDLE_AMBIENT_HELD});
  };
  const frame=frameCoalescer(sync),schedule=event=>{
   if(event?.target?.closest?.('.nubi-intro,.nubi-connecting'))return;
@@ -85,7 +85,7 @@ export function installMotionPolicy(doc=document){
  // flushing the whole document for each nested view/modal notification.
  doc.addEventListener('visibilitychange',sync);doc.addEventListener('nubi-motion-change',schedule);
  reduced.addEventListener('change',sync);
- const observer=new MutationObserver(schedule);observer.observe(root,{attributes:true,attributeFilter:['data-motion-panel']});
+ const observer=new MutationObserver(schedule);observer.observe(root,{attributes:true,attributeFilter:['data-motion-panel','data-project-switching']});
  const invalidateStyles=()=>{metadataCache=new WeakMap();frame.schedule();};
  const styleHead=doc.head,styles=styleHead?new MutationObserver(invalidateStyles):null;
  styles?.observe(styleHead,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['href','rel','media','disabled']});styleHead?.addEventListener?.('load',invalidateStyles,true);

@@ -44,8 +44,8 @@ export async function wikiGitRecords(root,args,onRecord,{signal,timeout=WIKI_GIT
   throw Object.assign(Error('git_unavailable'),{code:'ENOENT'});
 }
 
-export async function wikiSourceInventory(root,{signal,onProgress,maxFiles=200000}={}) {
-  if(!Number.isSafeInteger(maxFiles)||maxFiles<1||maxFiles>200000)throw Error('wiki_source_limit');
+export async function wikiSourceInventory(root,{signal,onProgress,maxFiles=1000000}={}) {
+  if(!Number.isSafeInteger(maxFiles)||maxFiles<1||maxFiles>1000000)throw Error('wiki_source_limit');
   const ignore=await OpenWikiIgnore.load(root),ignored=new Set(),paths=new Set();let visited=0,unavailableFiles=0,truncated=false;
   const omit=rel=>{if(ignore.ignores(rel)){ignored.add(rel);return true;}return excluded(rel)||rel.startsWith('openwiki/');};
   const remember=rel=>{

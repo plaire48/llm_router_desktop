@@ -14,7 +14,11 @@ import {
   openWikiLocalWikiDir,
   resolveConnectorRawPath,
 } from "../config/openwiki-home.js";
-import { createConnectorRegistry, isConnectorId } from "./registry.js";
+import {
+  createConnectorRegistry,
+  isConnectorId,
+  type ConnectorHosts,
+} from "./registry.js";
 import {
   callMcpConnectorTool,
   discoverMcpConnectorTools,
@@ -29,6 +33,7 @@ import type {
 
 export function createOpenWikiConnectorTools(
   outputMode: OpenWikiOutputMode = "local-wiki",
+  hosts: ConnectorHosts = {},
 ): StructuredToolInterface[] {
   // Connector tools perform credentialed external fetches (Gmail, Slack, X, ...)
   // and write raw data under the OpenWiki home. They are a personal/local-wiki
@@ -49,7 +54,7 @@ export function createOpenWikiConnectorTools(
         properties: {},
         additionalProperties: false,
       } as const,
-      func: async () => stringifyToolResult(await listConnectors()),
+      func: async () => stringifyToolResult(await listConnectors(hosts)),
     }),
     new DynamicStructuredTool({
       name: "openwiki_list_mcp_tools",
@@ -113,6 +118,7 @@ export function createOpenWikiConnectorTools(
               "git-repo",
               "google",
               "hackernews",
+              "knox",
               "notion",
               "slack",
               "web-search",
@@ -134,6 +140,7 @@ export function createOpenWikiConnectorTools(
           await ingestConnector(
             getConnectorId(input, "connectorId"),
             getIngestOptions(input),
+            hosts,
           ),
         ),
     }),
@@ -146,7 +153,7 @@ export function createOpenWikiConnectorTools(
         properties: {},
         additionalProperties: false,
       } as const,
-      func: async () => stringifyToolResult(await ingestAllConnectors()),
+      func: async () => stringifyToolResult(await ingestAllConnectors(hosts)),
     }),
     new DynamicStructuredTool({
       name: "openwiki_list_raw_items",
@@ -161,6 +168,7 @@ export function createOpenWikiConnectorTools(
               "git-repo",
               "google",
               "hackernews",
+              "knox",
               "langsmith",
               "notion",
               "slack",
@@ -190,6 +198,7 @@ export function createOpenWikiConnectorTools(
               "git-repo",
               "google",
               "hackernews",
+              "knox",
               "langsmith",
               "notion",
               "slack",
@@ -219,8 +228,8 @@ export function createOpenWikiConnectorTools(
   ];
 }
 
-async function listConnectors() {
-  const registry = createConnectorRegistry();
+async function listConnectors(hosts: ConnectorHosts) {
+  const registry = createConnectorRegistry(hosts);
   const connectors = [];
 
   for (const connector of Object.values(registry)) {
@@ -241,7 +250,13 @@ async function listConnectors() {
       displayName: connector.displayName,
       id: connector.id,
       rawDir: getConnectorRawDir(connector.id),
-      readyForIngestion: configExists && allRequiredEnvSet,
+      readyForIngestion:
+        configExists &&
+        allRequiredEnvSet &&
+        connector.nativeHostConnected !== false,
+      ...(connector.nativeHostConnected === undefined
+        ? {}
+        : { nativeHostConnected: connector.nativeHostConnected }),
       requiredEnv: connector.requiredEnv,
       requiredEnvStatus,
       supportsAgenticDiscovery: connector.supportsAgenticDiscovery,
@@ -259,8 +274,9 @@ async function listConnectors() {
 async function ingestConnector(
   connectorId: ConnectorId,
   options: ConnectorIngestOptions,
+  hosts: ConnectorHosts = {},
 ) {
-  const registry = createConnectorRegistry();
+  const registry = createConnectorRegistry(hosts);
 
   return registry[connectorId].ingest(options);
 }
@@ -285,8 +301,8 @@ async function callMcpToolForConnector(
   return await callMcpConnectorTool(connectorId, toolName, args);
 }
 
-async function ingestAllConnectors() {
-  const registry = createConnectorRegistry();
+async function ingestAllConnectors(hosts: ConnectorHosts) {
+  const registry = createConnectorRegistry(hosts);
   const connectors = Object.values(registry);
 
   // Run connectors concurrently and isolate failures: one connector that

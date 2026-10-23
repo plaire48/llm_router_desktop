@@ -1,14 +1,13 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {CxButton,Icon} from '@e2e/cx-design-system';
-import {WorkflowCanvas} from '../ui/WorkflowCanvas.jsx';
 import {SessionSidebar} from '../ui/SessionSidebar.jsx';
 import {useModalMotion} from '../ui/modalMotion.js';
 import {animatedSetter} from '../ui/viewTransition.js';
 import '../design/workspace-density.css';
 function App(){
- useModalMotion();const [screen,setScreen]=useState(0),[loaded,setLoaded]=useState(false),[status,setStatus]=useState('pending'),[tasks,setTasks]=useState([{id:'one',request:'합성 대화',state:'review',createdAt:new Date().toISOString()}]);
- window.qualityLoad=()=>setLoaded(true);window.qualityStatus=()=>setStatus('complete');
+ useModalMotion();const [screen,setScreen]=useState(0),[loaded,setLoaded]=useState(false),[tasks,setTasks]=useState([{id:'one',request:'합성 대화',state:'review',createdAt:new Date().toISOString()}]);
+ window.qualityLoad=()=>setLoaded(true);
  window.qualityNavigate=()=>animatedSetter(setScreen)(value=>value+1);
  window.qualityAdd=()=>setTasks(rows=>[...rows,{id:'two',request:'두 번째 합성 대화',state:'review',createdAt:new Date().toISOString()}]);
  window.qualityRemove=()=>setTasks(rows=>rows.filter(row=>row.id!=='two'));
@@ -17,7 +16,6 @@ function App(){
  <CxButton className="nubi-settings-row" onClick={()=>{}}>버튼 누름</CxButton>
  <button className="nubi-start-card" style={{marginBlock:16}}><Icon name="file" size={18}/><strong>문서 카드</strong><span>합성 자료</span></button>
  {loaded&&<p className="nubi-enter" data-quality-loaded>자료 준비 완료</p>}
- <WorkflowCanvas checkpoints={{observe:{status}}} steps={[{id:'observe',kind:'tool',name:'합성 자료 확인',next:'review'},{id:'review',kind:'human',name:'결과 확인'}]}/>
  </section></section></main>;
 }
 createRoot(document.getElementById('root')).render(<App/>);

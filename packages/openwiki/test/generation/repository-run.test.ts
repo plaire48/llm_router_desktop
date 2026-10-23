@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -137,6 +137,16 @@ const OTHER_ACTOR = {
 };
 const STARTED_AT = "2026-08-24T12:00:00.000Z";
 const temporaryDirectories: string[] = [];
+
+test("host can omit an unpublished workflow without changing default CLI setup or resume inputs", async () => {
+  const root=await createRepository();
+  const first=await beginRepositoryRun({root,mode:"init",actor:ACTOR,createWorkflow:false});
+  await expect(access(path.join(root,".github/workflows/openwiki-update.yml"))).rejects.toMatchObject({code:"ENOENT"});
+  const resumed=await beginRepositoryRun({root,mode:"init",actor:ACTOR,createWorkflow:false});
+  expect("run" in first&&"run" in resumed&&resumed.view.resumed).toBe(true);
+  const cli=await createRepository();await beginRepositoryRun({root:cli,mode:"init",actor:ACTOR});
+  expect(await readFile(path.join(cli,".github/workflows/openwiki-update.yml"),"utf8")).toContain("workflow_dispatch");
+});
 
 test("host durability retries a skipped page without replaying a completed page", async () => {
   const core = await import("../../src/generation/repository-run.ts");

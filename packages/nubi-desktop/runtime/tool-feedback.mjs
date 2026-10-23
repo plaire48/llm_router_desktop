@@ -6,6 +6,12 @@ const READ_FAILED='The read failed. Inspect the error and choose a narrower rang
 const UNCHANGED='No source was changed and no proposal was created. ';
 const PLAN='Use record_change_plan with the corrected input. ';
 const GUIDANCE=Object.freeze({
+  app_capture_changed:'The observed window/control changed or its run-scoped ID expired. Find the requested target again with find_app_capture_targets. Never guess HWNDs, coordinates or reuse a previous run ID.',
+  app_capture_protected:'This is a protected Nubi-owned surface. Use the existing inspect_workspace_window or inspect_workspace_page admission checks. Do not substitute native or desktop capture to bypass authentication-screen protection.',
+  app_capture_blank:'The app did not render a usable window image. Use existing Workspace/web capture where appropriate, or ask the user to attach a manual capture. Do not claim the screen was read or fall back to the entire desktop.',
+  app_capture_unavailable:'The requested app cannot be captured through this read-only window path. Keep the existing manual capture available. Do not launch an app, move focus, click or install a driver to recover.',
+  app_capture_timeout:'The window did not answer in time. Ask the user to check the app or use manual capture; do not repeat the same blocked capture.',
+  app_capture_limit:'The requested UIA/image exceeds bounded capture limits. Choose a smaller known window/region, or ask for manual capture. Do not infer unseen controls.',
   process_input_observation_required:'No input was sent. Read read_process_output for this process, then use its current inputRevision in propose_process_input. Stop for the existing approval form.',
   process_input_changed:'No input was sent. The program output or input state changed. Read its current output and reassess the question before preparing a new input approval.',
   process_input_unavailable:'No input was sent. This task has no matching live interactive process. Inspect its existing state; never relaunch a completed or uncertain command just to send input.',

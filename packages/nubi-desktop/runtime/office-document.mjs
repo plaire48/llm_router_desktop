@@ -29,7 +29,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
   const format=officeDocumentFormat(attachment.filename,attachment.contentType);
   if(!format)throw Error('document_format');
   if(signal?.aborted)throw Error('mail_cancelled');
-  if(bytes.length>64*1024*1024)throw Error('document_limit');
+  if(bytes.length>128*1024*1024)throw Error('document_limit');
   if(!directory||typeof restrictDirectory!=='function')throw Error('document_office_read_failed');
   const parent=await lstat(directory);if(!parent.isDirectory()||parent.isSymbolicLink())throw Error('mail_source_changed');
   let temporary,primaryError;
@@ -50,7 +50,7 @@ async function readOfficeDocumentNow(bytes,attachment,{signal,directory,restrict
       const abort=()=>stop('mail_cancelled');
       const timer=setTimeout(()=>stop('document_office_timeout'),60000);
       signal?.addEventListener('abort',abort,{once:true});
-      child.stdout.on('data',chunk=>{size+=chunk.length;if(size>24*1024*1024)stop('document_limit');else chunks.push(chunk);});
+      child.stdout.on('data',chunk=>{size+=chunk.length;if(size>48*1024*1024)stop('document_limit');else chunks.push(chunk);});
       child.stderr.resume();child.stdin.on('error',()=>{});
       child.once('error',()=>{failure ||= 'document_office_missing';});
       child.once('close',code=>{
@@ -90,6 +90,6 @@ export function parseOfficeDocumentResponse(stdout,code){
     throw Object.assign(Error(failure),diagnostic?{officeDiagnostic:diagnostic}:{});
   }
   const document=value.document;
-  if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>2000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment?.text!=='string'||segment.text.length>2000000))throw Error('document_office_read_failed');
+  if(document?.reader!=='office_com'||!/^16\./.test(document.officeVersion||'')||typeof document?.text!=='string'||!document.text.trim()||document.text.length>8000000||typeof document.coverage!=='string'||document.coverage.length>2000||!Array.isArray(document.segments)||document.segments.length>1000||document.segments.some(segment=>typeof segment?.text!=='string'||segment.text.length>8000000))throw Error('document_office_read_failed');
   return document;
 }

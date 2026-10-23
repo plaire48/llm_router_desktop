@@ -1,4 +1,5 @@
 import {ProgressEstimate} from './ProgressEstimate.jsx';
+import {TaskProgressBar} from './TaskProgressBar.jsx';
 import React,{useEffect,useState} from 'react';
 import {BranchMark} from './marks.jsx';
 import {durationLabel} from '../runtime/response-timing.mjs';
@@ -11,7 +12,7 @@ export function GitCloneProgress({progress}){
  return <section className="nubi-git-clone-progress" aria-label="Git 가져오기">
   <div className="nubi-git-clone-heading"><BranchMark size={18}/><strong>Git 가져오기</strong><time>{durationLabel(Math.max(0,now-progress.startedAt),{keepSeconds:true})}</time></div>
   <div className="nubi-git-clone-stage"><span aria-live="polite">{label}</span>{percent!==undefined&&<strong>{percent}%</strong>}</div>
-  <progress aria-label={`${label} 진행률`} max="100" value={percent}/>
+  <TaskProgressBar label={`${label} 진행률`} value={percent}/>
   <ProgressEstimate identity={`${progress.startedAt}:${progress.stage}`} completed={progress.current} total={progress.total}/>
   <div className="nubi-git-clone-detail">{progress.total>0&&<span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()}</span>}{progress.transferred&&<span>{progress.transferred}{progress.speed?` (${progress.speed})`:''}</span>}</div>
  </section>;
