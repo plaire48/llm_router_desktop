@@ -23,7 +23,7 @@ export class DesktopUsage {
   }
   reset() {
     if(this.closed)throw Error('usage_unavailable');
-    const next=newLedger();
+    const next=newLedger();next.lastResetAt=next.startedAt;
     // Persist first: a failed disk write must leave the visible ledger intact.
     try {this.store.set('usage:ledger',next);}
     catch {this.error='usage_save_failed';throw Error(this.error);}
@@ -67,7 +67,8 @@ export class DesktopUsage {
     // default catalog, but both Desktop periods must include an idle Claude.
     // The last seven days, for the dollar figure an Enterprise console shows per seat (user decision 2026-10-14).
     const week={};const since=Date.now()-6*86400000;for(const [day,providers] of Object.entries(this.ledger.days||{})){if(Date.parse(day+'T00:00:00')<since-86400000)continue;for(const [provider,stats] of Object.entries(providers)){week[provider]||={...empty};for(const [key,value] of Object.entries(stats))week[provider][key]=Math.round(((week[provider][key]||0)+value)*1e6)/1e6;}}
-    return {usage:{...usage,today:{claude:{...empty},...usage.today},week:{claude:{...empty},...week},total:{claude:{...empty},...usage.total}},usageError:this.error};
+    const reset=this.ledger.lastResetAt,lastResetAt=Number.isSafeInteger(reset)&&reset>0&&Number.isFinite(new Date(reset).getTime())?reset:null;
+    return {usage:{...usage,lastResetAt,today:{claude:{...empty},...usage.today},week:{claude:{...empty},...week},total:{claude:{...empty},...usage.total}},usageError:this.error};
   }
   close() {this.closed = true; this.calls.clear(); this.store.close();}
 }

@@ -10,5 +10,6 @@ test('usage reset API clears the local ledger without changing conversation reco
  const quota={accountUsage:{data:{windows:[{remaining:75}]}}};service.providers={usageStatus:()=>quota,dispose(){}};
  const ledger=desktopUsage(service),id=ledger.start({provider:'chatgpt'});ledger.finish(id,{prompt_tokens:10,completion_tokens:2,total_tokens:12});
  const result=await service.invoke('usage',{action:'reset'});assert.equal(result.usage.total.chatgpt.total,0);
+ assert(Number.isFinite(result.usage.lastResetAt));assert.equal((await service.usage()).usage.lastResetAt,result.usage.lastResetAt);
  assert.deepEqual(service.task(task.id),before);assert.deepEqual((await service.usage()).accountUsage,quota.accountUsage);
 });

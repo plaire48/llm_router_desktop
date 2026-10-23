@@ -1,0 +1,8 @@
+.nubi-usage-reset-summary { display:grid; gap:var(--cx-space-1); min-width:0; overflow-wrap:anywhere; }
+.nubi-usage-reset-summary time { font-variant-numeric:tabular-nums; }
+.desktop-shell .usage-dialog .usage-scope { align-items:flex-start; }
+.desktop-shell .usage-dialog .usage-scope>.usage-caption { flex:1; min-width:0; }
+.desktop-shell .usage-dialog .usage-scope>.cx-action-button { flex:none; }
+@media(max-width:480px) {
+ .nubi-usage-reset-summary time { display:block; }
+}
