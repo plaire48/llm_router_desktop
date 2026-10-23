@@ -1,5 +1,5 @@
 import {documentWindow} from './document-window.mjs';
-import {mailParts} from './mail-body-images.mjs';
+import {mailParts,unreadBodyImageReferences} from './mail-body-images.mjs';
 // Read selected attachment bytes just in time; an unfinished background index
 // must not make the agent claim that a document has no content.
 export async function readMailAttachmentsForAgent(service,source,references=[],signal,window={}){
@@ -21,6 +21,6 @@ export async function readMailAttachmentsForAgent(service,source,references=[],s
   }
   // Flatten only for model evidence so existing citation/coverage handling includes body images.
   const {inlineImages,...mail}=source.mail;
-  const unread=(mail.bodyImageCoverage?.linked||0)+Math.max(0,(mail.bodyImageCoverage?.data||0)-(mail.bodyImageCoverage?.dataImages?.length||0));
+  const unread=unreadBodyImageReferences(mail);
   return {...source,...(unread?{imageLimitation:`${unread} body image references were displayed by the mail reader but their bytes were not available to this analysis. Do not infer their contents or claim all body images were read.`}:{}),mail:{...mail,attachments:mailParts(source.mail).map(item=>updates.get(item.id)||((({text,segments,html,...metadata})=>metadata)(item)))}};
 }

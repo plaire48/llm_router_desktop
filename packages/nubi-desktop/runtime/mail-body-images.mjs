@@ -3,10 +3,13 @@ import {mailImagePreview} from './mail-image.mjs';
 import {mailPartPresentation} from '../../openwiki/src/connectors/sources/pop3-content.mjs';
 
 export const mailParts=mail=>[...(mail.attachments||[]),...(mail.inlineImages||[])];
+export const unreadBodyImageReferences=mail=>(mail.bodyImageCoverage?.linked||0)+(mail.bodyImageCoverage?.missing||0)+Math.max(0,(mail.bodyImageCoverage?.data||0)-(mail.bodyImageCoverage?.dataImages?.length||0));
+export const hasMailBodyImages=mail=>!!(mail.inlineImages?.length||mail.attachments?.some(part=>part.presentation==='inline')||mail.bodyImageCoverage?.linked||mail.bodyImageCoverage?.data||mail.bodyImageCoverage?.missing);
 
-export function mailBodyImageCoverage(html=''){
+export function mailBodyImageCoverage(html='',parts=[]){
  const sources=[...String(html).matchAll(/<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)].map(match=>match[1]??match[2]??match[3]??'');
- return {linked:new Set(sources.filter(src=>/^https?:\/\//i.test(src))).size,data:new Set(sources.filter(src=>/^data:/i.test(src))).size};
+ const available=new Set(parts.map(part=>String(part.cid||part.contentId||'').replace(/^<|>$/g,''))),missing=new Set(sources.filter(src=>/^cid:/i.test(src)&&!available.has(src.slice(4)))).size;
+ return {linked:new Set(sources.filter(src=>/^https?:\/\//i.test(src))).size,data:new Set(sources.filter(src=>/^data:/i.test(src))).size,...(missing?{missing}:{})};
 }
 
 export function mailDataImages(html=''){

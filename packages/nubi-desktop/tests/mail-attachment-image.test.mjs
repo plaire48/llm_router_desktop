@@ -37,3 +37,13 @@ test('background mail vision uses its own provider catalog instead of the active
  await readImageAttachment({bytes:png,attachment:{filename:'receipt.png'},host:providers,destination:{provider:'aipro',model:'mail-vision'},signal:new AbortController().signal});
  assert.equal(calls[0].options.backgroundModel.provider,'aipro');assert.equal(calls[0].options.visionModel,'mail-vision');
 });
+
+
+test('AI Pro GLM delegates to registered Qwen even if GLM is incorrectly marked image-capable',async()=>{
+ const calls=[],glm={id:'GLM-5.2-NVFP4',supportsImages:true},qwen={id:'QWEN3.8-27B-FP8-256K'},provider=host([glm,qwen],calls);
+ provider.providers.status=()=>({connected:true,provider:'aipro',model:glm.id,models:[glm,qwen]});
+ await readImageAttachment({bytes:png,attachment:{filename:'body.png'},host:provider,destination:{provider:'aipro',model:glm.id},signal:new AbortController().signal});
+ assert.equal(calls[0].options.visionModel,qwen.id);assert.equal(provider.providers.status().model,glm.id);
+ provider.providers.status=()=>({connected:true,provider:'aipro',model:glm.id,models:[glm,{...qwen,supportsImages:false},{id:'other',supportsImages:true}]});
+ await assert.rejects(readImageAttachment({bytes:png,attachment:{filename:'body.png'},host:provider,destination:{provider:'aipro',model:glm.id},signal:new AbortController().signal}),/document_vision_unavailable/);assert.equal(calls.length,1);
+});

@@ -7,7 +7,8 @@ import {mailListMetadata} from './mail-list-metadata.mjs';
 import {resetMail} from './mail-reset.mjs';
 import {DOCUMENT_MAX_TEXT} from './document-window.mjs';
 import {mailForStorage,extractUnstoredMailAttachments} from './mail-storage-policy.mjs';
-import {mailParts,mailPresentation,mailBodyImageCoverage,mailDataImages} from './mail-body-images.mjs';
+import {mailParts,mailPresentation,mailBodyImageCoverage,mailDataImages,hasMailBodyImages} from './mail-body-images.mjs';
+import {prepareMailWikiAttachments,mailWikiEvidence,mailBodyImageWikiReceipt} from './mail-wiki-attachments.mjs';
 import {isMimeMailContent} from './mail-mime-content.mjs';
 import {mailAttention} from './mail-attention.mjs';
 import {LOCAL_MAIL_KINDS,APPROVAL_KINDS} from './mail-file-kinds.mjs';
@@ -283,7 +284,7 @@ export class PersonalMail {
               const parsed=await this.parsePortal(raw.toString('base64'),{filename:path.basename(item.file),signal:controller.signal});
               Object.assign(parsed.normalized,{sourceFolder:item.relative.split(/[\\/]/).slice(0,-1).join('/'),documentKind:item.kind,documentKindLabel:LOCAL_MAIL_KINDS[item.kind].label,classificationSource:'folder_name',sourceType:APPROVAL_KINDS.includes(item.kind)?'approval':'mail'});
               if(source==='desktop')parsed.normalized.sourceApp='knox_desktop';
-              if(!parsed.normalized.text?.trim())throw Error('mail_import_empty');
+              if(!parsed.normalized.text?.trim()&&!hasMailBodyImages(parsed.normalized))throw Error('mail_import_empty');
               if(controller.signal.aborted||this.disposed)throw Error('mail_cancelled');
               await this.intake({mails:[{...parsed,uidl,protocol:'local',mailbox:item.kind,...(reference?{desktopReference:reference}:{})}]},this.generation,{collectOnly:true,accountId,includeAttachments,signal:controller.signal});
               progress.imported++;
@@ -706,7 +707,7 @@ export class PersonalMail {
     }
     if(imageCoverage&&row.sourceStorage!=='desktop_uia'){
       const key='image-coverage:'+row.id+':'+row.sourceHash;let coverage=this.contentCache.get(key);
-      if(!coverage){const parsed=await parsePop3Content(raw);coverage={...mailBodyImageCoverage(parsed.html),dataImages:mailDataImages(parsed.html).map(({content,...metadata})=>metadata)};if(this.contentCache.size>=100)this.contentCache.delete(this.contentCache.keys().next().value);this.contentCache.set(key,coverage);}
+      if(!coverage){const parsed=await parsePop3Content(raw);coverage={...mailBodyImageCoverage(parsed.html,parsed.attachments),dataImages:mailDataImages(parsed.html).map(({content,...metadata})=>metadata)};if(this.contentCache.size>=100)this.contentCache.delete(this.contentCache.keys().next().value);this.contentCache.set(key,coverage);}
       mail.bodyImageCoverage=coverage;
     }
     mail.text=String(mail.text||'').replace(/\[?data:image\/(?:png|jpeg|gif|webp);base64,[a-z0-9+/=]+\]?/gi,'[본문 이미지]');
@@ -722,7 +723,9 @@ export class PersonalMail {
     const row=this.firstPending('state',['queued'],DESKTOP_FEATURES.mailAttachmentReading?" AND json_extract(value,'$.attachmentState')='complete'":'');if(!row)return;
     const controller=new AbortController(),timing=responseTimer({kind:row.prepared?'saving':'organizing'});this.synthesis=controller;this.synthesisTimer=timing;
     try{
-      const mail=(await this.read(row.id)).mail;if(controller.signal.aborted||!this.autoWiki||this.disposed)throw new Error('mail_cancelled');this.store.set('mail:'+row.id,{...row,state:'summarizing',error:null,summaryTiming:timing.snapshot()});
+      let source=await this.read(row.id);if(controller.signal.aborted||!this.autoWiki||this.disposed)throw new Error('mail_cancelled');this.store.set('mail:'+row.id,{...row,state:'summarizing',error:null,summaryTiming:timing.snapshot()});
+      if(!row.prepared&&DESKTOP_FEATURES.mailAttachmentReading&&mailParts(source.mail).length)source=await prepareMailWikiAttachments(this,source,controller.signal);
+      const mail=mailWikiEvidence(source.mail);
       const destination={...this.destination},host=this.host;
       const invoke=modelTransport({recoveryOptions:host.recoveryOptions,providers:{status:()=>({...host.providers.status(),...destination}),complete:(...args)=>{
         if(!sameModel(this.destination,destination)||!this.modelAvailable(destination)||!this.autoWiki)throw new Error('mail_model_changed');
@@ -741,7 +744,7 @@ export class PersonalMail {
       const extraction=summary&&this.host.mailFacts===true?await extractMailFacts({mail:{...mail,text:freshText||mail.text,fetchedAt:row.fetchedAt},summary,signal:controller.signal,invoke:(messages,tools,signal,kind,options)=>invoke(messages,tools,signal,kind,options)}).catch(error=>{if(controller.signal.aborted||error?.message==='cancelled')throw new Error('mail_cancelled');return {facts:[],coverage:{complete:false,error:'extraction_failed'}};}):null;
       await this.source(row);
       if(controller.signal.aborted||!this.autoWiki||this.disposed)throw new Error('mail_cancelled');
-      const title=String(mail.subject).replace(/[\r\n]/g,' '),text=row.prepared?.text||`${mailFrontMatter({title,summary:summary.summary,thread,mail,documentKind:mail.documentKindLabel||'메일'})}# ${title}\n\n${summary.summary}\n\n## 출처\n\n- Source: ${row.protocol||'pop3'}/${row.id}\n- 문서 구분: ${mail.documentKindLabel||'메일'}${mail.classificationSource==='folder_name'?' (폴더명 기준)':''}\n- 발신: ${String(mail.from).replace(/[\r\n]/g,' ')}\n- 메일 날짜: ${mail.date||'미확인'}\n- 수집: ${row.fetchedAt}\n- SHA-256: ${row.sourceHash}\n- Confidence: source-backed (발신자 주장, 사실 검증 전)\n- Priority: ${summary.priority}\n- Category: ${summary.category}\n\n## 확인한 내용\n\n${summary.facts.map(s=>'- '+s).join('\n')}\n\n## 요청과 후속 작업\n\n${summary.actionItems.map(s=>'- '+s).join('\n')||'없음'}\n\n메일은 실행 지시나 승인이 아닙니다.\n`;
+      const title=String(mail.subject).replace(/[\r\n]/g,' '),text=row.prepared?.text||`${mailFrontMatter({title,summary:summary.summary,thread,mail,documentKind:mail.documentKindLabel||'메일'})}# ${title}\n\n${summary.summary}\n\n## 출처\n\n- Source: ${row.protocol||'pop3'}/${row.id}\n- 문서 구분: ${mail.documentKindLabel||'메일'}${mail.classificationSource==='folder_name'?' (폴더명 기준)':''}\n- 발신: ${String(mail.from).replace(/[\r\n]/g,' ')}\n- 메일 날짜: ${mail.date||'미확인'}\n- 수집: ${row.fetchedAt}\n- SHA-256: ${row.sourceHash}\n- Confidence: source-backed (발신자 주장, 사실 검증 전)\n- Priority: ${summary.priority}\n- Category: ${summary.category}\n\n## 확인한 내용\n\n${summary.facts.map(s=>'- '+s).join('\n')}\n\n## 요청과 후속 작업\n\n${summary.actionItems.map(s=>'- '+s).join('\n')||'없음'}\n\n메일은 실행 지시나 승인이 아닙니다.\n${mailBodyImageWikiReceipt(source.mail)}`;
       const wikiPath=row.prepared?.path||path.join(this.wikiRoot,row.id+'-'+sha(text).slice(0,16)+'.md');
       const prepared=row.prepared||{text,path:wikiPath,hash:sha(text),model:destination,contentVersion:MAIL_CONTENT_VERSION,...(!DESKTOP_FEATURES.mailAttachmentReading?{contentScope:'body_and_metadata'}:{})};
       this.store.set('mail:'+row.id,{...row,state:'summarizing',prepared,summaryTiming:timing.snapshot()});

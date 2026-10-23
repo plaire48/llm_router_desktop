@@ -7,7 +7,7 @@ The former text-only policy removed `img` elements and omitted MIME inline parts
 - HTTP/HTTPS linked images can render in the reader. Their bytes are **not yet collected for AI analysis**; the tool reports that limitation explicitly. Authenticated company image retrieval is not established by the local fixture.
 - Questions read embedded images through the existing vision route of the active provider. A provider without a supported image model reports unavailable coverage. The main conversation/model selection remains unchanged.
 - Verified extraction is cached under source and image hashes. Text evidence carries the analysis and citations, never raw base64. Existing source-opening and chat thumbnail paths accept body image references.
-- Background wiki processing is unchanged; inline vision reading occurs on question. A displayed image is not treated as successful AI analysis.
+- Updated 2026-10-24: automatic and explicit topic Wiki generation also read embedded body images through the shared image reader. With AI Pro GLM, registered Qwen reads images and the selected GLM writes the Wiki. See [the implementation and validation record](MAIL-BODY-IMAGE-WIKI-2026-10-24.md). A displayed image is not treated as successful AI analysis.
 
 Validation: MIME/data image integration tests exercise actual parsing, storage, preview, source validation, citation and cache paths with a simulated model response. Browser checks render CID and HTTP images, test isolation and 420px layout. These checks do not establish live model answer quality, company SSO image access or installed Windows behavior.
 

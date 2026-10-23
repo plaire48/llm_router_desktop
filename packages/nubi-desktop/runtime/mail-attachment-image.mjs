@@ -24,7 +24,11 @@ export async function readImageAttachment({bytes,attachment={},host,destination=
     const catalog=host.providers.catalogs?.().find(item=>item.provider===destination.provider);
     return {...active,...destination,connected:!!catalog,models:catalog?.models||[]};
   };
-  const route=visionRoute(status());
+  const selected=status();
+  // User decision: AI Pro GLM delegates image reading to the registered Qwen.
+  // Keep the selected GLM for subsequent writing, never invent a model endpoint.
+  const qwen=selected.provider==='aipro'&&/(?:^|[/:._-])glm(?:[-_.0-9]|$)/i.test(selected.model||'');
+  const route=visionRoute(qwen?{...selected,model:'',models:(selected.models||[]).filter(model=>/qwen/i.test(model.id))}:selected);
   if(!route)throw Error('document_vision_unavailable');
   const model={...(destination||{}),model:route.id};
   const invoke=modelTransport({recoveryOptions:host.recoveryOptions,providers:{status,complete:(...args)=>host.providers.complete(...args.slice(0,6),{...args[6],backgroundModel:model,visionModel:route.id})}},{signal});
