@@ -99,6 +99,16 @@ try{
   assert.equal(await review.getAttribute('data-tone'),'neutral');assert.equal(await p.getByText('확인할 내용이 남아 있어요',{exact:true}).count(),0);
   const gapFits=await review.locator('.nubi-document-progress-heading strong').evaluate(node=>node.scrollWidth<=node.clientWidth+1);assert(gapFits,'the concrete gap remains readable at the current width');
   await captureDesign(p,{path:path.join(dir,`concrete-gap-${width}.png`)});
+  await p.evaluate(()=>window.liveReview({state:'ready',normalized:'interpretation_only',nextStep:'추가 운영 범위는 점검 기록으로 남깁니다.',checks:[{requirementId:'request',state:'supported',detail:'요청한 담당자는 원문에서 확인했습니다.'},{requirementId:'intent:outcome:1',state:'unknown',detail:'요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.'}]}));
+  const evidence=p.locator('.nubi-review-evidence');await evidence.locator(':scope>summary').getByText('확인한 근거 1개',{exact:true}).waitFor();
+  assert.equal(await review.count(),0,'an extra planner check does not turn a supported answer into a missing-result card');
+  assert.equal(await evidence.getByText('요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.',{exact:true}).isVisible(),false);
+  await evidence.locator(':scope>summary').click();await evidence.getByText('추가 점검 1개',{exact:true}).click();
+  await evidence.locator('[data-check=unknown]').getByText('요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.',{exact:true}).waitFor();
+  await evidence.locator('[data-check=unknown]').scrollIntoViewIfNeeded();
+  await captureDesign(p,{path:path.join(dir,`advisory-check-${width}.png`)});
+  if(width===440){await p.evaluate(()=>document.documentElement.style.fontSize='200%');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);await evidence.locator('[data-check=unknown]').scrollIntoViewIfNeeded();await captureDesign(p,{path:path.join(dir,'advisory-check-large-text.png')});await p.evaluate(()=>document.documentElement.style.fontSize='');}
+  await evidence.locator(':scope>summary').click();await captureDesign(p,{path:path.join(dir,`supported-answer-${width}.png`)});
   await p.evaluate(()=>window.liveReview({state:'failed',reason:'model_timeout',checks:[]}));await review.getByText('결과 검토를 마치지 못했어요',{exact:true}).waitFor();
   await review.locator('.nubi-review-fold>summary').click();await review.getByText(/AI의 검토 응답을 제시간에 받지 못했어요/).waitFor();assert.equal(await review.getAttribute('data-tone'),'warning');
   await p.evaluate(()=>window.liveReview({state:'ready',nextStep:'설치판에서 메일 연결을 확인해 주세요.',checks:[{requirementId:'local',state:'supported',detail:'로컬 검사 통과'}]}));

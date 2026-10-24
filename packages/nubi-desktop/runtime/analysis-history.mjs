@@ -61,8 +61,8 @@ export function roleHandoffs(store,taskId,runId){
 }
 export function saveReviewProgress(store,taskId,record){
   const key=prefix(taskId)+'review:'+record.id,previous=store.get(key),now=new Date().toISOString();
-  const {id,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs,reason}=record;
-  store.set(key,{kind:'review',id,taskId,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs,...(reason?{reason}:{}),createdAt:previous?.createdAt||now,updatedAt:now});
+  const {id,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs,reason,normalized}=record;
+  store.set(key,{kind:'review',id,taskId,runId,round,state,checks,nextStep,advisoryCount,omittedHandoffs,omittedUnresolvedHandoffs,...(reason?{reason}:{}),...(normalized?{normalized}:{}),createdAt:previous?.createdAt||now,updatedAt:now});
 }
 
 // Coordinator-owned lifecycle facts prove execution/collection only, never a child's claims.

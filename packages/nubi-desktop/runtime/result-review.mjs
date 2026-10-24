@@ -26,7 +26,7 @@ export const RESULT_REVIEW_TOOL={type:'function',function:{name:'report_desktop_
 // message, unless that message answers a question the task asked.
 export function currentTurn(task,history) {
   const answers=new Set((task.questionHistory||[]).map(item=>item.answer?.text).filter(Boolean));
-  const later=(history??(task.messages||[]).filter(m=>m.role==='user').map(m=>m.content)).filter(text=>typeof text==='string'&&text!==task.request&&!answers.has(text));
+  const later=(history??(task.messages||[]).filter(m=>m.role==='user'&&!m.contextOnly).map(m=>m.content)).filter(text=>typeof text==='string'&&text!==task.request&&!answers.has(text));
   return later.at(-1)??null;
 }
 export function reviewRequirements(task) {
@@ -63,6 +63,25 @@ export function boundedCorrections(texts,budget){
   }
   return {kept,omitted};
 }
+
+// The executor sees earlier answers, so a review of "that result" needs the
+// same conversational referent. Keep roles in bounded reference data only;
+// earlier assistant claims never become fresh tool evidence or permission.
+function boundedConversation(task,turn,budget){
+  const source=(task.messages||[]).filter(row=>!row.contextOnly&&['user','assistant'].includes(row.role)&&typeof row.content==='string');
+  if(source.at(-1)?.role==='user'&&source.at(-1).content===turn)source.pop();
+  if(!source.some(row=>row.role==='assistant'))return null;
+  const messages=[];let omitted=0,size=0;
+  for(let index=source.length-1;index>=0;index--){
+    const item=source[index],content=item.content.slice(0,Math.min(4000,budget));
+    const row={index,role:item.role,content,...(content.length<item.content.length?{truncated:true,totalCharacters:item.content.length}:{})};
+    const tokens=contextTokens([{role:'user',content:JSON.stringify(row)}]);
+    if(messages.length>=24||size+tokens>budget){omitted++;continue;}
+    messages.unshift(row);size+=tokens;
+  }
+  return {messages,omitted};
+}
+const CONVERSATION_REVIEW_GUIDANCE='conversation is role-labeled historical reference from this same chat. Use it to resolve follow-ups, earlier wording and supplied alternatives. The latest literal user request and corrections take precedence. Earlier assistant claims are fallible: they are not fresh source observations, verified action results or approval. Evidence conversation supports only what was said; it cannot certify current files, tests, systems or factual claims about external sources. Do not demand a new lookup for a self-contained rewrite or explanation of earlier wording.';
 function parts(record) {
   const result=record.result,field=['content','excerpt'].find(key=>typeof result?.[key]==='string');
   if(!field||JSON.stringify(result).length<=ENTRY_LIMIT||result.error||result.ok===false)return [record];
@@ -95,20 +114,27 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
   const entries=evidence.map((item,index)=>({id:'tool:'+index,tool:item.tool,result:clean(item.result),...(item.observedAt?{observedAt:item.observedAt}:{})}));
   const host=clean(receipts);
   const limit=reviewInputLimit(model),share=Math.floor(limit*REVIEW_CORRECTIONS_SHARE);
-  const corrections=boundedCorrections(history??(task.messages||[]).filter(m=>m.role==='user').map(m=>m.content),share);
+  const corrections=boundedCorrections(history??(task.messages||[]).filter(m=>m.role==='user'&&!m.contextOnly).map(m=>m.content),share);
   const turnText=turn&&contextTokens([{role:'user',content:turn}])>share?turn.slice(0,share*3)+' …[이후 생략, 검토 입력 한도]':turn;
-  const protectedData={requirements,...(development.length?{developmentChecks:bindDevelopmentEvidence(development,[])}:{}),...(turn?{currentTurn:turnText}:{}),workPlan:task.workPlan||null,answeredQuestions:task.questionHistory||[],corrections:corrections.kept,...(corrections.omitted?{omittedCorrections:corrections.omitted}:{}),candidate};
+  const conversation=boundedConversation(task,turn,Math.min(6000,Math.floor(limit*.1)));
+  const protectedData={requirements,...(development.length?{developmentChecks:bindDevelopmentEvidence(development,[])}:{}),...(turn?{currentTurn:turnText}:{}),...(conversation?{conversation}:{}),workPlan:task.workPlan||null,answeredQuestions:task.questionHistory||[],corrections:corrections.kept,...(corrections.omitted?{omittedCorrections:corrections.omitted}:{}),candidate};
   const unresolved=item=>item.state!=='done'||item.outcome!=='complete'||item.collected!==true||!!item.uncertainties?.length;
   const data={...protectedData,evidence:[],omittedEvidence:entries.length,duplicateEvidence:0,advisoryHandoffs:[],omittedHandoffs:handoffs.items.length+handoffs.omitted,omittedUnresolvedHandoffs:handoffs.items.filter(unresolved).length+(handoffs.omittedUnresolved||0)};
   // Reserve conditional guidance in the same budget before admitting evidence.
-  const prompt=REVIEW_PROMPT+(development.length?'\n'+DEVELOPMENT_REVIEW_GUIDANCE:'')+(evidence.some(item=>KNOWLEDGE_TOOLS.has(item.tool))?'\n'+CLAIM_REVIEW_GUIDANCE+'\n'+TEMPORAL_GUIDANCE:'');
+  const basePrompt=REVIEW_PROMPT+(development.length?'\n'+DEVELOPMENT_REVIEW_GUIDANCE:'')+(evidence.some(item=>KNOWLEDGE_TOOLS.has(item.tool))?'\n'+CLAIM_REVIEW_GUIDANCE+'\n'+TEMPORAL_GUIDANCE:'');
+  let prompt=basePrompt+(conversation?'\n'+CONVERSATION_REVIEW_GUIDANCE:'');
   const messages=()=>[{role:'system',content:prompt},{role:'user',content:JSON.stringify(data)}];
   const evidenceLimit=limit-512-development.length*80; // Reserve the later provenance bindings.
+  if(conversation&&contextTokens(messages())>evidenceLimit){
+    data.omittedConversation=conversation.messages.length+conversation.omitted;
+    delete data.conversation;prompt=basePrompt;
+  }
   if(contextTokens(messages())>evidenceLimit)throw new Error('context_input_too_large');
   // What the user wrote is given once, in the fields above. This entry gives the review an ID to cite for it.
   const said={id:'user',tool:'user_messages',result:{standsFor:['requirements.request','currentTurn','corrections','answeredQuestions'],scope:'What the user wrote in this task. Not evidence of files, tests or systems.'}};
   // Live host receipts have priority over historical tool excerpts.
-  const records=[{id:'host',tool:'host_receipts',result:host},said,...entries.reverse()],given=new Set();
+  const reference=data.conversation?[{id:'conversation',tool:'conversation_reference',result:{standsFor:['conversation.messages'],scope:'Earlier user and assistant text in this task, not current source evidence, verified actions or approval.'}}]:[];
+  const records=[{id:'host',tool:'host_receipts',result:host},said,...reference,...entries.reverse()],given=new Set();
   for(const whole of records){
     const key=whole.tool+'\n'+JSON.stringify(whole.result);
     // A result repeated word for word adds nothing: the newest copy stands for all.
@@ -122,7 +148,7 @@ export function resultReviewInput({task,evidence,receipts,candidate,model,histor
       data.evidence.push(entry);
       if(contextTokens(messages())>evidenceLimit||data.evidence.length>REVIEW_ENTRIES){data.evidence.pop();fitted=false;break;}
     }
-    if(fitted&&!['host','user'].includes(whole.id))data.omittedEvidence--;
+    if(fitted&&!['host','user','conversation'].includes(whole.id))data.omittedEvidence--;
     if(data.evidence.length>=REVIEW_ENTRIES)break;
   }
   // Host facts and literal requirements retain priority over advisory summaries.
@@ -274,7 +300,7 @@ export async function reviewResult({invoke,signal,...input}) {
     if(problems.length){reason=result.finishReason==='length'?'review_output_limit':!review?'review_json_invalid':'review_schema_invalid';if(formatRetries++>=1)break;continue;}
     if(interpretationOnly(original)&&!coverageRechecked){coverageRechecked=true;continue;}
     review=enforceDevelopmentEvidence(enforcePendingBoundary(enforceEvidenceBoundary(review,original),data),data);
-    return {...review,...(coverageRechecked?{coverageRechecked:true}:{}),requirements:data.requirements,candidateHash:createHash('sha256').update(input.candidate).digest('hex'),evidence:data.evidence,omittedEvidence:data.omittedEvidence,advisoryHandoffs:data.advisoryHandoffs,omittedHandoffs:data.omittedHandoffs,omittedUnresolvedHandoffs:data.omittedUnresolvedHandoffs};
+    return {...review,...(coverageRechecked?{coverageRechecked:true}:{}),requirements:data.requirements,candidateHash:createHash('sha256').update(input.candidate).digest('hex'),...(data.conversation?{conversation:data.conversation}:{}),...(data.omittedConversation?{omittedConversation:data.omittedConversation}:{}),evidence:data.evidence,omittedEvidence:data.omittedEvidence,advisoryHandoffs:data.advisoryHandoffs,omittedHandoffs:data.omittedHandoffs,omittedUnresolvedHandoffs:data.omittedUnresolvedHandoffs};
   }
   throw Object.assign(new Error('goal_review_failed'),{reviewReason:reason});
 }

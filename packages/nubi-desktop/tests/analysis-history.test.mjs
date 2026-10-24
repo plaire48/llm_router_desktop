@@ -7,6 +7,14 @@ import {installAgent} from '../runtime/agent.mjs';
 installAgent(ProjectService);
 const role=(id,status='running',analysis={})=>({id,tool:'analysis_page',status,analysis:{task:'화면에서 목표 값 확인',phase:'reading',reads:1,calls:1,delivered:false,...analysis}});
 
+test('planner-only normalization survives history reload without changing its unknown check',async t=>{
+ const {service,root}=await fixture(t),task=await service.createTask({request:'요청한 담당자 설명'});
+ saveReviewProgress(service.store,task.id,{id:'review-advisory',runId:'run',state:'ready',normalized:'interpretation_only',nextStep:'추가 운영 범위 확인',checks:[{requirementId:'intent:outcome:1',state:'unknown',detail:'추가 범위는 확인하지 않았습니다.'}]});
+ service.store.close();await service.open(root);
+ const saved=service.analysisHistory({taskId:task.id}).records.find(record=>record.id==='review-advisory');
+ assert.equal(saved.normalized,'interpretation_only');assert.equal(saved.checks[0].state,'unknown');assert.equal(saved.nextStep,'추가 운영 범위 확인');
+});
+
 test('all document groups remain paged and scoped without returning full research/source bodies',async t=>{
   const {service}=await fixture(t),task=await service.createTask({request:'여러 문서 비교'}),other=await service.createTask({request:'다른 업무'});
   for(let i=0;i<12;i++)saveDocumentProgress(service.store,{id:'doc-'+i,taskId:task.id,runId:'run',state:'complete',workers:[],sources:[{id:'doc',path:'docs/spec.md',hash:'sha256:x'}],result:{answer:'PRIVATE_FULL_REPORT',evidence:[{excerpt:'PRIVATE_ORIGINAL'}]},raw:'PRIVATE_RAW'});

@@ -13,12 +13,12 @@ export function AnalysisReviewProgress({review,running}){
   const [expanded,setExpanded]=useState(null);
   const active=running&&review.state==='running',open=expanded??active;
   const fold=!active;
-  const checks=review.checks||[],unresolved=checks.filter(check=>check.state!=='supported');
-  const {visible,supported,heading:summary,tone,icon}=reviewPresentation(review,running);
+  const {visible,supported,heading:summary,tone,icon,checks,advisoryChecks,unresolved,nextStep,advisoryNextStep}=reviewPresentation(review,running);
+  const advisory=advisoryChecks.length>0&&<details className="nubi-review-detail"><summary>추가 점검 {advisoryChecks.length}개<Icon name="chevronDown" size={14}/></summary><ol>{advisoryChecks.map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ol>{advisoryNextStep&&<p>{advisoryNextStep}</p>}</details>;
   if(!visible)return null;
-  if(supported)return <details className="nubi-review-evidence" aria-label="확인한 근거"><summary><Icon name="check" size={14}/>확인한 근거 {checks.length}개<Icon name="chevronDown" size={14}/></summary><ol>{checks.map(check=><li key={check.requirementId}>{check.detail}</li>)}</ol></details>;
+  if(supported)return <details className="nubi-review-evidence" aria-label="확인한 근거"><summary><Icon name="check" size={14}/>{summary}<Icon name="chevronDown" size={14}/></summary><ol>{checks.map(check=><li key={check.requirementId}>{check.detail}</li>)}</ol>{advisory}</details>;
   const heading=<div className="nubi-document-progress-heading" role="status"><Icon name={icon} size={18}/><strong>{summary}</strong>{fold&&unresolved.length>1&&<span className="nubi-review-count">{unresolved.length}개</span>}{fold&&<Icon name="chevronDown" size={14}/>}</div>;
-  const next=review.nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{review.nextStep}</span></p>;
+  const next=nextStep&&<p className="nubi-review-next"><strong>다음 단계</strong><span>{nextStep}</span></p>;
   const body=<>
     {review.state==='failed'&&<p>{failureReasons[review.reason]||'검토 응답을 받지 못했어요.'} 요청과 실행 기록은 보관했습니다. 아래 복구 버튼으로 이어갈 수 있어요.</p>}
     {!active&&unresolved.length>0&&<ul className="nubi-review-open-items" aria-label="남은 확인">{unresolved.map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ul>}
@@ -30,6 +30,7 @@ export function AnalysisReviewProgress({review,running}){
       {review.advisoryCount>0&&<p>하위 분석 {review.advisoryCount}개를 검토 입력에 포함했습니다.</p>}
       {review.omittedHandoffs>0&&<p className="nubi-document-attention">문맥 한도로 제외한 하위 분석 {review.omittedHandoffs}개</p>}
       <ol>{checks.filter(check=>active||check.state==='supported').map(check=><ReviewCheck key={check.requirementId} check={check}/>)}</ol>
+      {advisory}
       {review.reason&&<p className="nubi-muted">오류 코드: <code>{review.reason}</code></p>}
       {!checks.length&&!active&&<p>완료 여부는 아직 확인되지 않았어요.</p>}
     </details>
@@ -38,7 +39,7 @@ export function AnalysisReviewProgress({review,running}){
   // failure reason and check evidence remain available on deliberate expansion.
   if(fold)return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone} data-folded="">
     <details className="nubi-review-fold"><summary>{heading}</summary>{body}</details>
-    {next&&review.nextStep!==summary&&next}
+    {next&&nextStep!==summary&&next}
   </section>;
   return <section className="nubi-document-progress nubi-result-review" aria-label="분석 결과 검토" data-state={review.state} data-tone={tone}>
     {heading}{body}
