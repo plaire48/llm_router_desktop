@@ -6,11 +6,19 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';import os from 'node:os';import assert from 'node:assert/strict';
 import {startFixtureModel} from './fixture-model.mjs';
 import {desktopTestWindow} from './electron-test-window.mjs';
+import {captureDesign} from './design-rules.mjs';
 const require=createRequire(import.meta.url),temporary=await realpath(await mkdtemp(path.join(os.tmpdir(),'nubi-terminal-flow-'))),root=path.join(temporary,'project'),storage=path.join(temporary,'state'),out=path.resolve(process.env.NUBI_TERMINAL_CHECK_OUTPUT||'verification/command-terminal-2026-10-15');
 await mkdir(root);await mkdir(storage);await mkdir(out,{recursive:true});await mkdir(path.join(root,'openwiki'));await writeFile(path.join(root,'openwiki/home.md'),'# Fixture');await writeFile(path.join(root,'guide.txt'),'A local terminal test project.');
 const git=args=>execFileSync('git',['-C',root,...args],{stdio:'ignore'});git(['init']);git(['add','.']);git(['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','-c','commit.gpgSign=false','commit','-m','Fixture']);await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root}));
-const windows=process.platform==='win32';let round=0;
+const windows=process.platform==='win32';let round=0,scenario='automatic';
 const fixture=await startFixtureModel({respond({results,call,text}){
+ if(scenario==='automatic'){
+  const started=results.findLast(result=>result.approvalSource==='automatic'&&result.resultProcessId);
+  if(!started)return call('propose_setup_action',{title:'Node 버전 확인',kind:'inspect',script:'node --version',reason:'로컬 버전 확인',effects:'버전 조회',verification:'실제 출력 확인',references:[]});
+  if(!results.some(result=>result.processId===started.resultProcessId))return call('read_process_output',{processId:started.resultProcessId,waitMs:5000});
+  return text('로컬 Node 버전 출력을 확인했습니다.');
+ }
+
  if(round++===0)return call('read_source',{path:'guide.txt'});
  if(round===2){const source=results.at(-1);return call('propose_setup_action',{title:'명령 결과 확인',kind:'configure',profile:windows?'powershell':'bash',script:windows?"Write-Output agent-output; Write-Output (([char]27) + '[32mreceipt-color-ok' + ([char]27) + '[0m'); Add-Content -LiteralPath execution.txt -Value once -Encoding utf8":"printf 'agent-output\\n\\033[32mreceipt-color-ok\\033[0m\\n'; printf 'once\\n' >> execution.txt",reason:'실행 후 터미널 연결 확인',effects:'프로젝트 안에 확인 파일 생성',verification:'확인 파일의 한 줄 읽기',references:[{path:source.path,hash:source.hash}]});}
  return text('명령 기록을 확인했습니다.');
@@ -37,6 +45,17 @@ try{
  // Settings apply to new terminals, and old sessions stay intact.
  const overview=await request('overview');const expected=overview.defaultShell;
  await request('provider',{action:'connect',input:fixture.connection});await composer().fill('/terminal');await page.getByRole('option',{name:/터미널.*직접 입력/}).click();await page.locator('.desktop-terminal[data-terminal-state=running]:visible').waitFor();assert.equal(fixture.calls.length,0);checks.push('slash opens a terminal directly without a model call');
+ await page.getByRole('button',{name:'파일',exact:true}).click();await page.getByRole('button',{name:'파일',exact:true}).click();
+ const terminalCount=await page.locator('.desktop-terminal').count();assert.equal((await request('approvalPolicy')).mode,'commands');
+ await composer().fill('로컬 Node 버전을 확인해 주세요');await page.getByRole('button',{name:'전송',exact:true}).click();
+ await page.getByText('로컬 Node 버전 출력을 확인했습니다.',{exact:true}).waitFor({timeout:60000});
+ const automaticState=await request('state'),automatic=automaticState.setupActions.find(action=>action.approvalSource==='automatic');
+ assert(automatic);assert.equal(automatic.state,'started');assert.equal(await page.locator('.desktop-terminal').count(),terminalCount);assert.equal(await page.locator('.desktop-terminal:visible').count(),0,'automatic commands never steal the right pane');
+ const automaticRecord=page.locator('.nubi-command-record').filter({hasText:'Node 버전 확인'});await automaticRecord.locator(':scope>summary').click();assert.equal(await automaticRecord.getByRole('button',{name:'터미널 열기',exact:true}).count(),0);await automaticRecord.locator(':scope>summary').click();
+ for(const width of [1280,440]){await (await app.browserWindow(page)).evaluate((win,width)=>{win.setMinimumSize(1,1);win.setContentSize(width,900);},width);await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await captureDesign(page,{path:path.join(out,`automatic-no-terminal-${width}.png`)});}
+ await (await app.browserWindow(page)).evaluate(win=>win.setContentSize(1280,900));await page.setViewportSize({width:1280,height:900});
+ checks.push('default automatic command executes in the same actor run with actual output and no approval form or right terminal');
+ scenario='manual';round=0;
  await composer().fill('명령 확인 파일을 만든 뒤 결과를 확인해 주세요');await page.getByRole('button',{name:'전송',exact:true}).click();
  await page.getByRole('button',{name:'승인',exact:true}).waitFor({timeout:60000});assert.equal(await page.locator('[data-decision-panel]:not([hidden])').getByRole('button',{name:'승인',exact:true}).count(),1);await page.getByRole('button',{name:'승인',exact:true}).click();
  await page.locator('.desktop-terminal[data-terminal-state=completed]:visible').waitFor({timeout:60000});

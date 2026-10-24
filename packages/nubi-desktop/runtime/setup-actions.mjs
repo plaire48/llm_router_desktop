@@ -5,12 +5,13 @@ import Ajv from 'ajv';
 import {preferredShell} from './environment-inspection.mjs';
 import {toolArgumentIssues} from '../../../extensions/aipro-chat/tool-validation.js';
 import {checkpointBefore} from './checkpoints.mjs';
+import {automaticCommandReason} from './approval-policy.mjs';
 
 const text = maxLength => ({type:'string',minLength:1,maxLength});
 export const SETUP_ACTION_SCHEMA = {
   type:'object',additionalProperties:false,
-  properties:{title:{...text(120),description:'Short approval card title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify','input'],description:'start runs an app/server; verify runs tests; input sends exact text to an observed interactive process.'},
-    interactive:{type:'boolean',description:'Use a real PTY only for commands that need terminal input. Existing approval still applies.'},
+  properties:{title:{...text(120),description:'Short command title.'},kind:{type:'string',enum:['inspect','install','configure','build','start','verify','input'],description:'start runs an app/server; verify runs tests; input sends exact text to an observed interactive process.'},
+    interactive:{type:'boolean',description:'Use a real PTY for commands that need terminal input.'},
     processId:text(80),processRevision:text(100),
     profile:{...text(40),description:'Omit: the user\'s chosen shell is used; another id is refused.'},
     script:{...text(16000),description:'ONE exact shell command string in the selected shell syntax.'},
@@ -114,13 +115,21 @@ export async function prepareSetupAction(service,taskId,args,observations,hostRe
   service.store.set('setup-action:'+value.id,value);return value;
 }
 
-export async function decideSetupAction({id,fingerprint,decision,elevationConsent=false}) {
+export async function decideSetupAction({id,fingerprint,decision,elevationConsent=false,automatic=false},activeRun) {
   const value=this.store.get('setup-action:'+id);
   if(!value||value.fingerprint!==fingerprint||!['approve','reject'].includes(decision))fail('setup_changed');
   if(value.state!=='proposed')return value;
-  if(this.computerBusy||this.agent?.running||this.newFileBusy||this.setupBusy||this.task(value.taskId).question)fail('agent_busy');
+  const inRun=automatic&&activeRun&&this.agent?.running&&this.agent.taskId===value.taskId&&this.agent.runId===activeRun.runId&&activeRun.taskId===value.taskId&&!activeRun.signal?.aborted;
+  if(this.computerBusy||this.agent?.running&&!inRun||this.newFileBusy||this.setupBusy||this.task(value.taskId).question)fail('agent_busy');
+  const automaticReason=automatic&&decision==='approve'?await automaticCommandReason(this,value):null;
+  if(automatic&&!automaticReason)return value;
+  if(inRun&&(this.disposed||activeRun.signal?.aborted||this.agent?.runId!==activeRun.runId))fail('setup_cancelled');
+  const current=this.store.get('setup-action:'+id);
+  if(current?.fingerprint!==fingerprint)fail('setup_changed');
+  if(current.state!=='proposed')return current;
+  if(this.setupBusy||this.computerBusy||this.newFileBusy||this.task(value.taskId).question)fail('agent_busy');
   if(this.task(value.taskId).state==='cancelled')fail('setup_cancelled');
-  if(this.unsettledOperations?.size)fail('tool_unsettled');
+  if((this.unsettledOperations?.size||0)>(inRun?1:0))fail('tool_unsettled');
   if(decision==='approve'&&value.privilege==='administrator'&&elevationConsent!==true)fail('elevation_approval_required');
   if(decision==='approve'&&(value.afterProposals||[]).some(id=>this.store.get('proposal:'+id)?.state==='proposed'))fail('setup_waiting_for_proposals');
   if(decision==='reject'){
@@ -128,7 +137,7 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
   }
   // Reserve synchronously before validation or process creation. A retry reads
   // the receipt; it cannot run the same installation twice.
-  value.state='starting';value.decidedAt=new Date().toISOString();this.store.set('setup-action:'+id,value);this.setupBusy=true;
+  value.state='starting';value.decidedAt=new Date().toISOString();value.approvalSource=automatic?'automatic':'user';if(automatic)value.approvalReason=automaticReason;this.store.set('setup-action:'+id,value);this.setupBusy=true;
   if(value.privilege==='administrator'){value.elevationConsentAt=value.decidedAt;this.store.set('setup-action:'+id,value);}
   try{
     // Settings can change while this approval card is waiting. Never run old
@@ -140,9 +149,11 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
       // A file changed only by applying a proposal of this task is the change the command is meant to run on.
       if(current!==ref.hash&&!this.store.list('proposal:').some(p=>p.taskId===value.taskId&&p.path===ref.path&&p.state==='applied'&&p.expectedHash===ref.hash&&p.afterHash===current))fail('setup_changed');
     }
-    if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question)fail('setup_cancelled');
+    if(this.disposed||this.task(value.taskId).state==='cancelled'||this.task(value.taskId).question||inRun&&(activeRun.signal?.aborted||this.agent?.runId!==activeRun.runId))fail('setup_cancelled');
+    if(automatic&&!await automaticCommandReason(this,value))fail('approval_required');
     // A command can change any file: keep the files as they are now, so the task can be reverted to this point.
     if(value.kind!=='input')await checkpointBefore(this,value.taskId,'before_command',{setupActionId:value.id});
+    if(automatic&&(!await automaticCommandReason(this,value)||inRun&&(activeRun.signal?.aborted||this.agent?.runId!==activeRun.runId)))fail('approval_required');
     if(value.kind==='input'){
       const record=this.processes.records.get(value.processId);
       if(!record||record.taskId!==value.taskId||record.cwd!==value.inputTarget?.cwd||record.script!==value.inputTarget?.command)fail('process_input_changed');
@@ -152,14 +163,25 @@ export async function decideSetupAction({id,fingerprint,decision,elevationConsen
       value.state='started';value.resultProcessId=record.id;this.store.set('setup-action:'+id,value);
       this.processStarted?.(record);return value;
     }
-    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,interactive:value.interactive===true,autoDiagnose:true,idleCheck:value.kind!=='start',setupActionId:value.id,privilege:value.privilege||'user'});
+    const process=await this.processes.start({cwd:value.workspace,taskId:value.taskId,script:value.script,profile:value.profile,interactive:value.interactive===true,autoDiagnose:!inRun,idleCheck:value.kind!=='start',setupActionId:value.id,privilege:value.privilege||'user',...(inRun?{signal:activeRun.signal}:{})});
+    const live=this.processes.records.get(process.id)||this.store.get('process:'+process.id);if(live){live.approvalSource=value.approvalSource;if(inRun)live.agentManagedRunId=activeRun.runId;this.store.set('process:'+live.id,live);}
     value.state='started';value.resultProcessId=process.id;
     this.store.set('setup-action:'+id,value);
     if(value.kind==='start'||value.interactive)this.processStarted?.(this.processes.poll(process.id));
     return value;
   }catch(error){
+    if(error.message==='approval_required'){value.state='proposed';delete value.approvalSource;delete value.approvalReason;this.store.set('setup-action:'+id,value);return value;}
     value.state=['setup_changed','shell_not_selected','process_input_changed','process_input_unavailable'].includes(error.message)?'stale':'attention';
     value.error=['setup_changed','shell_not_selected','process_input_changed','process_input_unavailable'].includes(error.message)?error.message:'setup_execution_unconfirmed';
     this.store.set('setup-action:'+id,value);throw error;
   }finally{this.setupBusy=false;queueMicrotask(()=>this.drainRecovery?.().catch(()=>{}));}
+}
+
+// The active actor reads its own command receipts. Only a process that outlives
+// that actor returns to the existing completion/idle recovery mechanism.
+export function releaseAutomaticCommands(service,taskId,runId,{cancelled=false}={}){
+ if(cancelled)return;
+ for(const record of service.processes.records.values())if(record.taskId===taskId&&record.agentManagedRunId===runId&&record.state==='running'){
+  record.autoDiagnose=true;service.store.set('process:'+record.id,record);service.processes.watchIdle(record);
+ }
 }

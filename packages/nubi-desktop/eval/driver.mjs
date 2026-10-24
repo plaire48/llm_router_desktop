@@ -42,7 +42,7 @@ export async function runCase({testCase,providers,limits={},parent,corpusDirecto
     // Evaluation-only registered fixtures. These hooks never enter the product
     // runtime and keep answer keys outside the agent workspace.
     await prepareWorkspace?.(workspace);
-    await service.open(workspace.root);service.providers=recorded;
+    await service.open(workspace.root);service.setApprovalMode({mode:'ask'});service.providers=recorded;
     await configureService?.(service,workspace);
     taskId=(await service.createTask({request:testCase.request,criteria:testCase.criteria||[]})).id;
     timer=setTimeout(()=>{expired=true;service.stopAgent({taskId}).catch(()=>{});},budget.timeoutMs);

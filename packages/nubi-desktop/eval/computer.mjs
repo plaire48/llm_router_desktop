@@ -106,7 +106,7 @@ export async function runComputerCase({testCase,app,providers,limits={},parent,c
   const service=new ProjectService({storageRoot:workspace.stateRoot}),user=createUser(testCase);service.leanTools=leanTools===true;
   let taskId,error=null,needsHuman=false,asked=false,interactions=0,expired=false,timer;
   try{
-    await service.open(workspace.root);service.providers=recorded;
+    await service.open(workspace.root);service.setApprovalMode({mode:'ask'});service.providers=recorded;
     service.computerAdapter=new WinappComputer({platform:'win32',runner:host.runner});
     taskId=(await service.createTask({request:testCase.request})).id;
     // The user has connected the app window to this task before asking.

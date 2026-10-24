@@ -408,7 +408,7 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
   const [script,setScript]=useState(''),[shell,setShell]=useState(''),[beforeUrl,setBeforeUrl]=useState(''),[afterUrl,setAfterUrl]=useState(''),[comparison,setComparison]=useState(null),[overlay,setOverlay]=useState(false);
   const [knowledge,setKnowledge]=useState(null),[timeoutSeconds,setTimeoutSeconds]=useState(0),[autoDiagnose,setAutoDiagnose]=useState(true);
   const [answer,setAnswer]=useState(''),[welcomeAnimated,setWelcomeAnimated]=useState(null);
-  const [approval,setApproval]=useState({mode:'ask',allowedCommands:[]});
+  const [approval,setApproval]=useState({mode:'commands',allowedCommands:[]});
   const motion=useMotionPreference(),resting='idle';
   const [greeting,setGreeting]=useState(()=>welcomeGreeting());
   const intro={title:hostLayout==='integrated'?'모델을 연결해 시작하세요.':greeting,description:null};
@@ -474,7 +474,7 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
   const taskActions=(project?.setupActions||[]).filter(a=>a.taskId===taskId).reverse();
   // A turn can finish before its commands. Keep displayed records fresh even when another process is selected.
   const commandRecordPending=!!taskId&&(project?.processes||[]).some(process=>['checking','running','stopping'].includes(process.state)&&(process.taskId===taskId||taskActions.some(action=>action.resultProcessId===process.id)));
-  function revealStartedCommand(value){if(!value?.resultProcessId)return;openTerminal?.({processId:value.resultProcessId,cwd:value.workspace||task?.workspace||project?.root});setPanel(null);}
+  function revealStartedCommand(value){if(!value?.resultProcessId||value.approvalSource==='automatic')return;openTerminal?.({processId:value.resultProcessId,cwd:value.workspace||task?.workspace||project?.root});setPanel(null);}
   const setupHandlers={onAlways:action=>perform(async()=>{setApproval(await api('allowCommand',{kind:'setup',id:action.id}));const value=await api('decideSetupAction',{id:action.id,fingerprint:action.fingerprint,decision:'approve'});revealStartedCommand(value);await refresh();}),onDecision:(action,decision)=>perform(async()=>{const value=await api('decideSetupAction',{id:action.id,fingerprint:action.fingerprint,decision,elevationConsent:action.privilege==='administrator'});revealStartedCommand(value);await refresh();}),onStop:process=>perform(async()=>setProcessResult(await api('stop',{id:process.id})))};
   const commandCards=items=>{const actions=showProgress?items:items.filter(action=>{const process=action.resultProcessId?[processResult,...(project?.processes||[])].find(row=>row?.id===action.resultProcessId):null;return action.state!=='rejected'&&!(action.state==='started'&&process?.state==='completed'&&(!process.recoveryState||process.recoveryState==='review'));});return actions.length?<SetupActions expansion={commandRecordExpansion} actions={actions} proposals={proposals} processes={project?.processes||[]} latest={processResult} onOpenTerminal={openTerminal} profiles={project?.profiles||[]} disabled={busy||running||!!task.question||task.state==='cancelled'} {...setupHandlers}/>:null;};
   const appliedFileRecords=receipts=><AppliedFileChanges api={api} taskId={taskId} receipts={receipts} onOpen={(row,options)=>reviewApplied?reviewApplied(row,taskId,options):openPath(row.path,taskId,{...options,expectedHash:row.hash,revealInExplorer:true})}/>;
@@ -705,8 +705,8 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
           return;
         }
         autoTried.current.add(command.id);
-        const value=command.kind==='setup'?await api('decideSetupAction',{id:command.id,fingerprint:command.fingerprint,decision:'approve'}):await api('applyCommandRepair',{id:command.id});
-        revealStartedCommand(value);await refresh();showNotice(command.reason==='allowed'?'항상 허용한 명령을 실행했어요.':'프로젝트 검사 명령을 자동으로 실행했어요.');
+        command.kind==='setup'?await api('decideSetupAction',{id:command.id,fingerprint:command.fingerprint,decision:'approve',automatic:true}):await api('applyCommandRepair',{id:command.id,automatic:true});
+        await refresh();
       });
     })();
     return()=>{live=false;};
@@ -717,7 +717,8 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
     observedProcesses.current={projectId:project?.projectId,ids:new Set(rows.map(row=>row.id))};
     if(!previous||previous.projectId!==project?.projectId)return;
     const fresh=rows.find(row=>row.taskId===taskId&&!previous.ids.has(row.id));
-    if(fresh)openTerminal?.({processId:fresh.id,cwd:fresh.cwd});
+    const action=fresh&&project?.setupActions?.find(action=>action.resultProcessId===fresh.id);
+    if(fresh&&action?.approvalSource==='user')openTerminal?.({processId:fresh.id,cwd:fresh.cwd});
   },[project?.processes,project?.projectId,taskId,openTerminal]);
   useEffect(()=>{let current=true;setProcessResult(project?.processes?.find(p=>p.taskId===taskId)||null);setComparison(null);const previous=project?.comparisons?.find(c=>c.taskId===taskId);if(previous)api('comparison',{id:previous.id}).then(value=>{if(current&&mounted.current)setComparison(value);}).catch(()=>{});return()=>{current=false;};},[taskId,latestProcess?.id,latestComparison?.id]);
   useEffect(()=>{let current=true;setKnowledge(null);if(taskId&&panel==='library')api('knowledgeStatus',{taskId}).then(value=>{if(current)setKnowledge(value);}).catch(e=>{if(current)setError(errors[e.message]||'위키 기록을 확인하지 못했어요.');});return()=>{current=false;};},[taskId,panel]);
@@ -1000,7 +1001,7 @@ export function Workbench({onActivityChange,detailHost,createEditorDraft,connect
           {showProgress&&!!detachedQuestions.length&&<DeckDisclosure title="확인한 요구사항" icon="check">{detachedQuestions.map((q,i)=><div className="nubi-decided-question" key={q.id||i}><p>{q.text}</p><strong>{q.answer?.text}</strong></div>)}</DeckDisclosure>}
           {uncertainProposals.length>0&&<section className="nubi-results" aria-label="파일 저장 확인">{uncertainProposals.map(p=><div key={p.id}><strong>{p.path}</strong><p>{p.state==='attention'?'저장 결과를 확인해 주세요. 파일을 다시 쓰지 않습니다.':'같은 경로에 파일이 생겼어요. 현재 내용을 확인해 주세요.'}</p><CxButton onClick={()=>perform(()=>review(p.id))}><Icon name="columns" size={18}/>비교</CxButton></div>)}</section>}
 
-          {commandCards((project?.processes||[]).filter(row=>row.taskId===taskId&&!taskActions.some(action=>action.resultProcessId===row.id)).reverse().map(row=>({id:row.id,state:'started',title:'명령 실행',script:row.script,workspace:row.cwd,resultProcessId:row.id})))}
+          {commandCards((project?.processes||[]).filter(row=>row.taskId===taskId&&!taskActions.some(action=>action.resultProcessId===row.id)).reverse().map(row=>({id:row.id,state:'started',title:'명령 실행',script:row.script,workspace:row.cwd,approvalSource:row.approvalSource,resultProcessId:row.id})))}
 
           {/* A server started from the conversation stays visible: its address, a way to open it in the app browser and the stop control above (user report 2026-10-14). */}{processResult&&['checking','running'].includes(processResult.state)&&localServerUrls(processResult.output).map(url=><section key={url} className="nubi-server-notice" aria-label="실행 중인 로컬 서버"><span className="nubi-server-notice-icon" aria-hidden="true"><Icon name="play" size={16}/></span><div><strong>로컬 서버가 실행 중이에요</strong><small>{url}</small></div><CxButton variant="primary" onClick={()=>perform(()=>api('openWorkspacePage',{url}))}><Icon name="linkExternal" size={16}/>앱 브라우저로 다시 열기</CxButton></section>)}
           <ProcessRecovery process={processResult} connected={provider?.connected} cancelled={task.state==='cancelled'} disabled={busy||running||!!task.question} onContinue={()=>provider?.connected?perform(async()=>{await api('diagnoseProcess',{id:processResult.id});await refresh();}):openModels()}/>

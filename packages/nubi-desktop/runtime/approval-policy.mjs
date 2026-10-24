@@ -2,8 +2,8 @@
 // The mode is kept for each project:
 //   ask       every proposal waits for the user;
 //   edits     file proposals are applied as they come;
-//   commands  file proposals, and the project's own check commands: a test, build, lint or check script that the
-//             manifest declares, run by its package manager with nothing else on the line.
+//   commands  file proposals, routine local inspection/version commands, and
+//             the project's declared check scripts, each as one plain command.
 // A command the user allowed runs by itself in every mode. Administrator commands and app control always wait for
 // the user. Commands run without isolation, so no other command is automatic.
 import {readFile} from 'node:fs/promises';
@@ -23,7 +23,7 @@ const plain=script=>typeof script==='string'?script.trim():'';
 
 export function approvalPolicy(store){
   const value=store.get(KEY);
-  return {mode:APPROVAL_MODES.includes(value?.mode)?value.mode:'ask',allowedCommands:Array.isArray(value?.allowedCommands)?value.allowedCommands:[],allowedMcpTools:Array.isArray(value?.allowedMcpTools)?value.allowedMcpTools:[]};
+  return {mode:APPROVAL_MODES.includes(value?.mode)?value.mode:'commands',allowedCommands:Array.isArray(value?.allowedCommands)?value.allowedCommands:[],allowedMcpTools:Array.isArray(value?.allowedMcpTools)?value.allowedMcpTools:[]};
 }
 export function setApprovalMode(store,mode){
   if(!APPROVAL_MODES.includes(mode))fail('approval_mode_invalid');
@@ -93,6 +93,34 @@ export function checkCommand(script,scripts={}){
   if(manager.toLowerCase()==='npm'&&!run&&name!=='test')return false;
   return Object.hasOwn(scripts,name)&&CHECK_SCRIPT.test(name)&&!NOT_A_CHECK.test(name);
 }
+// Routine local inspection and verification use the same host permission mode
+// as manifest checks. Shell syntax, remote writes and arbitrary inline programs
+// stay outside this classifier; it is not an OS sandbox.
+export function routineCommand(script){
+ const text=plain(script);if(!text||OPERATORS.test(text))return false;
+ const parts=commandSegments(text);if(parts.length!==1)return false;
+ const [raw,...args]=parts[0],name=program(raw);
+ // Obvious external paths and credential files are outside routine local work.
+ const paths=args.map(arg=>arg.split('=').at(-1));
+ if(paths.some(arg=>/^(?:[\/~]|[a-z][\w-]*:)/i.test(arg)||/(?:^|\/)\.\.(?:\/|$)/.test(arg)||/(?:^|\/)(?:\.env(?:\.|$)|\.ssh(?:\/|$)|\.aws(?:\/|$)|\.npmrc$|credentials?(?:\.|$)|secrets?(?:\.|$)|id_rsa(?:\.|$)|id_ed25519(?:\.|$))/i.test(arg)))return false;
+ if(raw.toLowerCase()!==name&&raw.toLowerCase()!==name+'.exe'&&raw.toLowerCase()!==name+'.cmd')return false;
+ if(args.length===1&&(['node','npm','pnpm','yarn','git','python','python3','py','rg','pwsh','dotnet','cargo'].includes(name)&&args[0]==='--version'||['node','npm','pnpm','yarn','git'].includes(name)&&args[0]==='-v'||['python','python3','py','rg','cargo'].includes(name)&&args[0]==='-V'||name==='go'&&args[0]==='version'))return true;
+ if(['pwd','get-location'].includes(name))return !args.length;
+ if(['get-content','cat','head','tail'].includes(name)&&args.some(arg=>/[*?\[]/.test(arg)))return false;
+ if(['ls','get-childitem','get-content','cat','head','tail'].includes(name))return !args.some(arg=>/^-(?:exec|command|output)/i.test(arg));
+ if(name==='rg')return !args.some(arg=>/^(?:--(?:pre|hostname-bin|hyperlink-format|hidden|no-ignore)(?:=|$)|-u{1,3}$)/.test(arg));
+ if(name==='git')return ['status','diff','log','show','ls-files','rev-parse'].includes(args[0])&&!args.some(arg=>/^--(?:ext-diff|textconv|output|config|exec|paginate)(?:=|$)/.test(arg));
+ if(name==='node'&&args[0]==='--test')return !args.some(arg=>/^(?:-e|-p|-r|--eval|--print|--require|--import|--experimental-loader|--loader)(?:=|$)/.test(arg));
+ return ['python','python3','py'].includes(name)&&args[0]==='-m'&&args[1]==='pytest';
+}
+export async function automaticCommandReason(service,value){
+ if(value.kind==='input'||value.privilege==='administrator'||(value.afterProposals||[]).some(id=>service.store.get('proposal:'+id)?.state==='proposed'))return null;
+ const policy=approvalPolicy(service.store);
+ if(commandAllowed(policy,value))return 'allowed';
+ if(policy.mode!=='commands'||value.manifestChanged||irreversibleCommand(value.script).matched)return null;
+ if(routineCommand(value.script))return 'routine';
+ return checkCommand(value.script,await manifestScripts(await service.target(value.taskId)))?'check':null;
+}
 async function manifestScripts(root){
   try{const value=JSON.parse(await readFile(path.join(root,'package.json'),'utf8'));return value?.scripts&&typeof value.scripts==='object'&&!Array.isArray(value.scripts)?value.scripts:{};}
   catch{return {};}
@@ -126,7 +154,7 @@ export async function autoApprovals(service,{taskId}){
     // checking on this card while that read was in flight.
     const value=service.store.get((kind==='setup'?'setup-action:':'command-repair:')+observed.id);
     if(!value||value.state!=='proposed'||waiting(value))continue;
-    const reason=commandAllowed(policy,value)?'allowed':policy.mode==='commands'&&!value.manifestChanged&&!irreversibleCommand(value.script).matched&&checkCommand(value.script,scripts)?'check':null;
+    const reason=commandAllowed(policy,value)?'allowed':policy.mode==='commands'&&!value.manifestChanged&&!irreversibleCommand(value.script).matched?(routineCommand(value.script)?'routine':checkCommand(value.script,scripts)?'check':null):null;
     if(reason)return {...none,command:{kind,id:value.id,fingerprint:value.fingerprint,script:value.script,reason}};
   }
   return none;

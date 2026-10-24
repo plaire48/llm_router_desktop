@@ -26,6 +26,7 @@ try{
  app=await _electron.launch({executablePath:createRequire(import.meta.url)('electron'),args:['electron-app'],env:{...process.env,NUBI_STORAGE_ROOT:storage,OPENWIKI_CONFIG_DIR:path.join(temporary,'wiki-state'),ELECTRON_RUN_AS_NODE:undefined}});child=app.process();page=await desktopTestWindow(app);page.setDefaultTimeout(20000);page.on('pageerror',error=>errors.push(error.message));
  const resize=async width=>{await (await app.browserWindow(page)).evaluate((win,width)=>{win.setMinimumSize(1,1);win.setContentSize(width,900);},width);await page.setViewportSize({width,height:900});};await resize(1280);
  await page.locator('.desktop-shell[data-startup-ready=true]').waitFor({timeout:60000});await page.locator('.nubi-intro').waitFor({state:'detached'});await request('provider',{action:'connect',input:fixture.connection});
+ await request('setApprovalMode',{mode:'ask'});
  const task=await request('createTask',{request:'코드의 반환값을 2로 바꾸는 변경안을 준비해 주세요.'});
  const reveal=page.getByRole('button',{name:'사이드바 펼치기',exact:true});if(await reveal.count())await reveal.click();await page.locator('.nubi-session-select').filter({hasText:'코드의 반환값을 2로 바꾸는 변경안을 준비해 주세요.'}).click();
  await request('startAgent',{taskId:task.id});

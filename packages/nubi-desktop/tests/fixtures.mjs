@@ -25,6 +25,8 @@ export async function fixture(t,{scriptedReview=false,scriptedPlanning=false}={}
   await writeFile(path.join(root,'openwiki','home.md'),'# Project knowledge\n\nThe welcome screen uses app.txt.\n');
   await git(root,['add','.']);await git(root,['commit','-qm','Initial fixture']);
   const service=new ProjectService({storageRoot:path.join(directory,'state')});await service.open(root);
+  // These fixtures exercise explicit approval boundaries; product defaults are tested separately.
+  service.store.set('setting:approvals',{mode:'ask',allowedCommands:[],allowedMcpTools:[]});
   // Focused host tests retain their scripted turn driver. Native-engine tests
   // explicitly clear this injection and run the bundled original executable.
   service.codingRunner=runAgent;

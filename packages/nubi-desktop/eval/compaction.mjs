@@ -96,7 +96,7 @@ export async function runScenario({scenario,providers,parent,corpusDirectory,eng
   }};
   let error=null;
   try{
-    await service.open(workspace.root);
+    await service.open(workspace.root);service.setApprovalMode({mode:'ask'});
     taskId=(await service.createTask({request:scenario.turns[0].user})).id;
     for(turn=0;turn<scenario.turns.length;turn++){
       step=0;await service.startAgent(turn?{taskId,answer:scenario.turns[turn].user}:{taskId});await service.agent.promise;

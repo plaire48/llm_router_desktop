@@ -1,3 +1,4 @@
+import {automaticCommandReason} from './approval-policy.mjs';
 import {nativeOfficeStatus} from './native-office-host.mjs';
 import {installProcessIdle} from './process-idle.mjs';
 import {requireWikiChatReady} from './wiki-chat-admission.mjs';
@@ -147,23 +148,28 @@ export function installRecovery(ProjectService){
     if(value.state!=='proposed')fail('recovery_changed');
     value.state='rejected';value.rejectedAt=now();this.store.set('command-repair:'+id,value);return value;
   };
-  ProjectService.prototype.applyCommandRepair=async function({id}){
+  ProjectService.prototype.applyCommandRepair=async function({id,automatic=false}){
     const value=this.store.get('command-repair:'+id);if(!value)fail('repair_invalid');
     if(value.state!=='proposed')return value; // A lost response cannot launch twice.
     if(this.computerBusy||this.agent?.running||this.task(value.taskId).question)fail('agent_busy');
     if(this.task(value.taskId).state==='cancelled')fail('setup_cancelled');
     if(this.unsettledOperations?.size)fail('tool_unsettled');
-    // Reserve before the first await, including concurrent renderer calls.
-    value.state='starting';this.store.set('command-repair:'+id,value);
+    if(automatic&&!await automaticCommandReason(this,value))return value;
+    const current=this.store.get('command-repair:'+id);if(current.state!=='proposed')return current;
+    if(this.computerBusy||this.agent?.running||this.task(value.taskId).question)fail('agent_busy');
+    // Recheck after asynchronous policy lookup, then reserve before dispatch.
+    value.state='starting';value.approvalSource=automatic?'automatic':'user';this.store.set('command-repair:'+id,value);
     const controller=new AbortController();
     this.repairStarts ||=new Map();this.repairStarts.set(id,{taskId:value.taskId,controller});
     try{
       if(await this.target(value.taskId)!==value.workspace)fail('workspace_changed');
       if(controller.signal.aborted||this.task(value.taskId).state==='cancelled')fail('setup_cancelled');
       const original=this.processes.poll(value.processId);if(!recoverableProcesses.has(original.state))fail('recovery_changed');
+      if(automatic&&!await automaticCommandReason(this,value))fail('approval_required');
       const process=await this.run({taskId:value.taskId,script:value.script,profile:value.profile,timeoutMs:original.timeoutMs||0,autoDiagnose:true,idleCheck:original.idleCheck!==false,repairOf:value.processId,signal:controller.signal});
+      const live=this.processes.records.get(process.id)||this.store.get('process:'+process.id);if(live){live.approvalSource=value.approvalSource;this.store.set('process:'+live.id,live);}
       value.state='started';value.resultProcessId=process.id;this.store.set('command-repair:'+id,value);return value;
-    }catch(error){value.state='attention';value.error=safeError(error);this.store.set('command-repair:'+id,value);throw error;}
+    }catch(error){if(error.message==='approval_required'){value.state='proposed';delete value.approvalSource;this.store.set('command-repair:'+id,value);return value;}value.state='attention';value.error=safeError(error);this.store.set('command-repair:'+id,value);throw error;}
     finally{this.repairStarts.delete(id);}
   };
 }

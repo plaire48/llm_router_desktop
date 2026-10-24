@@ -151,3 +151,15 @@ test('a response the connection rejects is asked for again within the retry budg
  assert.equal((await service.applyCommandRepair({id:'decline'})).state,'rejected');assert.equal(runs,0);
  service.store.set('command-repair:started',{id:'started',taskId:task.id,state:'starting'});await assert.rejects(service.invoke('rejectCommandRepair',{id:'started'}),/recovery_changed/);
  });
+
+test('command repairs distinguish automatic policy execution from a direct user decision',async t=>{
+ const {service}=await fixture(t);service.setApprovalMode({mode:'commands'});const task=await service.createTask({request:'실패한 로컬 명령을 확인해 줘.'});
+ const first=await service.run({taskId:task.id,profile:'bash',script:'exit 1',autoDiagnose:false});
+ for(let i=0;i<300&&service.processes.active.size;i++)await new Promise(resolve=>setTimeout(resolve,10));
+ const repair=await service.proposeCommandRepair({taskId:task.id,processId:first.id,profile:'bash',script:'node --version',reason:'설치된 실행기 확인'}),automatic=await service.applyCommandRepair({id:repair.id,automatic:true});
+ assert.equal(automatic.state,'started');assert.equal(automatic.approvalSource,'automatic');assert.equal(service.processes.poll(automatic.resultProcessId).approvalSource,'automatic');
+ for(let i=0;i<300&&service.processes.active.size;i++)await new Promise(resolve=>setTimeout(resolve,10));
+ const outside=await service.proposeCommandRepair({taskId:task.id,processId:first.id,profile:'bash',script:"printf 'manual'",reason:'사용자 확인 후 실행'}),held=await service.applyCommandRepair({id:outside.id,automatic:true});
+ assert.equal(held.state,'proposed');assert.equal(service.store.list('process:').length,2);
+ const approved=await service.applyCommandRepair({id:outside.id});assert.equal(approved.approvalSource,'user');assert.equal(service.processes.poll(approved.resultProcessId).approvalSource,'user');
+});

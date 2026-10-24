@@ -61,7 +61,7 @@ async function one(testCase,engine,provider){
  if(testCase.typescript)await symlink(path.resolve('node_modules'),path.join(root,'node_modules'),'dir');
  await run('git',['init','-q'],{cwd:root});await run('git',['add','.'],{cwd:root});await run('git',['-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','Initial fixture'],{cwd:root});
  const service=new ProjectService({storageRoot:path.join(temporary,'state')}),calls=[],began=Date.now(),user=createUser({approvals:['patch','new_file','command'],commands:testCase.commands});let taskId,error,interactions=0,expired=false;
- await service.open(root);if(engine==='pi')service.codingRunner=runAgent;service.runBudgetLimits={calls:24,wallMs:240000};
+ await service.open(root);service.setApprovalMode({mode:'ask'});if(engine==='pi')service.codingRunner=runAgent;service.runBudgetLimits={calls:24,wallMs:240000};
  service.providers={status:()=>provider.status(),dispose(){},complete:async(...args)=>{if(calls.length>=65)throw Error('evaluation_model_budget');const at=Date.now();try{const result=await provider.complete(...args);calls.push({purpose:args[6]?.purpose||'actor',elapsedMs:Date.now()-at,tools:result.calls?.map(c=>c.function.name)||[],usage:result.usage});return result;}catch(e){calls.push({purpose:args[6]?.purpose||'actor',elapsedMs:Date.now()-at,error:e.message});throw e;}}};
  const timer=setTimeout(()=>{expired=true;service.stopAgent({taskId}).catch(()=>{});},300000);
  try{

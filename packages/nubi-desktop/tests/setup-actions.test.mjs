@@ -226,3 +226,39 @@ for(const receipt of [null,{state:'interrupted',execution:'unknown'},{state:'com
   assert.equal(again.state,'attention');assert.equal(again.error,'setup_execution_unconfirmed');assert.equal(service.store.list('setup-action:').length,1);
   assert.equal((await prepare(service,task.id)).id,action.id,'repeated observations cannot acquire fresh authority');
 });
+
+test('an automatic local command executes inside the same actor run and returns its process without user approval',async t=>{
+ const {service}=await fixture(t);service.setApprovalMode({mode:'commands'});const task=await service.createTask({request:'로컬 Node 버전을 확인해 줘.'});let calls=0,received;
+ service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async messages=>{
+  if(!calls++)return call('propose_setup_action',{title:'Node 버전 확인',kind:'inspect',script:'node --version',reason:'요청한 버전 확인',effects:'버전 조회',verification:'실제 출력 확인',references:[]});
+  const result=JSON.parse(messages.findLast(m=>m.role==='tool').content);
+  if(result.resultProcessId){received=result;return call('read_process_output',{processId:result.resultProcessId,waitMs:5000});}
+  assert.match(JSON.stringify(result),/v\d+/);return {content:'실제 버전 출력을 확인했습니다.',calls:[]};
+ }};
+ await service.startAgent({taskId:task.id});await service.agent.promise;
+ assert.equal(service.task(task.id).state,'review');assert.equal(service.store.list('process:').length,1);assert.equal(received.approvalSource,'automatic');assert.equal(received.requiresUserInput,undefined);assert.equal(service.state().setupActions[0].state,'started');
+});
+
+test('a policy downgrade while an automatic approval yields prevents execution and leaves the manual card intact',async t=>{
+ const {service}=await fixture(t);service.setApprovalMode({mode:'commands'});const task=await service.createTask({request:'Node 버전 확인'}),source=await service.read({taskId:task.id,path:'app.txt'}),observations=new SourceObservations();observations.observe(source);
+ const action=await prepareSetupAction(service,task.id,{...spec(source),kind:'inspect',script:'node --version'},observations);
+ const pending=service.decideSetupAction({id:action.id,fingerprint:action.fingerprint,decision:'approve',automatic:true});service.setApprovalMode({mode:'ask'});const result=await pending;
+ assert.equal(result.state,'proposed');assert.equal(result.approvalSource,undefined);assert.equal(service.store.list('process:').length,0);
+});
+test('automatic approval is once-only and persists a distinct source from a user decision',async t=>{
+ const {service}=await fixture(t);service.setApprovalMode({mode:'commands'});const task=await service.createTask({request:'Node 버전 확인'}),source=await service.read({taskId:task.id,path:'app.txt'}),observations=new SourceObservations();observations.observe(source);
+ const action=await prepareSetupAction(service,task.id,{...spec(source),kind:'inspect',script:'node --version'},observations),args={id:action.id,fingerprint:action.fingerprint,decision:'approve',automatic:true};
+ await Promise.all([service.decideSetupAction(args),service.decideSetupAction(args)]);await wait(()=>!service.processes.active.size);
+ assert.equal(service.store.list('process:').length,1);assert.equal(service.state().setupActions[0].approvalSource,'automatic');
+});
+
+test('an automatic process that outlives its actor rejoins completion recovery without a second command',async t=>{
+ const {service,root}=await fixture(t);service.setApprovalMode({mode:'commands'});await writeFile(path.join(root,'slow.test.mjs'),'await new Promise(resolve=>setTimeout(resolve,700));\n');
+ const task=await service.createTask({request:'로컬 검사를 시작하고 실제 상태를 확인해 줘.'});let rounds=0;
+ service.providers={status:()=>({connected:true,model:'fixture',models:[{id:'fixture',contextLength:32000}]}),dispose(){},complete:async()=>{
+  if(!rounds++)return call('propose_setup_action',{title:'로컬 검사',kind:'verify',script:'node --test slow.test.mjs',reason:'검사',effects:'로컬 검사 실행',verification:'종료 결과 확인',references:[]});
+  return {content:'현재 실행 기록을 확인했습니다.',calls:[]};
+ }};
+ await service.startAgent({taskId:task.id});await service.agent.promise;
+ await wait(()=>rounds>=3&&!service.agent.running);const rows=service.store.list('process:');assert.equal(rows.length,1);assert.equal(rows[0].state,'completed');assert.equal(rows[0].approvalSource,'automatic');
+});

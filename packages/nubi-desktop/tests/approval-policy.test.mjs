@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fixture} from './fixtures.mjs';
-import {checkCommand,approvalPolicy} from '../runtime/approval-policy.mjs';
+import {checkCommand,approvalPolicy,routineCommand} from '../runtime/approval-policy.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 import {ProjectService} from '../runtime/project-service.mjs';
 installAgent(ProjectService);
@@ -126,4 +126,13 @@ test('a prefix belongs to the shell it was allowed in',async t=>{
  const id=action('npm run test');service.allowCommand({id});service.store.set('setup-action:'+id,{...service.store.get('setup-action:'+id),state:'done'});
  action('npm run test -- --grep b',{profile:'powershell'});
  assert.equal((await auto()).command,null);
+});
+
+test('unsaved projects default to autonomous coding while an explicit approval choice is preserved',()=>{
+ assert.equal(approvalPolicy({get:()=>undefined}).mode,'commands');
+ for(const mode of ['ask','edits','commands'])assert.equal(approvalPolicy({get:()=>({mode})}).mode,mode);
+});
+test('routine local commands cover actual inspection and checks while inline programs and external mutations require approval',()=>{
+ for(const script of ['node --version','git status --short','git diff --stat','rg --files','ls -la','pwd','Get-ChildItem','Get-Content package.json','node --test tests/a.test.mjs','python -m pytest tests'])assert.equal(routineCommand(script),true,script);
+ for(const script of ['node -e "write()"','git push','git reset --hard','git diff --ext-diff','rg --pre=program x','npm install','curl https://example.invalid','node --test --require side-effect.cjs','ls; rm a','cat .env > output','cat .env','cat .*','Get-Content *','cat ../private.txt','cat /etc/passwd','Get-Content Env:','rg --hidden TOKEN','sudo pwd'])assert.equal(routineCommand(script),false,script);
 });

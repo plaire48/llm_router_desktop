@@ -10,13 +10,13 @@ import {AnchoredDialog} from './AnchoredDialog.jsx';
 export const APPROVAL_MODES=[
   {id:'ask',icon:'user',label:'매번 확인',description:'파일 수정과 명령마다 확인해요.'},
   {id:'edits',icon:'pencil',label:'파일 자동 반영',description:'파일은 자동 반영, 명령은 확인해요.'},
-  {id:'commands',icon:'automation',label:'파일과 명령 자동',description:'파일 수정과 프로젝트 테스트, 빌드, 점검을 자동 실행해요.'},
+  {id:'commands',icon:'automation',label:'파일과 명령 자동',description:'파일 수정과 로컬 조회, 버전 확인, 테스트와 빌드를 자동 실행해요.'},
 ];
 
 // The composer control: the current mode as an icon and a name, and a menu to change it or drop an allowed command.
 export function ApprovalModeControl({policy,disabled,onMode,onRemove}){
   const [position,setPosition]=useState(null),[pending,setPending]=useState(null),confirming=useRef(false);
-  const [open,setOpen]=useState(false),trigger=useRef(null),menu=useRef(null),titleId=useId(),current=APPROVAL_MODES.find(mode=>mode.id===policy?.mode)||APPROVAL_MODES[0];
+  const [open,setOpen]=useState(false),trigger=useRef(null),menu=useRef(null),titleId=useId(),current=APPROVAL_MODES.find(mode=>mode.id===policy?.mode)||APPROVAL_MODES[2];
   // Follow CX's keyboard-tooltip portal and viewport clamp pattern for this interactive menu.
   useLayoutEffect(()=>{
     if(!open){setPosition(null);return;}
