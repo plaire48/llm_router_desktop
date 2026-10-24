@@ -38,6 +38,7 @@ export const LOCAL_HAS=Object.freeze([
  {name:'claude-provider',subject:'.model-dialog',argument:'[data-provider="claude"]'},
  {name:'question-form',subject:'.nubi-decision-dialog',argument:'.nubi-question-form'},
  {name:'panel-navigation',subject:'.nubi-panel',argument:'.nubi-panel-navigation'},
+ {name:'panel-title-icon',subject:'.deck-dialog',argument:'> .cx-panel-header .nubi-panel-title > .nubi-panel-title-icon, > .cx-panel-header .nubi-panel-title > svg, > .cx-panel-header .nubi-panel-title > img, > .cx-panel-header .nubi-panel-title > .desktop-file-icon, > .cx-panel-header .nubi-account-profile > .nubi-account-avatar'},
  {name:'plan-current',subject:'.task-plan',argument:'.task-plan-current'},
  {name:'account-actions',subject:'.nubi-mail-section-heading',argument:'.provider-account-actions'},
  {name:'tab-selected',subject:'.desktop-workspace-tab',argument:'[aria-selected="true"]'},

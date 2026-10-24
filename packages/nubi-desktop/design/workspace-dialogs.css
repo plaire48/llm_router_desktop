@@ -9,6 +9,8 @@
 :root:root .cx-detail-panel.nubi-anchored-dialog > .cx-panel-body,
 :root:root .nubi-anchored-content { display:contents; }
 :root:root .deck-dialog {
+  --nubi-dialog-text-rail:0px;
+  --nubi-dialog-icon-rail:calc(var(--nubi-dialog-symbol-size) + var(--nubi-dialog-icon-gap));
   --cx-font-family:var(--nubi-font-family);
   --cx-field-height:var(--nubi-work-control-height);
   --cx-radius-control:var(--nubi-work-control-radius);
@@ -44,6 +46,7 @@
   flex-direction:column;
   gap:var(--nubi-modal-section-gap);
   padding:var(--nubi-modal-body-block) var(--nubi-modal-inset) var(--nubi-dialog-footer-inset);
+  padding-inline-start:calc(var(--nubi-modal-inset) + var(--nubi-dialog-text-rail));
 }
 :root:root .deck-dialog > .cx-panel-footer {
   display:flex;
@@ -51,6 +54,7 @@
   flex-wrap:nowrap;
   gap:var(--nubi-work-control-gap);
   padding:0 var(--nubi-modal-inset) var(--nubi-dialog-footer-inset);
+  padding-inline-start:calc(var(--nubi-modal-inset) + var(--nubi-dialog-text-rail));
   border:0;
 }
 :root:root .deck-dialog .cx-panel-header > div:first-child { min-width:0; }
@@ -65,7 +69,7 @@
   font-weight:var(--nubi-weight-emphasis);
   color:var(--nubi-text-primary);
 }
-:root:root .deck-dialog .nubi-panel-title { display:inline-flex; align-items:center; gap:var(--nubi-work-control-gap); min-width:0; white-space:nowrap; }
+:root:root .deck-dialog .nubi-panel-title { display:inline-flex; align-items:center; gap:var(--nubi-dialog-icon-gap); min-width:0; white-space:nowrap; }
 :root:root .deck-dialog .nubi-panel-title > :is(svg,img) { object-fit:contain; }
 :root:root .deck-dialog .nubi-panel-title-icon {
   display:inline-flex; align-items:center; justify-content:center; flex:none;
@@ -499,13 +503,40 @@
  :root:root .deck-dialog > :is(.cx-panel-header,.cx-panel-footer) { background:Canvas; }
 }
 
-/* Balanced outer gutters. Icons remain inside the content edge rather than
-   hanging into the left margin. The native header/footer own all chrome. */
-:root:root .deck-dialog:not(.nubi-anchored-dialog){--nubi-dialog-symbol-size:var(--cx-space-6)}
-:root:root .deck-dialog .nubi-panel-title>:is(svg,img){width:var(--cx-space-6);height:var(--cx-space-6);flex:none}
+/* Reserve one icon column inside the balanced outer gutters. Header copy,
+   body copy and fields share its text edge; interactive cues retain a hit area. */
+:root:root .deck-dialog:not(.nubi-anchored-dialog){--nubi-dialog-symbol-size:var(--cx-space-6);--nubi-dialog-text-rail:var(--nubi-dialog-icon-rail)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog)>.cx-panel-header h2{padding-inline-start:var(--nubi-dialog-text-rail)}
+:root:root .deck-dialog[data-has-panel-title-icon="true"]:not(.nubi-anchored-dialog)>.cx-panel-header h2{padding-inline-start:0}
+:root:root .deck-dialog .nubi-panel-title>:is(svg,img,.desktop-file-icon){width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size);flex:none;box-sizing:border-box}
+:root:root .deck-dialog .nubi-panel-title>:is(svg,img){padding:calc((var(--nubi-dialog-symbol-size) - var(--nubi-work-control-icon)) / 2)}
+:root:root .deck-dialog .cx-panel-header .nubi-account-profile{gap:var(--nubi-dialog-icon-gap)}
+:root:root .deck-dialog .cx-panel-header .nubi-account-profile>.nubi-account-avatar{width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size);font-size:var(--deck-type-caption)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-settings-section>legend,.nubi-mail-filter-form h3,.deck-field-label,.nubi-mail-section-title,.nubi-mail-collection-location){position:relative;min-height:var(--nubi-dialog-symbol-size);gap:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-settings-section>legend>.nubi-settings-section-icon,.nubi-mail-filter-form h3>svg,.deck-field-label>[aria-hidden="true"],.nubi-mail-section-title>.nubi-mail-section-icon,.nubi-mail-collection-location>svg){position:absolute;inset-inline-start:calc(-1 * var(--nubi-dialog-text-rail));width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-mail-filter-form h3>svg,.nubi-mail-collection-location>svg){box-sizing:border-box;padding:calc((var(--nubi-dialog-symbol-size) - var(--nubi-work-control-icon)) / 2)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-field-label>[aria-hidden="true"]{display:grid;place-items:center}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-field-label>[aria-hidden="true"]>svg{width:var(--nubi-work-control-icon);height:var(--nubi-work-control-icon)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-field-label{margin-inline-start:calc(-1 * var(--nubi-dialog-text-rail));padding-inline-start:var(--nubi-dialog-text-rail);width:calc(100% + var(--nubi-dialog-text-rail));box-sizing:border-box}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) span.deck-field-label>span[aria-hidden="true"]{inset-inline-start:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-settings-section-body{padding-inline-start:0}
+:root:root .deck-dialog summary{list-style-position:outside}
 :root:root .deck-dialog .nubi-settings-row.cx-kit-button{width:100%;margin-inline:0;padding-inline:0;gap:var(--cx-space-2);background:transparent}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-settings-row.cx-kit-button{position:relative;margin-inline-start:calc(-1 * var(--nubi-dialog-text-rail));padding-inline-start:var(--nubi-dialog-text-rail);width:calc(100% + var(--nubi-dialog-text-rail));gap:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-settings-row-icon{position:absolute;inset-inline-start:0}
 :root:root .deck-dialog .nubi-settings-row-icon{width:var(--cx-space-6);height:var(--cx-space-6)}
 :root:root .deck-dialog .nubi-settings-row.cx-kit-button:hover:not(:disabled){background:var(--deck-blue-soft)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-account-info dt,.nubi-account-settings>summary,.nubi-mail-model-value,.nubi-custom-skill-note){position:relative;gap:0;min-height:var(--nubi-dialog-symbol-size)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-account-info dt>svg,.nubi-account-settings>summary>svg,.nubi-mail-model-value>svg,.nubi-mail-model-value>img,.nubi-custom-skill-note>svg){position:absolute;inset-inline-start:calc(-1 * var(--nubi-dialog-text-rail));width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size);box-sizing:border-box;padding:calc((var(--nubi-dialog-symbol-size) - var(--nubi-work-control-icon)) / 2)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) :is(.nubi-mail-model-disclosure>summary,.deck-disclosure>summary,.nubi-account-settings>summary){position:relative;margin-inline-start:calc(-1 * var(--nubi-dialog-text-rail));padding-inline-start:var(--nubi-dialog-text-rail);padding-inline-end:0;width:calc(100% + var(--nubi-dialog-text-rail));box-sizing:border-box;gap:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-account-settings>summary>svg{inset-inline-start:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-disclosure{margin-inline:calc(-1 * var(--cx-space-3));border:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-disclosure>summary>svg:first-child{position:absolute;inset-inline-start:0;width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size);box-sizing:border-box;padding:calc((var(--nubi-dialog-symbol-size) - var(--nubi-work-control-icon)) / 2)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .deck-disclosure-body{padding-inline:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-wiki-update{margin-inline:calc(-1 * var(--cx-space-3))}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-action-head{position:relative;gap:0}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-action-head>.nubi-action-tile{position:absolute;inset-inline-start:calc(-1 * var(--nubi-dialog-text-rail));width:var(--nubi-dialog-symbol-size);height:var(--nubi-dialog-symbol-size)}
+:root:root .deck-dialog:not(.nubi-anchored-dialog) .nubi-action-tile>svg{width:var(--nubi-work-control-icon);height:var(--nubi-work-control-icon)}
 :root:root .deck-dialog>.cx-panel-body>p:not(.nubi-muted):not([role=status]){font-size:var(--nubi-reading-size);font-weight:var(--nubi-weight-regular);line-height:var(--deck-line-body)}
 
 /* Shared text identity for every Desktop modal, including body portals.

@@ -66,6 +66,7 @@
       "bodyWeight": 400,
       "inset": 32,
       "narrowInset": 24,
+      "textRail": 32,
       "sectionGap": 20,
       "fieldGap": 8,
       "footerBottom": 32,

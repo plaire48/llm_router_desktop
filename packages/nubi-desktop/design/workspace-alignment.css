@@ -115,12 +115,14 @@
 .desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
  .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
  .nubi-activity-sources>summary,.agent-trace>summary,
- .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status,
+ .nubi-review-evidence>summary,.nubi-review-check-heading
 ){position:relative;padding-inline-start:0}
 .desktop-shell .nubi-workbench .nubi-conversation-wrap :is(
  .nubi-activity-record>summary,.nubi-thoughts>summary,.nubi-command-record>summary,
  .nubi-activity-sources>summary,.agent-trace>summary,
- .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status
+ .task-plan [data-plan-overview]>summary,.nubi-document-progress-heading,.nubi-working-status,
+ .nubi-review-evidence>summary,.nubi-review-check-heading
 )>svg:first-child{
  position:absolute;inset-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)));
 }
@@ -129,3 +131,7 @@
 .desktop-shell .nubi-workbench .nubi-result-review[data-folded] .nubi-document-progress-heading{color:var(--nubi-text-secondary)}
 
 .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-activity-note{padding-inline-start:0}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .answer-model{position:relative;overflow:visible}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .answer-model>.nubi-answer-mark{position:absolute;inset-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)))}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-review-evidence>ol{padding-inline-start:0;list-style-position:outside}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-review-detail>ol{padding-inline-start:0;list-style:none}

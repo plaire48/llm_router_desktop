@@ -15,24 +15,48 @@ export async function assertDialogChrome(dialog) {
     const body=parts.find(node=>node.classList.contains('cx-panel-body'));
     const footer=parts.find(node=>node.classList.contains('cx-panel-footer'));
     const fullModal=!root.classList.contains('nubi-anchored-dialog')&&header?.checkVisibility();
+    const textStart=node=>{
+      if(!node)return null;
+      const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);let text;
+      while(text=walker.nextNode())if(text.textContent.trim()&&!text.parentElement.closest('svg,[aria-hidden="true"],.nubi-panel-title-icon')){
+        const range=document.createRange();range.selectNodeContents(text);const rect=[...range.getClientRects()].find(box=>box.width>0);if(rect)return rect.left;
+      }
+      return null;
+    };
+    const textAxis=fullModal?{title:textStart(title),body:body.getBoundingClientRect().left+parseFloat(getComputedStyle(body).paddingLeft)}:null;
+    if(textAxis){
+      const rows=[...body.querySelectorAll('.nubi-settings-section>legend,.nubi-mail-filter-form>section h3,.nubi-mail-section-title,.nubi-mail-collection-location>div,.nubi-account-info dt,.nubi-account-settings>summary,.nubi-mail-model-value,.deck-disclosure>summary,.nubi-custom-skill-note,.nubi-action-head h3')];
+      const field=body.querySelector('.deck-field-label');if(field)rows.push(field);
+      textAxis.rows=rows.filter(node=>node.checkVisibility()).map(node=>({kind:node.className||node.tagName,text:node.textContent.trim().slice(0,50),left:textStart(node)}));
+      textAxis.targets=[...body.querySelectorAll('.nubi-settings-row,.deck-disclosure>summary,.nubi-account-settings>summary,.nubi-mail-model-disclosure>summary,.deck-field-label')].filter(node=>node.checkVisibility()).flatMap(node=>{
+        const icon=node.querySelector('.nubi-settings-row-icon,svg,img');if(!icon?.checkVisibility())return [];
+        const target=node.getBoundingClientRect(),glyph=icon.getBoundingClientRect();return [{kind:node.className||node.tagName,left:target.left,right:target.right,iconLeft:glyph.left,iconRight:glyph.right}];
+      });
+    }
+    const iconRail=textAxis?.title==null?0:textAxis.title-header.getBoundingClientRect().left-parseFloat(getComputedStyle(header).paddingLeft);
     return {geometry:fullModal?{
       gutter:parseFloat(getComputedStyle(header).paddingLeft),
       closeInset:close?.checkVisibility()?{top:close.getBoundingClientRect().top-root.getBoundingClientRect().top,right:root.getBoundingClientRect().right-close.getBoundingClientRect().right}:null,
       narrow:innerWidth<=600,
+      textRail:iconRail,
       top:parseFloat(getComputedStyle(header).paddingTop),
       bottom:parseFloat(getComputedStyle(footer||body).paddingBottom),
       footerTop:footer?parseFloat(getComputedStyle(footer).paddingTop):0,
       contextOffsets:root.classList.contains('context-dialog')?[...body.children].map(node=>parseFloat(getComputedStyle(node).marginInlineStart)):[]
-    }:null,insets:parts.map(node=>[getComputedStyle(node).paddingLeft,getComputedStyle(node).paddingRight]),
+    }:null,textAxis,insets:parts.map(node=>[parseFloat(getComputedStyle(node).paddingLeft)-(fullModal&&!node.classList.contains('cx-panel-header')?iconRail:0),parseFloat(getComputedStyle(node).paddingRight)]),
       titleWeight:getComputedStyle(title).fontWeight,
       radius:getComputedStyle(root).borderRadius,
       bottomSheet:document.documentElement.hasAttribute('data-modal-motion')&&matchMedia('(max-width:760px)').matches&&root.parentElement?.matches('.cx-panel-backdrop.is-modal'),
       close:close?.checkVisibility()?{width:close.getBoundingClientRect().width,height:close.getBoundingClientRect().height,radius:getComputedStyle(close).borderRadius}:null,
       sectionGap:getComputedStyle(root.querySelector(':scope > .cx-panel-body')).rowGap,leadingGlyph:(()=>{const glyph=root.querySelector('.cx-panel-header .nubi-panel-title>:is(.nubi-panel-title-icon,svg,img)');if(!glyph?.checkVisibility())return null;const header=root.querySelector('.cx-panel-header'),box=glyph.getBoundingClientRect(),bounds=header.getBoundingClientRect();return {left:box.left,min:bounds.left+parseFloat(getComputedStyle(header).paddingLeft)};})()};
   });
-  assert(new Set(facts.insets.flat()).size===1,'All dialog sections share the same horizontal gutter');
+  assert(new Set(facts.insets.flat()).size===1,'Dialog sections share the outer gutter around the reserved icon column');
+  if(facts.textAxis?.title!=null)assert(Math.abs(facts.textAxis.title-facts.textAxis.body)<1,'Modal title and body share one text start: '+JSON.stringify(facts.textAxis));
+  if(facts.textAxis)for(const row of facts.textAxis.rows)assert(row.left==null||Math.abs(row.left-facts.textAxis.body)<1,'Modal section shares the title text start: '+JSON.stringify(row));
+  if(facts.textAxis)for(const row of facts.textAxis.targets)assert(row.iconLeft>=row.left-1&&row.iconRight<=row.right+1,'Leading icon stays inside its click target: '+JSON.stringify(row));
   if(facts.geometry){
     const g=facts.geometry,expected=g.narrow?adaptation.modal.narrowInset:adaptation.modal.inset;
+    assert(Math.abs(g.textRail-adaptation.modal.textRail)<1,'Modal text uses the shared icon column and gap');
     assert.equal(g.gutter,expected,'Modal uses the shared responsive gutter');
     assert.equal(g.top,g.gutter,'Top and side outer insets match');
     if(g.closeInset){assert(Math.abs(g.closeInset.top-g.gutter)<1,'Close button uses common top inset: '+JSON.stringify(g.closeInset));assert(Math.abs(g.closeInset.right-g.gutter)<1,'Close button uses common right inset: '+JSON.stringify(g.closeInset));}

@@ -27,7 +27,8 @@ const records=[],errors=[];let p;
 async function load(query){await p.goto('file://'+path.join(bundle,'index.html')+'?'+query);await p.locator('.nubi-workbench,.deck-dialog,.nubi-bar,.nubi-mail-history').first().waitFor();await p.emulateMedia({reducedMotion:'reduce'});await p.evaluate(()=>document.fonts.ready);}
 async function audit(name,selector='body'){
  if(name.startsWith('progress-')){const footer=p.locator('.desktop-mail-progress');const bounds=await footer.boundingBox();assert(bounds&&bounds.width>100&&bounds.height>20&&bounds.y>=0&&bounds.y+bounds.height<=await p.evaluate(()=>innerHeight),'progress content is actually inside the viewport');assert.match(await footer.innerText(),/위키/);}
- for(const dialog of await p.locator('.deck-dialog:visible').all())await assertDialogChrome(dialog);
+ const dialogs=[];
+ for(const dialog of await p.locator('.deck-dialog:visible').all())dialogs.push(await assertDialogChrome(dialog));
  const metrics=await p.locator(selector).first().evaluate(root=>{
   const floor=parseFloat(getComputedStyle(document.documentElement).fontSize)*.875;
   const nodes=[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&!e.closest('svg,.monaco-editor,.xterm,[aria-hidden="true"],.visually-hidden,.nubi-word-paper,.nubi-ppt-canvas,.nubi-excel-grid-scroll,.talk-rich-content')&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
@@ -82,7 +83,7 @@ async function audit(name,selector='body'){
  assert.deepEqual(cx.contrast,[],name+': text contrast over plain measured backgrounds');
  const buttonLayout=await auditButtonLayout(p);
  assert.deepEqual(buttonLayout.issues,[],name+': button layout '+JSON.stringify(buttonLayout.issues));
- records.push({name,file,...metrics,composers,cx,buttonLayout});console.log('checked',name);
+ records.push({name,file,...metrics,dialogs,composers,cx,buttonLayout});console.log('checked',name);
  await writeFile(path.join(dir,'diagnostic.json'),JSON.stringify(records,null,2));
 }
 async function close(){await p.keyboard.press('Escape');}

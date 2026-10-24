@@ -101,10 +101,19 @@ try{
   await captureDesign(p,{path:path.join(dir,`concrete-gap-${width}.png`)});
   await p.evaluate(()=>window.liveReview({state:'ready',normalized:'interpretation_only',nextStep:'추가 운영 범위는 점검 기록으로 남깁니다.',checks:[{requirementId:'request',state:'supported',detail:'요청한 담당자는 원문에서 확인했습니다.'},{requirementId:'intent:outcome:1',state:'unknown',detail:'요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.'}]}));
   const evidence=p.locator('.nubi-review-evidence');await evidence.locator(':scope>summary').getByText('확인한 근거 1개',{exact:true}).waitFor();
+  const alignment=await p.evaluate(()=>{
+   const field=document.querySelector('.nubi-compose-card textarea'),style=getComputedStyle(field),axis=field.getBoundingClientRect().left+parseFloat(style.paddingLeft)+parseFloat(style.borderLeftWidth);
+   const start=node=>{const walker=document.createTreeWalker(node,NodeFilter.SHOW_TEXT);let text;while(text=walker.nextNode())if(text.textContent.trim()&&!text.parentElement.closest('svg,.nubi-answer-mark')){const range=document.createRange();range.selectNodeContents(text);return range.getBoundingClientRect().left;}return null;};
+   return {axis,review:start(document.querySelector('.nubi-review-evidence>summary')),model:start(document.querySelector('.message-assistant .answer-model'))};
+  });
+  assert(Math.abs(alignment.review-alignment.axis)<1,'review label shares the typed-text start: '+JSON.stringify(alignment));
+  assert(Math.abs(alignment.model-alignment.axis)<1,'model metadata shares the typed-text start: '+JSON.stringify(alignment));
   assert.equal(await review.count(),0,'an extra planner check does not turn a supported answer into a missing-result card');
   assert.equal(await evidence.getByText('요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.',{exact:true}).isVisible(),false);
   await evidence.locator(':scope>summary').click();await evidence.getByText('추가 점검 1개',{exact:true}).click();
   await evidence.locator('[data-check=unknown]').getByText('요청하지 않은 운영 서버 담당자는 확인하지 않았습니다.',{exact:true}).waitFor();
+  const advisoryAxis=await evidence.locator('[data-check=unknown]').evaluate(node=>({heading:node.querySelector('strong').getBoundingClientRect().left,body:node.querySelector('p').getBoundingClientRect().left}));
+  assert(Math.abs(advisoryAxis.heading-alignment.axis)<1&&Math.abs(advisoryAxis.body-alignment.axis)<1,'review heading and explanation share the transcript text start: '+JSON.stringify(advisoryAxis));
   await evidence.locator('[data-check=unknown]').scrollIntoViewIfNeeded();
   await captureDesign(p,{path:path.join(dir,`advisory-check-${width}.png`)});
   if(width===440){await p.evaluate(()=>document.documentElement.style.fontSize='200%');assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);await evidence.locator('[data-check=unknown]').scrollIntoViewIfNeeded();await captureDesign(p,{path:path.join(dir,'advisory-check-large-text.png')});await p.evaluate(()=>document.documentElement.style.fontSize='');}

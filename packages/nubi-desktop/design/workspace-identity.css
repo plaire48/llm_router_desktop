@@ -270,6 +270,7 @@
   --nubi-dialog-footer-inset: var(--nubi-modal-inset);
   --nubi-dialog-field-gap: var(--cx-space-2);
   --nubi-dialog-symbol-size: 2rem;
+  --nubi-dialog-icon-gap: var(--cx-space-2);
   --nubi-chat-width: clamp(700px, 94cqi, 1480px);
   --nubi-chat-reading-width: 100%;
   --nubi-transcript-icon-size: var(--nubi-icon-control);
