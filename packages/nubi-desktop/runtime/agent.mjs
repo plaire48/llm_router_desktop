@@ -282,18 +282,21 @@ export function installAgent(ProjectService) {
   // The host can start a run only when no other operation holds it. answerAgent checks this before it consumes the
   // question, so a refused answer keeps the question and the typed text can be sent again.
   function requireAgentAdmission(service){
+    if(service.navigationStopping)throw new Error('project_navigation_stopping');
     if(service.skillImportBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.agent?.running||service.reconciling)throw new Error('agent_busy');
     if(service.unsettledOperations?.size)throw new Error('tool_unsettled');
   }
   // peerResultId: the task delegated to the browser whose end starts this run (collaboration.mjs).
   ProjectService.prototype.startAgent = async function ({taskId, answer, recoveryProcessId, computerReviewId, computerConnectionRequestId, computerConnectionAnswer, peerResultId,queuedInputId,mailReferences=[],captures=[],documentReferences=[]}) {
     this.ready(); requireWikiChatReady(this); requireAgentAdmission(this);
+    const navigationEpoch=this.navigationEpoch||0;
     if (!this.providers?.status().connected) throw new Error('provider_missing');
     const task = this.task(taskId);
     if(task.kind==='workflow'||task.origin?.kind==='workflow_step')throw Error('feature_removed');
     const redoRequested=task.replyRegeneration?.state==='requested';
     const selectedMail=await validateMailReferences(this,queuedInputId?task.inbox?.find(item=>item.id===queuedInputId)?.mailReferences||[]:mailReferences.length?mailReferences:task.state==='draft'?task.requestMailReferences||[]:[]);
     requireWikiChatReady(this);
+    if(this.navigationStopping||(this.navigationEpoch||0)!==navigationEpoch)throw new Error('project_navigation_stopping');
     if(this.agent?.running)throw Error('agent_busy');
     const selectedDocuments=validateDocuments(this,queuedInputId?task.inbox?.find(item=>item.id===queuedInputId)?.documentReferences||[]:documentReferences.length?documentReferences:task.state==='draft'?task.requestDocuments||[]:[]);
     task.documentReferences=mergeDocuments(task.documentReferences,selectedDocuments);
@@ -319,12 +322,13 @@ export function installAgent(ProjectService) {
     // A run started by answering a question continues the input chain of input still waiting for this conversation, so
     // steering left from the run that asked reaches this one instead of staying behind (user decision 2026-10-23).
     const leftChain=answer&&!queuedInputId?nextInput(task.inbox,inputBinding(this,taskId))?.runId:null;
+    if(this.navigationStopping||(this.navigationEpoch||0)!==navigationEpoch)throw new Error('project_navigation_stopping');
     const controller = new AbortController(),runId=randomUUID(),timing=responseTimer(); this.agent = {controller, running: true, taskId, runId,timing,inputChain:queuedInput?.runId||leftChain||runId};
     task.responseTiming={...timing.snapshot(),runId};if(redoRequested)task.replyRegeneration={...task.replyRegeneration,state:'running',runId};this.store.set('task:'+taskId,task);
     let rootRules,skills,workspaceRoot;try{const root=workspaceRoot=await this.target(taskId);rootRules=await projectRules(root);skills=await skillCatalog(this.root);requestCommand=resolveAgentCommand(answer??task.messages?.findLast(message=>message.role==='user')?.content??task.request,skills.skills);if(requestCommand?.action)throw Error('agent_command_ui_only');planningOnly=requestCommand?.command==='plan';}catch(error){this.agent.running=false;task.responseTiming={...timing.finish('failed'),runId};this.store.set('task:'+taskId,task);throw error;}
     // A missing or unreadable Wiki must not stop a run.
     let wiki=null;try{wiki=await wikiOverview(this,taskId);}catch{wiki=null;}
-    if(controller.signal.aborted){this.agent.running=false;task.responseTiming={...timing.finish('cancelled'),runId};this.store.set('task:'+taskId,task);throw new Error('cancelled');}
+    if(controller.signal.aborted){this.agent.running=false;task.state='cancelled';task.responseTiming={...timing.finish('cancelled'),runId};this.store.set('task:'+taskId,task);throw new Error('cancelled');}
     const observations = new SourceObservations(),loadedSkills=new Map();
     const previousCheckpoint=task.checkpoint||null;
     let commandApprovalPending=false;

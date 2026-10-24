@@ -50,8 +50,9 @@ async function discoverShellProfiles({platform=process.platform,bashCandidates,e
 export const COMMAND_IDLE_MS = 5 * 60 * 1000;
 export const processInputRevision=record=>'sha256:'+createHash('sha256').update(JSON.stringify([record.id,record.startedAt,record.outputBytes||0,record.inputCount||0,record.output])).digest('hex');
 export class Processes {
-  constructor(store,{onFinished=()=>{},onIdle=()=>{},onActivity=()=>{},idleMs=COMMAND_IDLE_MS,profiles=shellProfiles}={}) { this.store = store; this.active = new Map(); this.records = new Map(); this.pending=new Set();this.preflights=new Map();this.disposed=false;this.onFinished=onFinished;this.onIdle=onIdle;this.onActivity=onActivity;this.idleMs=idleMs;this.idleTimers=new Map();this.profiles=profiles; }
+  constructor(store,{onFinished=()=>{},onIdle=()=>{},onActivity=()=>{},canStart=()=>true,idleMs=COMMAND_IDLE_MS,profiles=shellProfiles}={}) { this.store = store; this.active = new Map(); this.records = new Map(); this.pending=new Set();this.preflights=new Map();this.disposed=false;this.onFinished=onFinished;this.onIdle=onIdle;this.onActivity=onActivity;this.canStart=canStart;this.idleMs=idleMs;this.idleTimers=new Map();this.profiles=profiles; }
   async start({cwd, script, profile = hostShell(), taskId, timeoutMs = 0,autoDiagnose=true,repairOf,setupActionId,privilege='user',idleCheck=true,terminalRequestId,terminalProjectId,interactive=false,signal}) {
+    if(!this.canStart())throw new Error('project_navigation_stopping');
     if(this.disposed)throw new Error('host_disconnected');
     if(signal!=null&&!(signal instanceof AbortSignal))throw new Error('command_invalid');
     if(typeof interactive!=='boolean')throw new Error('command_invalid');

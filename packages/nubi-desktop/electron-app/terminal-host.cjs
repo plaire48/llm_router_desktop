@@ -25,6 +25,7 @@ class TerminalHost{
  async request(args){
   const {action='open',id,projectId}=args||{};
   if(typeof id!=='string'||!/^[-\w]{1,80}$/.test(id)||typeof projectId!=='string')throw Error('terminal_session_missing');
+  if(this.closingProjects?.has(projectId)&&['open','input'].includes(action))throw Error('project_navigation_stopping');
   if(action==='open'){
    if(this.opens.has(id)){const opening=this.opens.get(id);if(opening.projectId!==projectId)throw Error('terminal_session_missing');return opening;}
    if(this.opens.size+this.sessions.size>=12&&!this.sessions.has(id))throw Error('terminal_session_limit');
@@ -50,6 +51,20 @@ class TerminalHost{
   trace('revalidate');await this.invoke('projectPath',{projectId});
   if(generation!==this.generation)throw Error('terminal_disconnected');
   trace('worker');const result=await this.call('open',{id,projectId,cwd:location.absolute,...shell,...(profile.gitBashRoot?{gitBashRoot:profile.gitBashRoot}:{}),cols:args.cols,rows:args.rows});this.sessions.set(id,projectId);trace('opened');return result;
+ }
+ closeProject(projectId){
+  this.closingProjects ||=new Map();
+  let operation=this.closingProjects.get(projectId);
+  if(!operation){
+   operation=Promise.resolve().then(async()=>{
+    await Promise.allSettled([...this.opens.values()].filter(opening=>opening.projectId===projectId));
+    const ids=[...this.sessions].filter(([,owner])=>owner===projectId).map(([id])=>id);
+    await Promise.all(ids.map(id=>this.request({action:'close',id,projectId,waitForExit:true})));return {closed:true,ids};
+   });
+   this.closingProjects.set(projectId,operation);
+   const clear=()=>{if(this.closingProjects.get(projectId)===operation)this.closingProjects.delete(projectId);};void operation.then(clear,clear);
+  }
+  let timer;return Promise.race([operation,new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('project_navigation_stop_pending')),15000);})]).finally(()=>clearTimeout(timer));
  }
  dispose(){this.generation++;this.opens.clear();const child=this.worker;this.worker=null;for(const pending of this.pending.values())pending.reject(Error('terminal_disconnected'));this.pending.clear();this.sessions.clear();if(child?.connected)child.disconnect();}
 }

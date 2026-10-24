@@ -7,6 +7,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {ProjectService,resolveProjectFolder} from '../runtime/project-service.mjs';
 import {ProjectServices} from '../runtime/project-services.mjs';
+import {stopProjectWork} from '../runtime/project-navigation.mjs';
 import {installAgent} from '../runtime/agent.mjs';
 import {desktopUsage} from '../runtime/usage.mjs';
 import {fixturePlan,fixtureReview} from './fixtures.mjs';
@@ -42,6 +43,92 @@ test('a live agent keeps its project, store and answer while another folder runs
  release.release();await runA.promise;assert.equal(service.task(taskA.id).messages.at(-1).content,'ALPHA ANSWER');assert.equal(service.store.get('task:'+taskB.id),null);assert.equal(disposals,0);
  await open(a);assert.equal(pool.current,service);assert.equal(service.store,storeA);assert.equal(service.task(taskA.id).state,'review');
  assert.equal(await readFile(path.join(a,'app.txt'),'utf8'),'A ORIGINAL');assert.equal(await readFile(path.join(b,'app.txt'),'utf8'),'B ORIGINAL');
+});
+
+test('explicit user navigation cancels every current conversation before selecting another project',async t=>{
+ const {a,b,service,pool,open}=await fixture(t),entered=[];
+ service.providers={status,dispose(){},complete:async(messages,tools,signal)=>{
+  const scripted=fixturePlan(messages)||fixtureReview(messages);if(scripted)return scripted;
+  entered.push(true);return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('cancelled')),{once:true}));
+ }};
+ await open(a);const originalStore=service.store;
+ const first=await pool.invoke('createTask',{request:'처음 실행'}),second=await pool.invoke('createTask',{request:'동시에 실행'}),waiting=await pool.invoke('createTask',{request:'확인 대기'});
+ service.store.set('task:'+waiting.id,{...waiting,state:'waiting_input',question:{id:'navigation-question',text:'선택해 주세요.'}});
+ for(const task of [first,second])await pool.invoke('startAgent',{taskId:task.id});
+ while(entered.length<2)await new Promise(resolve=>setTimeout(resolve,10));
+ const selected=await pool.invoke('open',{root:b,initializeWiki:false,stopCurrent:true});
+ assert.equal(selected.root,b);assert.equal(service.store,originalStore,'navigation keeps the source journal open');
+ for(const task of [first,second,waiting])assert.equal(service.task(task.id).state,'cancelled');
+ assert([...service.agentRuns.values()].every(run=>!run.running&&run.controller.signal.aborted));
+ assert.equal(selected.backgroundDecisions.length,0,'cancelled questions do not remain actionable');
+ assert.equal(await readFile(path.join(a,'app.txt'),'utf8'),'A ORIGINAL');
+});
+
+test('user navigation waits for the original command exit receipt',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await open(a);const task=await pool.invoke('createTask',{request:'실행 중인 명령'});
+ const process=await service.processes.start({cwd:a,taskId:task.id,script:'node -e "setInterval(()=>{},1000)"',idleCheck:false,autoDiagnose:false});
+ try{
+  await pool.invoke('open',{root:b,initializeWiki:false,stopCurrent:true});
+  assert.equal(service.processes.active.size,0);assert.equal(service.processes.pending.size,0);
+  assert.equal(service.store.get('process:'+process.id).state,'cancelled');
+ }finally{
+  service.processes.stop(process.id);while(service.processes.active.size||service.processes.pending.size)await new Promise(resolve=>setTimeout(resolve,10));
+ }
+});
+
+test('an invalid navigation target does not cancel the current task',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await open(a);const task=await service.createTask({request:'대기 중인 요청'});
+ service.store.set('task:'+task.id,{...task,state:'waiting_input',question:{id:'preserved-question',text:'범위를 선택해 주세요.'}});
+ await assert.rejects(pool.invoke('open',{root:path.join(b,'missing'),initializeWiki:false,stopCurrent:true}),/project_path_missing/);
+ assert.equal(pool.current,service);assert.equal(service.task(task.id).state,'waiting_input');
+ await pool.invoke('open',{root:a,initializeWiki:false,stopCurrent:true});assert.equal(service.task(task.id).state,'waiting_input','same-project selection is a no-op');
+});
+
+test('a late source-validation response cannot start work after user navigation',async t=>{
+ const {a,b,service,pool,open}=await fixture(t),entered=gate(),release=gate();t.after(()=>release.release());
+ service.providers={status,dispose(){},complete:async()=>({content:'must not start',calls:[]})};
+ service.mail=async()=>{entered.release();await release.promise;return {id:'source',sourceHash:'hash'};};
+ await open(a);const task=await service.createTask({request:'메일 확인 대기'});
+ const starting=pool.invoke('startAgent',{taskId:task.id,mailReferences:[{id:'source'}]});await entered.promise;
+ await pool.invoke('open',{root:b,initializeWiki:false,stopCurrent:true});release.release();
+ await assert.rejects(starting,/project_navigation_stopping/);assert.equal(service.agentForTask(task.id)?.running||false,false);
+});
+
+test('the host stop phase preserves project selection until terminal cleanup finishes',async t=>{
+ const {a,service,pool,open}=await fixture(t);await open(a);const task=await service.createTask({request:'중지할 확인 질문'});
+ service.store.set('task:'+task.id,{...task,state:'waiting_input',question:{id:'stop-phase',text:'선택 대기'}});
+ await assert.rejects(pool.invoke('stopProjectWork',{projectId:'foreign'}),/project_changed/);
+ const result=await pool.invoke('stopProjectWork',{projectId:service.projectId});
+ assert.equal(result.projectId,service.projectId);assert.equal(pool.current,service);assert.equal(service.task(task.id).state,'cancelled');
+});
+
+test('navigation resolves the target before stopping the current project',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await promisify(execFile)('git',['init','-q',a]);await mkdir(path.join(a,'nested'));await open(a);
+ const task=await service.createTask({request:'대상을 고르는 동안 보존'});service.store.set('task:'+task.id,{...task,state:'waiting_input',question:{text:'대기'}});
+ assert.equal((await pool.invoke('projectNavigationTarget',{root:path.join(a,'nested')})).root,a);
+ assert.equal((await pool.invoke('projectNavigationTarget',{root:b})).root,b);
+ await assert.rejects(pool.invoke('projectNavigationTarget',{root:path.join(b,'missing')}),/project_path_missing/);
+ assert.equal(pool.current,service);assert.equal(service.task(task.id).state,'waiting_input');
+});
+
+test('an unconfirmed process stop retains its admission guard and discards a late model answer',async t=>{
+ const {a,service,open}=await fixture(t),entered=gate(),release=gate();t.after(()=>release.release());
+ service.providers={status,dispose(){},complete:async(messages)=>{
+  const scripted=fixturePlan(messages)||fixtureReview(messages);if(scripted)return scripted;
+  entered.release();await release.promise;return {content:'LATE ANSWER MUST NOT APPEAR',calls:[]};
+ }};
+ await open(a);const task=await service.createTask({request:'종료 확인 대기'}),next=await service.createTask({request:'새 작업 차단'});
+ await service.startAgent({taskId:task.id});await entered.promise;
+ const process=await service.processes.start({cwd:a,taskId:task.id,script:'node -e "setInterval(()=>{},1000)"',idleCheck:false,autoDiagnose:false}),stop=service.processes.stop.bind(service.processes);
+ service.processes.stop=id=>service.processes.poll(id); // Native stop requested without an exit receipt.
+ try{
+  await assert.rejects(stopProjectWork(service,{timeoutMs:10}),/project_navigation_stop_pending/);
+  assert.equal(service.navigationStopping,true);assert.equal(service.agentForTask(task.id).controller.signal.aborted,true);
+  await assert.rejects(service.startAgent({taskId:next.id}),/project_navigation_stopping/);
+  await assert.rejects(service.processes.start({cwd:a,script:'node --version',taskId:next.id}),/project_navigation_stopping/);
+ }finally{service.processes.stop=stop;stop(process.id);release.release();await service.navigationStop;}
+ assert.equal(service.navigationStopping,false);assert.equal(service.task(task.id).state,'cancelled');
+ assert(!service.task(task.id).messages.some(message=>message.role==='assistant'&&message.content.includes('LATE ANSWER')));
 });
 test('background questions remain identifiable; failed folder opening does not select a broken project',async t=>{
  const {a,b,service,pool,open}=await fixture(t);await open(a);const task=await service.createTask({request:'질문 보존'});service.store.set('task:'+task.id,{...task,state:'waiting_input',question:{id:'q',text:'어느 범위인가요?'}});

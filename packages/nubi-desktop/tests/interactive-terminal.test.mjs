@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {EventEmitter} from 'node:events';
 const {interactiveShell,TerminalHost}=createRequire(import.meta.url)('../electron-app/terminal-host.cjs');
+test('project navigation closes only its terminal sessions and awaits an opening session',async()=>{
+ const host=new TerminalHost({notify:()=>{}}),calls=[];let finishOpen,finishClose;
+ host.sessions.set('source','a');host.sessions.set('background','b');
+ const opening=new Promise(resolve=>{finishOpen=()=>{host.sessions.set('opening','a');resolve({});};});opening.projectId='a';host.opens.set('opening',opening);
+ host.call=async(action,args)=>{calls.push({action,...args});if(args.id==='source')await new Promise(resolve=>{finishClose=resolve;});return {closed:true};};
+ const navigation=host.closeProject('a');
+ await assert.rejects(host.request({action:'open',id:'late',projectId:'a'}),/project_navigation_stopping/);
+ finishOpen();while(!finishClose)await new Promise(resolve=>setTimeout(resolve,1));
+ assert(host.sessions.has('source'),'a close request is not an exit receipt');finishClose();await navigation;
+ assert.deepEqual([...host.sessions.keys()],['background']);assert.deepEqual(calls.map(item=>item.id).sort(),['opening','source']);assert(calls.every(item=>item.action==='close'&&item.waitForExit===true));
+});
 test('terminal worker never inherits the app debugger arguments',()=>{
  let options;const worker=new EventEmitter();worker.connected=true;worker.disconnect=()=>{};
  const host=new TerminalHost({notify:()=>{},workerFile:'worker.cjs',spawnWorker:(file,args,config)=>{options=config;return worker;}});

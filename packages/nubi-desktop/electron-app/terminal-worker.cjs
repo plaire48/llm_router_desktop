@@ -18,7 +18,7 @@ function shellEnvironment(source,platform){
  return env;
 }
 function session(args){const s=sessions.get(args.id);if(!s||s.projectId!==args.projectId)throw Error('terminal_session_missing');return s;}
-process.on('message',({requestId,action,args={}}={})=>{
+process.on('message',async({requestId,action,args={}}={})=>{
  try{
   let result;
   if(action==='open'){
@@ -32,11 +32,12 @@ process.on('message',({requestId,action,args={}}={})=>{
     const terminal=pty.spawn(args.executable,args.argv,{cwd:args.cwd,env,name:'xterm-256color',...dimensions(args.cols,args.rows)});
     send({diagnostic:{id:args.id,phase:'spawn_done'}});
     s={id:args.id,projectId:args.projectId,terminal,state:'running',replay:'',pending:0,attached:true};sessions.set(s.id,s);
+    let resolveExit;s.exited=new Promise(resolve=>{resolveExit=resolve;});
     terminal.onData(data=>{
      s.replay=(s.replay+data).slice(-MAX_REPLAY);
      if(s.attached){s.pending+=data.length;send({event:{id:s.id,type:'data',data}});if(s.pending>=MAX_PENDING){terminal.pause();if(!s.paused)send({diagnostic:{id:s.id,phase:'output_paused',pending:s.pending}});s.paused=true;}}
     });
-    terminal.onExit(({exitCode})=>{s.state='exited';s.exitCode=exitCode;send({event:{id:s.id,type:'exit',exitCode}});});
+    terminal.onExit(({exitCode})=>{s.state='exited';s.exitCode=exitCode;resolveExit();send({event:{id:s.id,type:'exit',exitCode}});});
    }
    s.attached=true;s.pending=0;if(s.state==='running')s.terminal.resume();result=snapshot(s);
   }else if(action==='dispose'){
@@ -49,7 +50,13 @@ process.on('message',({requestId,action,args={}}={})=>{
    // 64 KiB of a larger parsed batch leaves phantom pending output and stalls it.
    else if(action==='ack'){const length=Number(args.length);if(!Number.isSafeInteger(length)||length<0)throw Error('terminal_input_invalid');s.pending=Math.max(0,s.pending-Math.min(s.pending,length));if(s.pending<MAX_PENDING/2&&s.state==='running'){s.terminal.resume();if(s.paused)send({diagnostic:{id:s.id,phase:'output_resumed',pending:s.pending}});s.paused=false;}result={accepted:true};}
    else if(action==='detach'){s.attached=false;s.pending=0;if(s.state==='running')s.terminal.resume();result={detached:true};}
-   else if(action==='close'){sessions.delete(s.id);if(s.state==='running')s.terminal.kill();result={closed:true};}
+   else if(action==='close'){
+    if(s.state==='running'){
+     s.terminal.kill();
+     if(args.waitForExit===true){let timer;try{await Promise.race([s.exited,new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('terminal_stop_unconfirmed')),10000);})]);}finally{clearTimeout(timer);}}
+    }
+    sessions.delete(s.id);result={closed:true};
+   }
    else throw Error('method_invalid');
   }
   send({requestId,result});

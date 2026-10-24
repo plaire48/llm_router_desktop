@@ -157,7 +157,7 @@ function App(){
  useEffect(()=>{let cancelled=false;void api('startupConnections').catch(()=>{}).finally(()=>{if(!cancelled)setStartupReady(true);});return()=>{cancelled=true;};},[api]);
  // Existing Wiki is reused by the host. Rebuilding remains an explicit action in Wiki settings.
  async function changeProject(method,args,{newConversation=false}={}){
-  if(switching.current||[...terminalStatus.current.values()].some(Boolean))throw Error('project_busy');
+  if(switching.current)return null;
   if(hasWikiDrafts()||[...buffers.current.values()].some(b=>b.dirty))throw Error('editor_dirty');
   const progressId=crypto.randomUUID();projectRequest.current=progressId;args={...args,progressId};
   const selected=projects.find(item=>item.id===args.id);

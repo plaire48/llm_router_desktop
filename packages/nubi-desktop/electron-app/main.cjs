@@ -121,24 +121,31 @@ const keyStore={
  async deletePassword(service,key){secretScope(service,key);return vault.delete(key);}
 };
 function projectOpenProgress(requestId,stage){if(typeof requestId==='string'&&/^[a-zA-Z0-9-]{1,64}$/.test(requestId))hostEvent({type:'project_open_progress',requestId,stage});}
-async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId}={}){
+async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId,stopCurrent=true}={}){
  if(openingProject)throw Error('project_busy');openingProject=true;
  try{
+ if(stopCurrent&&currentRoot){
+  const target=await invoke('projectNavigationTarget',{root});
+  if(currentRoot!==target.root){
+   projectOpenProgress(progressId,'stopping');const previous=await invoke('overview');
+   await Promise.all([invoke('stopProjectWork',{projectId:previous.projectId}),terminalHost?.closeProject(previous.projectId)]);
+  }
+ }
  await officeDock?.detach();
  // A predecessor that is still exiting (quit or crash) holds the project store for a moment; the single-instance lock
  // rules out a live second instance, so a short retry is safe.
- let overview;for(let attempt=0;;attempt++){try{projectOpenProgress(progressId,'opening');overview=await invoke('open',{root,kind,initializeWiki,exactRoot,sourceKind});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;projectOpenProgress(progressId,'waiting_lock');await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;
+ let overview;for(let attempt=0;;attempt++){try{if(!stopCurrent||!currentRoot)projectOpenProgress(progressId,'opening');overview=await invoke('open',{root,kind,initializeWiki,exactRoot,sourceKind,stopCurrent,progressId});break;}catch(error){if(error.message!=='project_locked'||attempt>=4)throw error;projectOpenProgress(progressId,'waiting_lock');await new Promise(resolve=>setTimeout(resolve,600));}}currentRoot=overview.root;currentKind=kind;
  projectOpenProgress(progressId,'saving');
  try{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project.json'),JSON.stringify({root:currentRoot,kind}),{mode:0o600});await projectCatalog.remember(overview);}catch{overview.projectCatalogWarning=true;}
  return overview;
  }finally{openingProject=false;}
 }
-const forbidden=new Set(['_textEditor','_externalOffice','importDocumentSelection','projectActivity','prepareAppUpdate','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
+const forbidden=new Set(['_textEditor','_externalOffice','importDocumentSelection','projectActivity','prepareAppUpdate','projectNavigationTarget','stopProjectWork','open','importSkill','connectSkillMarketplace','disconnectSkillMarketplace','initializeWiki','collaboration']);
 const restoreCurrentProject=createProjectRestorer(async()=>{
  if(currentRoot)return await invoke('overview');
  let saved;try{saved=JSON.parse(await readFile(path.join(storage,'last-project.json'),'utf8'));}catch{return null;}
  if(!saved?.root)return null;
- try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
+ try{return await restoreSavedProject(()=>openProject(saved.root,saved.kind==='conversation'?'conversation':'project',{initializeWiki:false,stopCurrent:false}),{existing:()=>currentRoot?invoke('overview'):undefined,onEvent:async event=>{await mkdir(storage,{recursive:true});await writeFile(path.join(storage,'last-project-restore.json'),JSON.stringify({at:new Date().toISOString(),...event}),{mode:0o600}).catch(()=>{});}});}
  catch(error){if(error.message==='project_path_missing')await rm(path.join(storage,'last-project.json'),{force:true}).catch(()=>{});throw error;}
 });
 app.whenReady().then(async()=>{
@@ -167,6 +174,7 @@ app.whenReady().then(async()=>{
   const child=fork(path.join(__dirname,'backend/service-entry.mjs'),[],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1',NUBI_STORAGE_ROOT:storage},stdio:['ignore','ignore','pipe','ipc']});
   child.stderr.on('data',chunk=>{void workerLog(chunk);});return child;
  },onMessage:message=>{
+  if(message?.projectOpenProgress&&['stopping','opening'].includes(message.projectOpenProgress.stage)){projectOpenProgress(message.projectOpenProgress.requestId,message.projectOpenProgress.stage);return;}
   if(message?.routineActivity){hostEvent({type:'routine_activity',...message.routineActivity});return;}
   if(typeof message?.workspaceActivity?.projectId==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(message.workspaceActivity.projectId)){hostEvent({type:'workspace_activity',projectId:message.workspaceActivity.projectId});return;}
   if(typeof message?.workspaceStream?.projectId==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(message.workspaceStream.projectId)){hostEvent({type:'workspace_stream',projectId:message.workspaceStream.projectId});return;}

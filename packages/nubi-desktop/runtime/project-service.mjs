@@ -89,7 +89,7 @@ export class ProjectService {
     for(const action of this.store.list('computer-action:').filter(v=>v.state==='starting'))this.store.set('computer-action:'+action.id,{...action,state:'attention',execution:'unknown',error:'computer_outcome_unknown'});
     for(const action of this.store.list('computer-action:').filter(v=>v.review?.state==='running'))this.store.set('computer-action:'+action.id,{...action,review:{...action.review,state:'interrupted'}});
     this.disposed=false;this.recoveryQueue=new Set();this.idleProcessQueue=new Set();
-    this.processes = new Processes(this.store,{onFinished:record=>this.processFinished?.(record),onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
+    this.processes = new Processes(this.store,{canStart:()=>!this.navigationStopping,onFinished:record=>this.processFinished?.(record),onIdle:record=>this.processIdle?.(record),onActivity:record=>this.resolveProcessIdle?.(record,'output')});
     // A restarted host cannot establish the outcome of an earlier process.
     for (const p of this.store.list('process:').filter(p => ['running','stopping','checking'].includes(p.state))) this.store.set('process:' + p.id, {...p, state: 'interrupted',execution:'unknown',recoveryState:'attention'});
     for(const task of this.store.list('task:').filter(t=>t.question?.processIdle)){this.resolveProcessIdle(this.store.get('process:'+task.question.processIdle.id),'restart');}

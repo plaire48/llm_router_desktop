@@ -11,7 +11,7 @@ import {WorkspaceAtmosphere} from './WorkspaceAtmosphere.jsx';
 
 // Present before the first async project request, without unmounting drafts or
 // moving layout. The renderer removes the guard only after the next UI commits.
-const stages={selecting:'폴더 선택 대기',selecting_zip:'ZIP 파일과 저장 위치 선택',extracting:'ZIP 파일 가져오는 중',resolving:'프로젝트 확인 중',opening:'프로젝트 불러오는 중',waiting_lock:'이전 작업 정리 대기',saving:'프로젝트 기록 저장 중',rendering:'화면 준비 중'};
+const stages={selecting:'폴더 선택 대기',selecting_zip:'ZIP 파일과 저장 위치 선택',extracting:'ZIP 파일 가져오는 중',resolving:'프로젝트 확인 중',stopping:'진행 중인 작업 종료 중',opening:'프로젝트 불러오는 중',waiting_lock:'이전 작업 정리 대기',saving:'프로젝트 기록 저장 중',rendering:'화면 준비 중'};
 function ProjectOpenProgress({transition}){
  const [elapsed,setElapsed]=useState(0);
  useEffect(()=>{const started=performance.now(),initial=Math.max(0,Date.now()-transition.startedAt);setElapsed(initial);const timer=setInterval(()=>setElapsed(initial+performance.now()-started),1000);return()=>clearInterval(timer);},[transition.startedAt]);

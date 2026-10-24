@@ -26,7 +26,7 @@ installWikiGitBridge(service);
 installConnectionVault(service);
 // Warm the MCP catalog off the first chat's critical path. No browser is launched.
 const mcp=service.mcpRegistry();mcp.warming=mcp.connectEnabled().catch(()=>{});
-const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true,mailSemanticReview:true}),resolveRoot:resolveProjectFolder});
+const projects=new ProjectServices({service,createService:()=>Object.assign(new ProjectService({storageRoot:process.env.NUBI_STORAGE_ROOT}),{memoryExtraction:true,mailFacts:true,mailSemanticReview:true}),resolveRoot:resolveProjectFolder,onOpenStage:value=>{if(process.connected)process.send?.({projectOpenProgress:value},()=>{});}});
 const routineStore=new Store(path.join(service.storageRoot,'routines'),{ownerWaitMs:2400}),routineProjects=new ProjectCatalog(service.storageRoot);
 service.routines=createRoutineManager({onActivity:event=>{if(process.connected)process.send?.({routineActivity:event},()=>{});},store:routineStore,listProjects:()=>routineProjects.list(),serviceFor:project=>projects.service(project),canStart:()=>!projects.updateLocked&&!projects.opening});
 service.routines.start();

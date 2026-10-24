@@ -1,13 +1,14 @@
 import {hash} from './files.mjs';
 import {humanDecisions} from '../ui/human-decisions.mjs';
 import {wikiChatJob} from './wiki-chat-admission.mjs';
+import {stopProjectWork} from './project-navigation.mjs';
 
 const active=service=>!!(service.wikiResetting||service.skillImportBusy||service.marketplaceBusy||service.vocBusy||service.computerBusy||service.newFileBusy||service.setupBusy||service.processes?.active.size||service.processes?.pending.size||service.unsettledOperations?.size||service.reconciling||service.agent?.running||service.recordingKnowledge||service.databaseBusy||service.collaborationBusy||service.wikiUpdateRun||service.wikiRefreshOwner||service.wikiInitController&&!service.wikiInitController.signal.aborted&&service.store?.get('wiki-init')?.state==='running');
 
 // Each service owns an immutable project while work is in flight. Switching
 // changes the selected service, never the store/root referenced by an agent.
 export class ProjectServices{
- constructor({service,createService,resolveRoot}){this.primary=service;this.current=service;this.createService=createService;this.resolveRoot=resolveRoot;this.projects=new Map();this.opening=false;this.updateLocked=false;
+ constructor({service,createService,resolveRoot,onOpenStage=()=>{}}){this.primary=service;this.current=service;this.createService=createService;this.resolveRoot=resolveRoot;this.onOpenStage=onOpenStage;this.projects=new Map();this.opening=false;this.updateLocked=false;
   service.isAnyProjectBusy=()=>[...this.projects.values()].some(item=>item.agent?.running||item.wikiUpdating);
  }
  share(service){
@@ -22,10 +23,18 @@ export class ProjectServices{
   if(this.updateLocked)throw Error('update_installing');
   if(method==='projectActivity')return this.activity(args.projectId);
   if(args._projectId&&!['open','provider','mail','usage'].includes(method)&&args._projectId!==this.current.projectId)throw Error('project_changed');
+  if(method==='projectNavigationTarget')return {root:await this.resolveRoot(args.root)};
+  if(method==='stopProjectWork'){
+   const source=this.current;if(args.projectId!==source.projectId)throw Error('project_changed');
+   await stopProjectWork(source);return {stopped:true,projectId:source.projectId};
+  }
   if(method==='open'){
    if(this.opening)throw Error('project_busy');this.opening=true;
    let service,created=false;
    try{const root=await this.resolveRoot(args.root);
+    const emit=stage=>{try{this.onOpenStage({requestId:args.progressId,stage});}catch{}};
+    if(args.stopCurrent===true&&this.current.root&&this.current.root!==root){emit('stopping');await stopProjectWork(this.current);}
+    emit('opening');
     service=this.projects.get(root);if(!service){service=this.primary.root?this.share(this.createService()):this.primary;created=service!==this.primary;}
     const result=await service.invoke(method,args);this.projects.set(service.root,service);if(this.current!==service)this.current.viewingTaskId=null;this.current=service;return {...result,...this.status()};
    }catch(error){if(service?.root)this.projects.set(service.root,service);else if(created&&service){this.detachShared(service);service.dispose();}throw error;}

@@ -1,4 +1,4 @@
-// Reuse project-switch guards (dirty editors, active terminal). Opening a toast
+// Reuse project-switch cancellation and dirty-editor protection. Opening a toast
 // selects a saved conversation only; it cannot submit, resume or approve work.
 export async function openAnswerNotice(event,{currentProjectId,switchProject,readTask,present}){
   if(event?.type!=='answer_open'||![event.projectId,event.taskId,event.runId].every(id=>typeof id==='string'&&/^[\w-]{1,100}$/.test(id)))return false;
