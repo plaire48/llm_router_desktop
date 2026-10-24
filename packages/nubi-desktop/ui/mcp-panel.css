@@ -1,8 +1,8 @@
-.nubi-mcp-panel { display:grid; gap:var(--cx-space-3); }
+.nubi-mcp-panel { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--cx-space-3); }
 .nubi-mcp-panel > p { margin:0; }
 .nubi-mcp-empty { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; color:var(--nubi-text-secondary); }
-.nubi-mcp-list { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-2); }
-.nubi-mcp-item { padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-section-surface); }
+.nubi-mcp-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:var(--cx-space-2); }
+.nubi-mcp-item { min-width:0; padding:var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-section-surface); }
 .nubi-mcp-head { display:flex; align-items:center; gap:var(--cx-space-3); min-width:0; }
 .nubi-mcp-kind { display:inline-flex; flex:none; color:var(--deck-blue-deep); }
 .nubi-mcp-title { display:grid; min-width:0; flex:1; gap:calc(var(--cx-space-1) * 0.5); }
@@ -14,7 +14,7 @@
 .nubi-mcp-actions { display:inline-flex; gap:calc(var(--cx-space-1) * 0.5); flex:none; }
 .nubi-mcp-tools { list-style:none; margin:var(--cx-space-2) 0 0; padding:0; display:flex; flex-wrap:wrap; gap:var(--cx-space-1); }
 .nubi-mcp-tools li { display:inline-flex; align-items:center; gap:var(--cx-space-1); padding:calc(var(--cx-space-1) * 0.5) var(--cx-space-2); border-radius:999px; background:var(--deck-card); font-size:var(--cx-type-caption); color:var(--nubi-text-primary); }
-.nubi-mcp-add { display:flex; justify-content:flex-end; }
+.nubi-mcp-add { display:flex; flex-wrap:wrap; justify-content:flex-end; }
 
 /* Form: one column, label above the field, a short hint below (user feedback 2026-10-14). */
 .nubi-mcp-form { display:grid; gap:var(--cx-space-4); }
