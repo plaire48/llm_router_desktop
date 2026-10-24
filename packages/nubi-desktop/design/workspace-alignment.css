@@ -107,7 +107,7 @@
  .desktop-shell .nubi-workbench .nubi-compose-card :is(.composer-bottom,.composer-leading,.composer-tools,.model-picker) {gap:var(--nubi-control-gap);}
 }
 
-/* Reserve the existing symbol gutter inside the centered reading column. */
+/* Reserve the symbol gutter inside the full-width conversation surface. */
 .desktop-shell .nubi-workbench[data-workspace-screen=conversation]{--nubi-text-input-inset:var(--cx-space-6)}
 
 /* Conversation prose, plans and receipts share the typed-text start. Leading

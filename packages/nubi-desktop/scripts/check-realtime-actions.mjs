@@ -33,8 +33,9 @@ try{
    assert(!geometry.overflow,'chat never adds horizontal window scrolling');
    assert(Math.abs(geometry.main.width-geometry.content.width)<2,'main fills the space beside the sidebar');
    for(const key of ['transcript','composer','decision']){
-    assert(Math.abs(geometry[key].width-(geometry.main.width-geometry.insetLeft-geometry.insetRight))<2,`${key} fills the available width`);
-    assert(Math.abs(geometry[key].x-(geometry.main.x+geometry.insetLeft))<2,`${key} shares the left edge`);
+    assert(Math.abs(geometry[key].width-geometry.content.width)<2,`${key} fills the central pane without an outer gutter`);
+    assert(Math.abs(geometry[key].x-geometry.content.x)<2,`${key} starts at the central pane edge`);
+    assert(Math.abs(geometry[key].right-geometry.content.right)<2,`${key} ends at the central pane edge`);
    }
    widths.push({sidebar,...geometry});
   };
