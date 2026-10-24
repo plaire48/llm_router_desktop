@@ -7,7 +7,7 @@ import {AnchoredDialog} from './AnchoredDialog.jsx';
 
 // Registered skills are request shortcuts, not installation or tool approval.
 // Discovery and file management stay separate from choosing a skill to use.
-export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onDocuments, onOffice, onEditor, onSelect}) {
+export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onManageMcp, onDocuments, onMemories, onOffice, onEditor, onSelect}) {
   const [open, setOpen] = useState(false), [catalog, setCatalog] = useState(null), [mcp, setMcp] = useState(null);
   const [loading, setLoading] = useState(false), [failed, setFailed] = useState(false), [revision, setRevision] = useState(0);
   const [position, setPosition] = useState(null);
@@ -64,6 +64,7 @@ export function WorkspaceSkillMenu({api, taskId, onMarketplace, onManage, onMana
       <div className="nubi-skill-menu-header"><strong id={`${id}-title`}>도구 목록</strong><CxButton ref={closeButton} className="nubi-skill-menu-close nubi-modal-close" aria-label="스킬 메뉴 닫기" title="닫기" onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       
       {onDocuments&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onDocuments)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>문서 첨부</strong></span><Icon name="plus" size={16}/></CxButton>}
+      {onMemories&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onMemories)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="lightbulb" size={18}/></span><span className="nubi-skill-menu-copy"><strong>기억 참조</strong></span><Icon name="plus" size={16}/></CxButton>}
       {onOffice&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onOffice)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>열린 Office 연결</strong></span><Icon name="plus" size={16}/></CxButton>}
       {onEditor&&<CxButton className="nubi-skill-menu-marketplace" onClick={()=>openManagement(onEditor)}><span className="nubi-skill-menu-icon" aria-hidden="true"><Icon name="file" size={18}/></span><span className="nubi-skill-menu-copy"><strong>문서 편집기 연결</strong></span><Icon name="plus" size={16}/></CxButton>}
       <div className="nubi-skill-menu-list" role="list" aria-label="등록한 스킬" aria-busy={loading}>

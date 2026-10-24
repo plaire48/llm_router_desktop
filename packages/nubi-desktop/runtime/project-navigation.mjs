@@ -9,6 +9,7 @@ export function stopProjectWork(service,{timeoutMs=15000}={}){
   service.navigationStopping=true;
   const operation=Promise.resolve().then(async()=>{
    const tasks=new Set(humanDecisions({...service.state(),projectId:service.projectId}).map(item=>item.taskId));
+   const memories=[...service.memoryJobs?.values()||[]];for(const job of memories)job.controller.abort();
    for(const run of service.agentRuns?.values()||[])if(run.running)tasks.add(run.taskId);
    if(service.agent?.running)tasks.add(service.agent.taskId);
    for(const pending of service.repairStarts?.values()||[])tasks.add(pending.taskId);
@@ -21,7 +22,7 @@ export function stopProjectWork(service,{timeoutMs=15000}={}){
    const stopping=[...tasks].map(taskId=>service.stopAgent({taskId}));
    for(const id of new Set([...processes?.pending||[],...processes?.active.keys()||[]]))processes.stop(id);
    const results=await Promise.allSettled(stopping);
-   await Promise.allSettled([...(service.afterEditChecks?.values()||[]),...[...service.sideTaskStarts?.values()||[]].map(item=>item.promise)]);
+   await Promise.allSettled([...(service.afterEditChecks?.values()||[]),...[...service.sideTaskStarts?.values()||[]].map(item=>item.promise),...memories.map(job=>job.promise)]);
    while(processes?.pending.size||processes?.active.size||service.repairStarts?.size||[...service.agentRuns?.values()||[]].some(run=>run.running))await new Promise(resolve=>setTimeout(resolve,25));
    if(results.some(result=>result.status==='rejected'))throw Error('project_navigation_stop_failed');
    service.store.event('project_navigation_stopped',{taskIds:[...tasks]});

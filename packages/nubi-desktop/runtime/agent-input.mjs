@@ -5,6 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {validateMailReferences,mergeMailReferences,sameMailReferences} from './mail-evidence.mjs';
 import {storeCaptures} from './captures.mjs';
 import {validateDocuments,mergeDocuments} from './chat-documents.mjs';
+import {validateMemoryReferences,sameMemoryReferences} from './memory.mjs';
 import {enqueueInput,nextInput,reorderInput,inputMatches} from '../../../extensions/aipro-chat/agent-inbox.js';
 
 // Browser inbox semantics, scoped to a Desktop task and this worker's connection.
@@ -21,10 +22,12 @@ export function pendingAgentInput(service,taskId){
 }
 export function takeAgentInput(service,task){
   const item=pendingAgentInput(service,task.id);if(!item)return null;
+  const memories=validateMemoryReferences(service,item.memoryReferences||[]);
   const current=service.task(task.id);current.inbox=current.inbox.filter(row=>row.id!==item.id);
   // The actor owns history; admissions own the inbox. Persist both without
   // overwriting submissions that arrived while an earlier tool was running.
-  if(!task.messages.some(row=>row.inputId===item.id))task.messages.push({id:randomUUID(),inputId:item.id,role:'user',content:item.text,documentReferences:item.documentReferences||[],mailReferences:item.mailReferences||[],...(Number.isFinite(item.createdAt)?{sentAt:new Date(item.createdAt).toISOString()}:{}),at:new Date().toISOString()});
+  if(!task.messages.some(row=>row.inputId===item.id))task.messages.push({id:randomUUID(),inputId:item.id,role:'user',content:item.text,documentReferences:item.documentReferences||[],mailReferences:item.mailReferences||[],...(memories.length?{memoryReferences:memories}:{}),...(Number.isFinite(item.createdAt)?{sentAt:new Date(item.createdAt).toISOString()}:{}),at:new Date().toISOString()});
+  task.memoryReferences=memories;current.memoryReferences=memories;
   task.documentReferences=mergeDocuments(task.documentReferences,item.documentReferences);
   current.documentReferences=task.documentReferences;
   task.mailReferences=mergeMailReferences(task.mailReferences,item.mailReferences);
@@ -40,34 +43,36 @@ export async function drainAgentInputs(service,taskId,chain){
   const item=nextInput(task.inbox,inputBinding(service,taskId,chain));
   if(item)await service.startAgent({taskId,answer:item.text,queuedInputId:item.id});
 }
-export async function agentInput({taskId,action='enqueue',id,text,mode='queue',runId,overId,order,mailReferences=[],captures=[],documentReferences=[]}={}){
+export async function agentInput({taskId,action='enqueue',id,text,mode='queue',runId,overId,order,mailReferences=[],captures=[],documentReferences=[],memoryReferences=[]}={}){
   if(['enqueue','steer','start'].includes(action))requireWikiChatReady(this);
   this.ready();const task=this.task(taskId),binding=inputBinding(this,taskId),inbox=task.inbox||[];
   if(action==='enqueue'){
     const spoken=task.messages?.find(row=>row.inputId===id);
-    if(spoken){if(spoken.content!==text?.trim()||!sameMailReferences(spoken.mailReferences,mailReferences)||JSON.stringify(spoken.documentReferences||[])!==JSON.stringify(validateDocuments(this,documentReferences)))throw Error('agent_input_changed');return task;}
+    if(spoken){if(spoken.content!==text?.trim()||!sameMemoryReferences(spoken.memoryReferences,memoryReferences)||!sameMailReferences(spoken.mailReferences,mailReferences)||JSON.stringify(spoken.documentReferences||[])!==JSON.stringify(validateDocuments(this,documentReferences)))throw Error('agent_input_changed');return task;}
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     if(typeof text==='string'&&text.trim().startsWith('/')){const catalog=await skillCatalog(this.root);const shortcut=resolveAgentCommand(text,catalog.skills);if(shortcut?.action)throw Error('agent_command_ui_only');}
     const documents=validateDocuments(this,documentReferences);
+    const memories=validateMemoryReferences(this,memoryReferences);
     const references=await validateMailReferences(this,mailReferences);
     requireWikiChatReady(this);
     // Validate before admission, then recheck when a queued input starts.
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     Object.assign(task,this.task(taskId));
     const previous=task.inbox?.find(item=>item.id===id);
-    if(previous&&(!sameMailReferences(previous.mailReferences,references)||JSON.stringify(previous.documentReferences||[])!==JSON.stringify(documents)))throw Error('agent_input_changed');
+    if(previous&&(!sameMemoryReferences(previous.memoryReferences,memories)||!sameMailReferences(previous.mailReferences,references)||JSON.stringify(previous.documentReferences||[])!==JSON.stringify(documents)))throw Error('agent_input_changed');
     // Screenshots ride with the queued message once; a resend of the same message keeps the ones stored first.
     const attached=previous?.captures||storeCaptures(this,taskId,captures);
-    task.inbox=enqueueInput(task.inbox||[],{id,text,mode},{...binding,runId:this.agent.inputChain}).map(item=>item.id===id?{...item,documentReferences:documents,mailReferences:references,...(attached.length?{captures:attached}:{})}:item);
+    task.inbox=enqueueInput(task.inbox||[],{id,text,mode},{...binding,runId:this.agent.inputChain}).map(item=>item.id===id?{...item,documentReferences:documents,mailReferences:references,...(memories.length?{memoryReferences:memories}:{}),...(attached.length?{captures:attached}:{})}:item);
   }else if(action==='steer'){
     if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');
     const item=inbox.find(row=>row.id===id);if(!item||!inputMatches(item,{...binding,runId:this.agent.inputChain}))throw Error('agent_input_changed');
+    validateMemoryReferences(this,item.memoryReferences||[]);
     if(item.text.startsWith('/')){const catalog=await skillCatalog(this.root);const shortcut=resolveAgentCommand(item.text,catalog.skills);if(shortcut?.action)throw Error('agent_command_ui_only');if(!inputOpen(this,task)||runId!==this.agent.runId)throw Error('agent_input_closed');}
     requireWikiChatReady(this);
     task.inbox=inbox.map(row=>row.id===id?{...row,mode:'steer'}:row);mode='steer';
   }else if(action==='reorder')task.inbox=reorderInput(inbox,{id,overId,order},binding);
   else if(action==='remove'){
-    const item=inbox.find(row=>row.id===id);if(!item)throw Error('agent_input_changed');task.inbox=inbox.filter(row=>row.id!==id);this.store.set('task:'+taskId,task);return {text:item.text,documentReferences:item.documentReferences||[],mailReferences:item.mailReferences||[]};
+    const item=inbox.find(row=>row.id===id);if(!item)throw Error('agent_input_changed');task.inbox=inbox.filter(row=>row.id!==id);this.store.set('task:'+taskId,task);return {text:item.text,documentReferences:item.documentReferences||[],mailReferences:item.mailReferences||[],...(item.memoryReferences?.length?{memoryReferences:item.memoryReferences}:{})};
   }else if(action==='start'){
     if(this.agent?.running||task.question||task.peerWait||['pending','connected'].includes(task.computerConnectionRequest?.state))throw Error('agent_input_closed');
     const item=nextInput(inbox,binding);if(!item||item.id!==id)throw Error('agent_input_changed');return this.startAgent({taskId,answer:item.text,queuedInputId:id});

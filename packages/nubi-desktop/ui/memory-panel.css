@@ -1,12 +1,28 @@
-.nubi-memory-panel { display:grid; gap:var(--cx-space-4); min-width:0; }
-.nubi-memory-panel .nubi-mail-switch-row small { display:block; margin-top:var(--cx-space-1); font:var(--deck-font-caption); color:var(--deck-sub); }
-.nubi-memory-list { list-style:none; margin:0; padding:0; display:grid; gap:var(--cx-space-1); }
-.nubi-memory-list li { display:flex; align-items:center; gap:var(--cx-space-3); padding:var(--cx-space-2) var(--cx-space-3); border-radius:var(--nubi-work-control-radius); background:var(--deck-tint); min-width:0; }
-.nubi-memory-scope { display:inline-grid; place-items:center; flex:none; width:28px; height:28px; border-radius:999px; background:var(--deck-blue-soft); color:var(--deck-blue-deep); }
-.nubi-memory-text { flex:1; min-width:0; line-height:var(--deck-line-caption); }
-.nubi-memory-empty { display:flex; align-items:center; gap:var(--cx-space-2); margin:0; }
-.nubi-memory-empty svg { flex:none; color:var(--deck-orange); }
-.nubi-memory-note { display:flex; align-items:center; flex-wrap:wrap; gap:var(--cx-space-2); margin:var(--cx-space-2) 0 0; color:var(--deck-sub); font:var(--deck-font-caption); }
-.nubi-memory-note > svg { flex:none; color:var(--deck-orange); }
-.nubi-memory-note > span { min-width:0; }
-.nubi-memory-note .cx-kit-button { padding:0 var(--cx-space-2); min-height:24px; }
+.nubi-memory-panel{display:grid;gap:var(--cx-space-4);min-width:0}
+.nubi-memory-panel .nubi-mail-switch-row small{display:block;margin-top:var(--cx-space-1);font:var(--deck-font-caption);color:var(--deck-sub)}
+.nubi-memory-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:var(--cx-space-2);align-items:center}
+.nubi-memory-tools :is(input,select){width:100%;min-width:0}
+.nubi-memory-count{margin:0;font:var(--deck-font-caption)}
+.nubi-memory-list{list-style:none;margin:0;padding:0;display:grid;gap:var(--cx-space-2);min-width:0}
+.nubi-memory-list>li{position:relative;display:flex;align-items:flex-start;gap:var(--cx-space-2);padding:var(--cx-space-3);border-radius:var(--nubi-work-control-radius);background:var(--deck-tint);min-width:0}
+.nubi-memory-scope{display:inline-grid;place-items:center;flex:none;width:var(--cx-space-6);height:var(--cx-space-6);border-radius:var(--deck-pill-radius);background:var(--deck-blue-soft);color:var(--deck-blue-deep)}
+.deck-dialog .nubi-memory-list>li{margin-inline-start:calc(-1 * var(--nubi-dialog-text-rail));padding-inline-start:var(--nubi-dialog-text-rail)}
+.deck-dialog .nubi-memory-scope{position:absolute;inset-inline-start:0}
+.nubi-memory-copy{flex:1;min-width:0}
+.nubi-memory-copy p{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.nubi-memory-copy>small{display:flex;flex-wrap:wrap;gap:var(--cx-space-1) var(--cx-space-2);margin-top:var(--cx-space-2);color:var(--deck-sub);font:var(--deck-font-caption)}
+.nubi-memory-actions{display:flex;flex:none;gap:var(--cx-space-1);align-items:center}
+.nubi-memory-edit{display:grid;flex:1;gap:var(--cx-space-2);min-width:0}
+.nubi-memory-edit textarea{width:100%;min-width:0;resize:vertical}
+.nubi-memory-edit-actions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--cx-space-2);justify-content:flex-end}
+.nubi-memory-edit-actions>small{margin-inline-end:auto;color:var(--deck-sub);font:var(--deck-font-caption)}
+.nubi-memory-error{margin:0;color:var(--nubi-text-danger);font:var(--deck-font-body)}
+.nubi-memory-empty{display:flex;align-items:center;gap:var(--cx-space-2);margin:0}
+.nubi-memory-empty svg{flex:none;color:var(--deck-orange)}
+.nubi-memory-note{display:flex;align-items:center;flex-wrap:wrap;gap:var(--cx-space-2);margin:var(--cx-space-2) 0 0;color:var(--deck-sub);font:var(--deck-font-caption)}
+.nubi-memory-note>svg{flex:none;color:var(--deck-orange)}
+.nubi-memory-note .cx-kit-button{padding:0;min-height:var(--nubi-compact-control);font:inherit}
+.nubi-memory-panel :is(.nubi-page-number,.nubi-page-step){height:auto;min-height:var(--nubi-work-control-height);min-width:var(--nubi-work-control-height);padding:var(--cx-space-1)}
+.nubi-memory-references .nubi-mail-evidence-chip{max-width:100%}
+.nubi-memory-preview-text{margin:0;font-size:var(--nubi-reading-size);line-height:var(--nubi-reading-leading);overflow-wrap:anywhere}
+@media(max-width:600px){.nubi-memory-tools{grid-template-columns:minmax(0,1fr) auto}.nubi-memory-tools>input{grid-column:1 / -1}.nubi-memory-list>li{flex-wrap:wrap}.nubi-memory-actions{margin-inline-start:auto}.nubi-memory-copy{flex-basis:100%}}

@@ -54,6 +54,7 @@ import {modelTransport} from './recovery.mjs';
 import {wikiUpdate,resumeWikiUpdates} from './wiki-update.mjs';
 import {startSideTask,dismissSideTask} from './side-tasks.mjs';
 import {storeCaptures,readCapture} from './captures.mjs';
+import {validateMemoryReferences} from './memory.mjs';
 import {importDocumentSelection,readChatDocument,validateDocuments} from './chat-documents.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
 import {checkpointBefore} from './checkpoints.mjs';
@@ -277,7 +278,7 @@ export class ProjectService {
   chatDocument(args){this.ready();return readChatDocument(this,{...args,preview:true});}
   startSideTask(args){return startSideTask(this,args);}
   dismissSideTask(args){return dismissSideTask(this,args);}
-  async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[],origin}, routine) {
+  async createTask({request, criteria = [],mailReferences=[],captures=[],documentReferences=[],memoryReferences=[],origin}, routine) {
     this.ready(); requireWikiChatReady(this); request = limited(request);
     if(origin!==undefined){
       if(origin?.kind!=='side_task'||['taskId','sideTaskId','runId'].some(key=>typeof origin[key]!=='string'||!origin[key]||origin[key].length>200))fail('task_origin_invalid');
@@ -286,7 +287,8 @@ export class ProjectService {
     if (!Array.isArray(criteria) || criteria.length > 30) fail('criteria_invalid');
     const references=await validateMailReferences(this,mailReferences);
     requireWikiChatReady(this);
-    const key = id(), attached=storeCaptures(this,key,captures), task = {id: key, request, documentReferences:validateDocuments(this,documentReferences),requestDocuments:validateDocuments(this,documentReferences),mailReferences:references,requestMailReferences:references,...(attached.length?{requestCaptures:attached}:{}),criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', ...(routine?{routineId:routine.id,routineName:routine.name}:{}), createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
+    const memories=validateMemoryReferences(this,memoryReferences);
+    const key = id(), attached=storeCaptures(this,key,captures), task = {id: key, request,...(memories.length?{requestMemoryReferences:memories}:{}), documentReferences:validateDocuments(this,documentReferences),requestDocuments:validateDocuments(this,documentReferences),mailReferences:references,requestMailReferences:references,...(attached.length?{requestCaptures:attached}:{}),criteria: criteria.map((text, i) => ({id: 'AC-' + (i + 1), text: limited(text, 1000), state: 'unknown'})), state: 'draft', ...(routine?{routineId:routine.id,routineName:routine.name}:{}), createdAt: new Date().toISOString(), messages: [], trace: [], requirementId: 'REQ-' + key.slice(0, 8)};
     if(origin)task.origin=origin;
     this.store.set('task:' + key, task); this.store.event('task_created', {id: key}); return task;
   }
@@ -443,7 +445,7 @@ export class ProjectService {
     if ((!allowed.has(method)&&!['workspaceChanges','appliedFileSummary'].includes(method)) || typeof this[method] !== 'function') fail('method_invalid');
     return method==='open'?this.open(args.root,{kind:args.kind,initializeWiki:args.initializeWiki,exactRoot:args.exactRoot,sourceKind:args.sourceKind}):this[method](args);
   }
-  dispose() { disposeWikiQuery(this);this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
+  dispose() { for(const job of this.memoryJobs?.values()||[])job.controller.abort();disposeWikiQuery(this);this.viewingTaskId=null;disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);void disposeDevelopmentBrowser(this).catch(()=>{});this.chatDocumentReading?.abort();void this.mcpInstance?.dispose();this.usageLedger?.close(); this.wikiInitController?.abort(); this.wikiUpdateRun?.controller.abort(); this.wikiRefreshJob?.controller.abort(); this.localPerception?.dispose();this.marketplaceController?.abort();this.marketplaceToken=null;this.marketplaceConnected=false;this.marketplaceCatalog=null;this.personalMail?.dispose();this.computerPointer?.dispose();this.computerLauncher?.dispose?.();this.computerAdapter?.dispose?.();void this.collaborationServer?.close();this.disposed=true;this.recoveryQueue?.clear();this.databaseWorker?.terminate(); this.databaseConnections?.clear(); this.knowledge?.server.close(); for(const run of this.agentRuns?.values()||[])run.controller?.abort();this.lastAgent?.controller?.abort(); this.providers?.dispose(); for(const entry of this.fabrixTests?.values()||[])entry.provider.dispose();this.fabrixTests?.clear(); this.processes?.dispose(); }
 }
 
 installDesktopFeatures(ProjectService);

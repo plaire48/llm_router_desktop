@@ -32,6 +32,12 @@ test('unconfirmed send is never replayed and a real question remains required',a
  const calls=[];await assert.rejects(submitTaskMessage(async method=>{calls.push(method);if(method==='startAgent')throw Error('agent_busy');return {tasks:[{id:'t',state:'waiting_input',question:{id:'q'}}]};},{taskId:'t',text:'hello',inputId:'m'}),/question_pending/);
  assert.deepEqual(calls,['startAgent','state']);
 });
+test('memory references survive the definite-busy fallback without changing their version',async()=>{
+ const references=[{id:'fact',sourceHash:'sha256:original',text:'선택한 사실'}],calls=[];
+ const api=async(method,args)=>{calls.push({method,args});if(method==='startAgent')throw Error('agent_busy');if(method==='state')return {tasks:[{id:'t',state:'running',responseTiming:{runId:'run'}}]};return {id:'t'};};
+ await submitTaskMessage(api,{taskId:'t',text:'참조할 내용',inputId:'one-admission',memoryReferences:references});
+ assert.deepEqual(calls.map(call=>call.method),['startAgent','state','agentInput']);assert.deepEqual(calls[0].args.memoryReferences,references);assert.deepEqual(calls[2].args.memoryReferences,references);
+});
 test('initial planning and regenerated answers accept queued input using the current run receipt',async()=>{
  for(const regenerating of [false,true]){
   const calls=[],api=async(method,args)=>{calls.push({method,args});if(method==='startAgent')throw Error('agent_busy');if(method==='state')return {tasks:[{id:'t',state:'running',responseTiming:{runId:'current-run'},checkpoint:regenerating?{runId:'old-run'}:null,...(regenerating?{replyRegeneration:{state:'running'}}:{})}]};return {id:'t'};};
