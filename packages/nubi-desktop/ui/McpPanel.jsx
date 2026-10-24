@@ -94,9 +94,9 @@ export function McpPanel({api}){
      <div className="nubi-mcp-title"><strong>{server.name||server.id}</strong><small>{server.transport==='builtin'?`인앱 웹 탭 / ${server.version}`:server.transport==='stdio'?[server.command,...(server.args||[])].join(' '):server.url}</small></div>
      <span className="nubi-mcp-state" data-state={server.state}><Icon name={server.state==='connected'?'check':server.state==='failed'?'alertCircle':server.state==='connecting'?'refresh':'minus'} size={14}/><span>{server.state==='connected'?`도구 ${server.tools.length}개`:server.state==='failed'?(errors[server.error]||'연결 실패'):server.state==='connecting'?'연결 중':server.enabled?'연결 안 됨':'자동 연결 끔'}</span></span>
      <span className="nubi-mcp-actions">
-      {server.state==='connected'?<WorkspaceAction action="logout" label="연결 끊기" disabled={busy} onClick={()=>act({action:server.transport==='builtin'?'remove':'disconnect',id:server.id})}/>:<WorkspaceAction action="login" label="연결" disabled={busy} onClick={()=>act({action:'connect',id:server.id},()=>notifyWorkspaceToast('MCP 서버에 연결했어요.',{success:true}))}/>}
+      {server.state!=='connected'&&<WorkspaceAction action="login" label="연결" disabled={busy} onClick={()=>act({action:'connect',id:server.id},()=>notifyWorkspaceToast('MCP 서버에 연결했어요.',{success:true}))}/>}
       {server.transport!=='builtin'&&<WorkspaceAction action="edit" label="편집" disabled={busy} onClick={()=>setForm(toForm(server))}/>}
-      {server.transport!=='builtin'&&<WorkspaceAction action="delete" label="삭제" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 삭제했어요.'))}/>}
+      {(server.transport!=='builtin'||server.enabled!==false)&&<WorkspaceAction action="delete" label="MCP 제거" disabled={busy} onClick={()=>act({action:'remove',id:server.id},()=>notifyWorkspaceToast('MCP 서버를 제거했어요.'))}/>}
      </span>
     </div>
     {server.tools.length>0&&<details className="nubi-mcp-toolbox"><summary><Icon name="layers" size={14}/><span>도구 {server.tools.length}개</span><small>읽기 전용은 바로 실행, 그 밖에는 실행 전에 물어봐요</small><Icon name="chevronDown" size={14}/></summary>
