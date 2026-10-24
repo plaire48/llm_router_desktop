@@ -7,6 +7,7 @@ test('project navigation closes only its terminal sessions and awaits an opening
  const host=new TerminalHost({notify:()=>{}}),calls=[];let finishOpen,finishClose;
  host.sessions.set('source','a');host.sessions.set('background','b');
  const opening=new Promise(resolve=>{finishOpen=()=>{host.sessions.set('opening','a');resolve({});};});opening.projectId='a';host.opens.set('opening',opening);
+ assert.equal(host.countProject('a'),2);assert.equal(host.countProject('b'),1);assert.equal(host.countProject('other'),0);
  host.call=async(action,args)=>{calls.push({action,...args});if(args.id==='source')await new Promise(resolve=>{finishClose=resolve;});return {closed:true};};
  const navigation=host.closeProject('a');
  await assert.rejects(host.request({action:'open',id:'late',projectId:'a'}),/project_navigation_stopping/);

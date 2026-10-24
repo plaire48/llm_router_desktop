@@ -66,6 +66,7 @@ class TerminalHost{
   }
   let timer;return Promise.race([operation,new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Error('project_navigation_stop_pending')),15000);})]).finally(()=>clearTimeout(timer));
  }
+ countProject(projectId){return new Set([...this.sessions].filter(([,owner])=>owner===projectId).map(([id])=>id).concat([...this.opens].filter(([,opening])=>opening.projectId===projectId).map(([id])=>id))).size;}
  dispose(){this.generation++;this.opens.clear();const child=this.worker;this.worker=null;for(const pending of this.pending.values())pending.reject(Error('terminal_disconnected'));this.pending.clear();this.sessions.clear();if(child?.connected)child.disconnect();}
 }
 module.exports={TerminalHost,interactiveShell};

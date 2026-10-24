@@ -18,7 +18,7 @@ export class ProjectServices{
   service.mail=args=>primary.mail(args);
   return service;
  }
- background(){return [...this.projects.values()].filter(service=>service!==this.current).map(service=>({projectId:service.projectId,root:service.root,running:!!service.agent?.running,wikiChatJob:wikiChatJob(service),decisions:humanDecisions({...service.state(),projectId:service.projectId}).map(decision=>({...decision,projectId:service.projectId}))}));}
+ background(){return [...this.projects.values()].filter(service=>service!==this.current).map(service=>({projectId:service.projectId,root:service.root,running:!!service.agent?.running,processCount:(service.processes?.active.size||0)+(service.processes?.pending.size||0),wikiChatJob:wikiChatJob(service),decisions:humanDecisions({...service.state(),projectId:service.projectId}).map(decision=>({...decision,projectId:service.projectId}))}));}
  async invoke(method,args={}){
   if(this.updateLocked)throw Error('update_installing');
   if(method==='projectActivity')return this.activity(args.projectId);

@@ -81,7 +81,7 @@ function recordFault(component,details={}){
 }
 process.on('uncaughtExceptionMonitor',()=>recordFault('main'));
 async function portalMailStatus(snapshot,{includeMessages=true}={}){return mailSourceStatus({snapshot,invoke,portal:mailPortal,includeMessages});}
-function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args);}
+function invoke(method,args={}){if(!worker)return Promise.reject(Error('host_disconnected'));return worker.invoke(method,args).then(value=>Array.isArray(value?.backgroundProjects)?{...value,backgroundProjects:value.backgroundProjects.map(project=>({...project,terminalCount:terminalHost?.countProject(project.projectId)||0}))}:value);}
 // What the window needs to hear from the host itself (the worker restarted, or gave up): nubi:host-event.
 function hostEvent(event){if(window&&!window.isDestroyed()&&!window.webContents.isDestroyed())window.webContents.send('nubi:host-event',event);}
 // The window where the user left it: its bounds are saved as it moves and restored on the displays present next time.
@@ -121,7 +121,8 @@ const keyStore={
  async deletePassword(service,key){secretScope(service,key);return vault.delete(key);}
 };
 function projectOpenProgress(requestId,stage){if(typeof requestId==='string'&&/^[a-zA-Z0-9-]{1,64}$/.test(requestId))hostEvent({type:'project_open_progress',requestId,stage});}
-async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId,stopCurrent=true}={}){
+// Selecting a view does not end the originating project's runs or terminals.
+async function openProject(root,kind='project',{initializeWiki=true,exactRoot=false,sourceKind,progressId,stopCurrent=false}={}){
  if(openingProject)throw Error('project_busy');openingProject=true;
  try{
  if(stopCurrent&&currentRoot){
@@ -330,7 +331,7 @@ app.whenReady().then(async()=>{
   if(method==='startConversation'){const root=path.join(storage,'conversations');await mkdir(root,{recursive:true});return await openProject(root,'conversation',{progressId:args.progressId});}
   if(method==='projectCatalog'){
    if(args.action==='rename')return await projectCatalog.rename(args.id,args.name);
-   if(args.action==='remove'){if((await projectCatalog.list()).some(project=>project.id===args.id&&project.root===currentRoot)||(await invoke('projectActivity',{projectId:args.id})).active)throw Error('project_active');return await projectCatalog.remove(args.id);}
+   if(args.action==='remove'){if((await projectCatalog.list()).some(project=>project.id===args.id&&project.root===currentRoot)||terminalHost?.countProject(args.id)||(await invoke('projectActivity',{projectId:args.id})).active)throw Error('project_active');return await projectCatalog.remove(args.id);}
    if(args.action&&args.action!=='list')throw Error('method_invalid');
    return await projectCatalog.list();
   }

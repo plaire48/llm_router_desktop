@@ -45,6 +45,21 @@ test('a live agent keeps its project, store and answer while another folder runs
  assert.equal(await readFile(path.join(a,'app.txt'),'utf8'),'A ORIGINAL');assert.equal(await readFile(path.join(b,'app.txt'),'utf8'),'B ORIGINAL');
 });
 
+test('a real server belongs to its original project across selection and re-entry',async t=>{
+ const {a,b,service,pool,open}=await fixture(t);await open(a);
+ await writeFile(path.join(a,'server.cjs'),"require('node:http').createServer((req,res)=>res.end('PROJECT_A_SERVER')).listen(0,'127.0.0.1',function(){console.log('PORT='+this.address().port)});");
+ const task=await service.createTask({request:'계속 실행할 서버'}),record=await service.processes.start({cwd:a,taskId:task.id,script:'node server.cjs',idleCheck:false,autoDiagnose:false});
+ try{
+  for(const deadline=Date.now()+10000;!service.processes.poll(record.id).output.includes('PORT=')&&Date.now()<deadline;)await new Promise(resolve=>setTimeout(resolve,10));
+  const port=/PORT=(\d+)/.exec(service.processes.poll(record.id).output)?.[1];assert(port);const address=`http://127.0.0.1:${port}`;
+  assert.equal(await (await fetch(address)).text(),'PROJECT_A_SERVER');const store=service.store;
+  const selected=await open(b);assert.equal(selected.backgroundProjects[0].processCount,1);assert.equal(service.store,store);assert.equal(service.processes.poll(record.id).state,'running');
+  assert.equal(await (await fetch(address)).text(),'PROJECT_A_SERVER');await assert.rejects(pool.invoke('poll',{id:record.id,_projectId:service.projectId}),/project_changed/);
+  await open(a);assert.equal(pool.current,service);assert.equal((await pool.invoke('poll',{id:record.id})).state,'running');assert.equal(await (await fetch(address)).text(),'PROJECT_A_SERVER');
+  await pool.invoke('stop',{id:record.id});while(service.processes.active.size)await new Promise(resolve=>setTimeout(resolve,10));assert.equal(service.processes.poll(record.id).state,'cancelled');
+ }finally{service.processes.stop(record.id);while(service.processes.active.size)await new Promise(resolve=>setTimeout(resolve,10));}
+});
+
 test('explicit user navigation cancels every current conversation before selecting another project',async t=>{
  const {a,b,service,pool,open}=await fixture(t),entered=[];
  service.providers={status,dispose(){},complete:async(messages,tools,signal)=>{
