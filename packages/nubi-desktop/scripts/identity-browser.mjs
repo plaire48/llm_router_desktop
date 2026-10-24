@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 const {adaptation,palette}=JSON.parse(await readFile(new URL('../design/reference.json',import.meta.url),'utf8'));
+const actionPalette=adaptation.theme?.palette||palette;
 export const desktopDialogScale=large=>({size:(large?adaptation.largeBody:adaptation.body)+'px',line:(large?adaptation.largeBody*adaptation.lineRatio:adaptation.line)+'px',heading:adaptation.heading+'px',headingLine:adaptation.headingLine+'px'});
 
 export async function assertDialogChrome(dialog) {
@@ -85,7 +86,7 @@ export async function assertDesktopDialog(dialog,{large=false}={}) {
   });
   const {size,line,heading,headingLine}=desktopDialogScale(large);
   assert(facts.font.includes('Noto Sans KR'));assert.equal(facts.size,size);assert.equal(facts.line,line);assert.equal(facts.radius,adaptation.modal.radius+'px');
-  assert.deepEqual(facts.title,{size:heading,line:headingLine});assert((facts.danger?[facts.dangerToken]:[palette.blue,palette['blue-deep']]).map(value=>value.toLowerCase()).includes(facts.blue.toLowerCase()),'Actions use the semantic token for the dialog purpose');
+  assert.deepEqual(facts.title,{size:heading,line:headingLine});assert((facts.danger?[facts.dangerToken]:[actionPalette.blue,actionPalette['blue-deep']]).map(value=>value.toLowerCase()).includes(facts.blue.toLowerCase()),'Actions use the semantic token for the dialog purpose');
   assert.equal(facts.overflow,false);assert(facts.buttons.every(b=>b.label&&b.size===size));
   assert(facts.fields.every(field=>field.size===size&&field.line===line),'Dialog labels and instructions must track the body scale: '+JSON.stringify(facts.fields));
   assert(facts.buttons.filter(b=>b.kit&&!b.chip).every(b=>b.radius===adaptation.workControl.radius+'px'));

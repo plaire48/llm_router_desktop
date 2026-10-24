@@ -135,3 +135,21 @@
 .desktop-shell .nubi-workbench .nubi-conversation-wrap .answer-model>.nubi-answer-mark{position:absolute;inset-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)))}
 .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-review-evidence>ol{padding-inline-start:0;list-style-position:outside}
 .desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-review-detail>ol{padding-inline-start:0;list-style:none}
+
+/* Capture receipts use the message's reading scale. Include the leading
+   symbol in the hit target; a user bubble owns its own inset, not the page rail. */
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-capture-record.nubi-process-fold>summary{
+ box-sizing:border-box;
+ margin-inline-start:calc(-1 * (var(--nubi-transcript-icon-size) + var(--nubi-activity-gap)));
+ padding-inline-start:calc(var(--nubi-transcript-icon-size) + var(--nubi-activity-gap));
+ padding-inline-end:var(--cx-space-1);
+ width:calc(100% + var(--nubi-transcript-icon-size) + var(--nubi-activity-gap));
+ min-height:var(--nubi-field-height);
+ font-size:var(--nubi-reading-size);line-height:var(--nubi-reading-leading);
+}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-capture-record.nubi-process-fold>summary>svg:first-child{inset-inline-start:0}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-capture-record>summary>strong{white-space:normal;overflow-wrap:anywhere}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-user-bubble .nubi-capture-record{margin-top:var(--cx-space-2)}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-user-bubble .nubi-capture-record>summary{margin-inline-start:0;padding-inline-start:0;width:100%}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-user-bubble .nubi-capture-record>summary>svg:first-child{position:static}
+.desktop-shell .nubi-workbench .nubi-conversation-wrap .nubi-user-bubble .nubi-capture-record>.nubi-capture-chips{padding-inline:0}
