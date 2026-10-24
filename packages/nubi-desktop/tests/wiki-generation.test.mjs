@@ -22,6 +22,19 @@ test('initialization records the configured wiki model before scanning instead o
 });
 test('changing wiki settings during a wiki run is refused without changing next-run settings',async t=>{const {service}=await setup(t);service.wikiUpdateRun={id:'running'};try{await assert.rejects(service.invoke('wikiGeneration',{action:'set',value:{concurrency:4}}),/wiki_busy/);assert.equal(service.store.get('setting:wiki-generation'),null);}finally{service.wikiUpdateRun=null;}});
 
+test('a saved automatic Wiki effort reaches background generation after the conversation effort changes',async t=>{
+ const {service,root,requests,p}=await setup(t);
+ await service.invoke('wikiGeneration',{action:'set',value:{model:'auto',effort:'medium'}});p.reasoning('xhigh');
+ const load=async()=>({NubiOpenWikiModel:(await import('../generated/openwiki.mjs')).NubiOpenWikiModel,async runNativeRepositoryGeneration({model}){await model.invoke('Background Wiki update');return {skipped:false};}});
+ await defaultWikiUpdater(service,{load})({root,signal:new AbortController().signal,updateId:'wiki-effort',onEvent(){}});
+ assert.equal(requests[0].reasoning_effort,'medium');assert.equal(p.status().reasoningEffort,'xhigh');assert.equal(service.store.get('setting:wiki-generation').effort,'medium');
+});
+
+test('automatic refresh preparation and initialization admission keep their reasoning settings stable',async t=>{
+ const {service}=await setup(t);
+ for(const key of ['wikiRefreshOwner','wikiInitAdmission']){service[key]={};try{await assert.rejects(service.invoke('wikiGeneration',{action:'set',value:{effort:'medium'}}),/wiki_busy/);assert.equal(service.store.get('setting:wiki-generation'),null);}finally{service[key]=null;}}
+});
+
 
 test('ChatGPT wiki settings retain wished tokens and expose server default as the applied cap',async t=>{
  const {service}=await fixture(t),p=createProviders({startLogin:async()=>({result:Promise.resolve({token:'synthetic',models:[{id:'synthetic-api',maxOutputTokens:24576}]}),cancel(){}}),chatGPTLogin:async()=>({result:Promise.resolve({token:'synthetic',expiresAt:Date.now()+3600000}),cancel(){}}),chatGPTModels:()=>({payload:{modelList:[{name:'synthetic-chat',supported_reasoning_levels:['low']}]}})});t.after(()=>p.dispose());await p.login('chatgpt');await new Promise(r=>setImmediate(r));service.providers=p;

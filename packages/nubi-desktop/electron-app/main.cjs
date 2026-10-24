@@ -68,10 +68,11 @@ const storage=process.env.NUBI_STORAGE_ROOT||path.join(app.getPath('userData'),'
 const {ProjectCatalog}=require('./project-catalog.cjs');
 const projectCatalog=new ProjectCatalog(storage);
 const {WikiLibrary}=require('./wiki-library.cjs');
+const {isConversationRoot}=require('../runtime/wiki-scope.mjs');
 let resettingData=false;
 const wikiLibrary=new WikiLibrary({backupRoot:path.join(storage,'wiki-revisions'),search:(scope,query)=>invoke('wikiQuery',{query,view:'pages',projectId:scope.id}),roots:async()=>{
  const projects=await projectCatalog.list(),mail=await invoke('mail',{action:'status'});
- return [...projects.map(p=>({id:p.id,name:p.name,kind:'project',root:path.join(p.root,'openwiki')})),{id:'personal-mail',name:'메일',kind:'mail',root:mail.wikiRoot}];
+ return [...projects.filter(p=>p.kind!=='conversation'&&!isConversationRoot(p.root,storage)).map(p=>({id:p.id,name:p.name,kind:'project',root:path.join(p.root,'openwiki')})),{id:'personal-mail',name:'메일',kind:'mail',root:mail.wikiRoot}];
 },canWrite:async scope=>{if(resettingData)return false;if(scope.kind==='mail'){const state=await invoke('mail',{action:'status'});return !state.summarizing&&!state.resetPending;}return !(await invoke('projectActivity',{projectId:scope.id})).active;}});
 let openingProject=false;
 function recordFault(component,details={}){

@@ -55,6 +55,7 @@ import {wikiUpdate,resumeWikiUpdates} from './wiki-update.mjs';
 import {startSideTask,dismissSideTask} from './side-tasks.mjs';
 import {storeCaptures,readCapture} from './captures.mjs';
 import {validateMemoryReferences} from './memory.mjs';
+import {hasProjectWiki,isConversationRoot} from './wiki-scope.mjs';
 import {importDocumentSelection,readChatDocument,validateDocuments} from './chat-documents.mjs';
 import {inspectWorkspaceChanges} from './workspace-changes.mjs';
 import {checkpointBefore} from './checkpoints.mjs';
@@ -77,13 +78,14 @@ export class ProjectService {
     // A folder without Git, or outside a repository, opens as it is (user decision 2026-10-04); the setup flow of 2026-09-30 is gone (2026-10-07).
     const top = await resolveProjectFolder(resolved);
     if(exactRoot&&top!==resolved)fail('clone_root_mismatch');
-    if (this.root === top && this.store?.db.isOpen) {this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}await this.resumeWikiUpdates();return this.overview();}
+    const conversation=kind==='conversation'||isConversationRoot(top,this.storageRoot);
+    if (this.root === top && this.store?.db.isOpen) {this.workspaceKind=conversation?'conversation':'project';this.runAutoArchive();if(['local','remote'].includes(sourceKind))this.store.set('setting:wiki-source',{mode:sourceKind});if(initializeWiki){this.wikiInitEnabled=true;await this.initializeWiki();}await this.resumeWikiUpdates();return this.overview();}
     if (this.afterEditChecks?.size || this.sideTaskStarts?.size || this.skillImportBusy || this.vocBusy || this.computerBusy || this.newFileBusy || this.setupBusy || this.repairStarts?.size || this.processes?.active.size || this.processes?.pending.size || this.unsettledOperations?.size || this.reconciling || this.agent?.running || this.recordingKnowledge || this.databaseBusy || this.collaborationBusy) fail('project_busy');
     const projectId = hash(top).slice(7, 31), store = new Store(path.join(this.storageRoot, projectId),{onChange:key=>{
       if(this.projectId===projectId&&/^(?:task|proposal|setup-action|command-repair|process|computer-action):/.test(key))this.activityChanged();
     }});
     disposeEditorLink(this);disposeEditors(this);disposeNativeOffice(this);await disposeDevelopmentBrowser(this);await this.collaborationServer?.close();this.collaborationServer=null;this.knowledge?.server.close(); this.knowledge=null; this.store?.close(); this.root = top; this.projectId = projectId; this.agentRuns?.clear();this.lastAgent=null;
-    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=kind==='conversation'?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
+    this.wikiInitController?.abort();this.wikiUpdateRun?.controller.abort();this.wikiRefreshJob?.controller.abort();this.store = store;this.viewingTaskId=null;this.workspaceKind=conversation?'conversation':'project';this.wikiInitEnabled=initializeWiki!==false;if(['local','remote'].includes(sourceKind))store.set('setting:wiki-source',{mode:sourceKind});
     interruptDocumentResearch(this.store);
     restoreAnalysisHistory(this.store);
     this.localPerception?.dispose();delete this.localPerception;this.computerPointer?.dispose();this.computerPointer=null;this.computerFallback=null;this.computerAdapter?.dispose?.();this.computerAdapter=null;this.computerLauncher?.dispose?.();this.computerLauncher=null;this.computerApps=new Map();this.databaseConnections=new Map();this.computerBinding=null;this.computerObservation=null;
@@ -134,7 +136,7 @@ export class ProjectService {
   async overview({taskId}={}) {
     this.ready();
     const owner=this.store,projectId=this.projectId;
-    const [files, branch, status, profiles, wikiPages] = await Promise.all([listFiles(this.root), git(this.root, ['branch', '--show-current']).catch(()=> 'Git 없음'), git(this.root, ['status', '--short']).catch(()=> ''), shellProfiles(),listWikiPages(this.root)]);
+    const [files, branch, status, profiles, wikiPages] = await Promise.all([listFiles(this.root), git(this.root, ['branch', '--show-current']).catch(()=> 'Git 없음'), git(this.root, ['status', '--short']).catch(()=> ''), shellProfiles(),hasProjectWiki(this)?listWikiPages(this.root):[]]);
     if(this.store!==owner||this.projectId!==projectId)fail('project_changed');
     return {projectId: this.projectId, root: this.root, kind:this.workspaceKind||'project', name:this.workspaceKind==='conversation'?'개인 대화':path.basename(this.root), branch: branch.trim() || 'detached', dirty: !!status,
       files: files.paths, truncated: files.truncated, wikiChatBlocked:wikiChatBlocked(this), wikiChatJob:wikiChatJob(this), wikiInitialization:this.workspaceKind==='conversation'?null:this.store.get('wiki-init'), wikiFiles: wikiPages,

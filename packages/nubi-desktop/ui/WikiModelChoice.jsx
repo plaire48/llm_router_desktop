@@ -20,11 +20,16 @@ export function chooseWikiModel(view,value,provider,model){
  const next=view.models.find(m=>m.provider===provider&&m.model===model);
  return {provider,model,...(value.effort!=='auto'&&!next?.efforts.includes(value.effort)?{effort:'auto'}:{})};
 }
-export function WikiModelChips({id,view,value,open=false,onOpen,onChange,disabled=false}){
+export function WikiReasoningChoice({id,'aria-describedby':descriptionId,view,value,onChange,disabled=false}){
+ const selected=wikiModelSelected(view,value);
+ if(!selected?.efforts?.length)return <p id={id} className="nubi-muted">{selected?'이 모델은 추론 강도 설정을 지원하지 않아요.':'모델을 연결하면 추론 강도를 선택할 수 있어요.'}</p>;
+ return <ReasoningPicker id={id} descriptionId={descriptionId} provider={{provider:selected.provider,model:selected.model,connected:true,reasoningOptions:selected.efforts}} value={value.effort} leadingOptions={AUTOMATIC} resetTo="auto" onApply={effort=>onChange({effort})} disabled={disabled}/>;
+}
+export function WikiModelChips({id,view,value,open=false,onOpen,onChange,disabled=false,includeReasoning=true}){
  const selected=wikiModelSelected(view,value);
  return <div className="nubi-wiki-model-chips">
   <ModelPicker id={id} data={pickerData(view,value)} open={open} onOpen={onOpen} disabled={disabled||!view.models.length} providerLabels={DESKTOP_PROVIDER_LABELS}/>
-  {selected?.efforts?.length>0&&<ReasoningPicker provider={{provider:selected.provider,model:selected.model,connected:true,reasoningOptions:selected.efforts}} value={value.effort} leadingOptions={AUTOMATIC} resetTo="auto" onApply={effort=>onChange({effort})} disabled={disabled}/>}
+  {includeReasoning&&selected?.efforts?.length>0&&<WikiReasoningChoice view={view} value={value} onChange={onChange} disabled={disabled}/>}
  </div>;
 }
 export function WikiModelSelection({view,value,onChoose,onBack,disabled=false}){

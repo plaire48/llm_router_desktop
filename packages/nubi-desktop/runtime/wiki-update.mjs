@@ -1,5 +1,6 @@
 import {importantFiles,coverageMap,coveragePlanningContext} from './wiki-coverage.mjs';
 import {wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
+import {hasProjectWiki,requireProjectWiki} from './wiki-scope.mjs';
 import {folderPlanningContext} from './wiki-folder-plan.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
 import {requireWikiGit} from './git-runtime.mjs';
@@ -350,7 +351,7 @@ export async function clearWikiUpdates(service,owner,root){
 // Resume the latest approved private-copy run once. Applying its result still
 // needs the existing current-result approval.
 export async function resumeWikiUpdates(service){
- if(!service.store?.db.isOpen||service.disposed||service.workspaceKind==='conversation'||service.wikiHostPaused||service.wikiUpdateRun||service.wikiInitController||service.agent?.running)return false;
+ if(!service.store?.db.isOpen||service.disposed||!hasProjectWiki(service)||service.wikiHostPaused||service.wikiUpdateRun||service.wikiInitController||service.agent?.running)return false;
  const owner=service.store,root=service.root,status=wikiGenerationBinding(service);
  if(!status?.connected)return false;
  const latest=records(service)[0];
@@ -362,7 +363,8 @@ export async function resumeWikiUpdates(service){
 }
 
 export async function wikiUpdate({method='status',id,fingerprint,confirmed=false,coverageFiles}={}){
-  this.ready();if(this.wikiResetting||this.store.get('wiki-reset-pending'))fail('wiki_busy');const root=this.root,owner=this.store,projectId=this.projectId;
+  this.ready();if(!hasProjectWiki(this)){if(method!=='status')requireProjectWiki(this);return {available:false,status:{state:'unavailable',reason:'personal_conversation'},updates:[]};}
+  if(this.wikiResetting||this.store.get('wiki-reset-pending'))fail('wiki_busy');const root=this.root,owner=this.store,projectId=this.projectId;
   // An orphaned run retains its private copy and durable native page checkpoints.
   for(const item of records(this).filter(item=>item.state==='running'&&!(item.id===this.wikiUpdateRun?.id&&this.wikiUpdateRun.owner===owner))){save(this,{...item,state:'failed',pageProgress:await retainedPageProgress(item.copy),error:'wiki_update_interrupted',finishedAt:new Date().toISOString()});}
   if(method==='status')return {status:await wikiUpdateStatus(root),updates:records(this).slice(0,KEPT).map(visible)};

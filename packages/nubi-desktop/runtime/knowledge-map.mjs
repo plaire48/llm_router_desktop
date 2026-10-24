@@ -1,5 +1,6 @@
 import {Worker} from 'node:worker_threads';
 import {mkdir, realpath, writeFile, lstat} from 'node:fs/promises';
+import {requireProjectWiki} from './wiki-scope.mjs';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {parseDocument} from 'yaml';
@@ -252,6 +253,7 @@ export async function knowledgeMap({taskId}={}) {
 export async function knowledgeQuery(args={}) {return queryKnowledgeMap(await knowledgeMap.call(this,args),args);}
 
 export async function exportKnowledgeMap({taskId,expectedFingerprint}) {
+  requireProjectWiki(this);
   if(this.recordingKnowledge)fail('knowledge_busy');this.recordingKnowledge=true;
   try {
     const root=await this.target(taskId),map=await knowledgeMap.call(this,{taskId});

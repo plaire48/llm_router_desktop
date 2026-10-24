@@ -8,10 +8,10 @@ import {TerminalMark} from './marks.jsx';
 
 // Shared Nubi composer: model, approval and context stay inside the input surface.
 // While running, a draft goes to the inbox and Stop remains available.
-export function WorkspaceComposer({className = '', hidden=false, inputRef, id = 'message-input', value, onSubmit, sendDisabled, sending=false, modelControl, actionControl, contextControl, evidenceControl, onStop, onMinimumWidth, commandApi, taskId, onCommand, ...inputProps}) {
+export function WorkspaceComposer({className = '', hidden=false, inputRef, id = 'message-input', value, onSubmit, sendDisabled, sending=false, modelControl, actionControl, contextControl, evidenceControl, onStop, onMinimumWidth, commandApi, taskId, onCommand,wikiEnabled=true, ...inputProps}) {
   const [skills,setSkills]=useState([]),draft=splitComposerDraft(value,skills);
   const writeInput=event=>inputProps.onChange({target:{value:updateComposerInput(value,event.target.value,skills)}});
-  const commands=useComposerCommands({api:commandApi,taskId,value:draft.input,inputRef,onChange:writeInput,onCommand,onCatalog:setSkills,onSelect:(item,input)=>inputProps.onChange({target:{value:`/${item.command} ${input}`}})});
+  const commands=useComposerCommands({api:commandApi,taskId,value:draft.input,inputRef,onChange:writeInput,onCommand,wikiEnabled,onCatalog:setSkills,onSelect:(item,input)=>inputProps.onChange({target:{value:`/${item.command} ${input}`}})});
   const change=event=>{commands.onInputChange();writeInput(event);};
   const cannotSend=sendDisabled||!draft.input.trim();
   const form = useRef(null), previousLayout=useRef(null), entrance=useRef(null),entranceObserver=useRef(null),pendingEntrance=useRef(null);

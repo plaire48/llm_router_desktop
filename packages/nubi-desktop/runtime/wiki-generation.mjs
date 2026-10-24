@@ -1,4 +1,5 @@
 // Host-owned Wiki settings. Catalogs and credentials remain with the existing provider.
+import {hasProjectWiki,requireProjectWiki} from './wiki-scope.mjs';
 export const WIKI_GENERATION_DEFAULTS=Object.freeze({model:'auto',provider:null,effort:'auto',concurrency:3,maxToolCalls:8,pageMaxTokens:16384});
 const invalid=()=>{throw Error('wiki_generation_invalid');};
 export function normalizeWikiGeneration(value={}){
@@ -38,7 +39,8 @@ export function assertWikiGenerationCurrent(service,binding){
 }
 export function wikiGeneration(service,{action='get',value}={}){
  service.ready();let view;
- if(action==='set'){if(service.wikiInitController||service.wikiUpdateRun)throw Error('wiki_busy');view=resolveWikiGeneration(service,normalizeWikiGeneration(value));if(!view.applied)throw Error('model_unavailable');service.store.set('setting:wiki-generation',view.settings);}
+ if(!hasProjectWiki(service)){if(action!=='get')requireProjectWiki(service);return {available:false,reason:'personal_conversation',settings:null,models:[],applied:null};}
+ if(action==='set'){if(service.wikiInitController||service.wikiInitAdmission||service.wikiUpdateRun||service.wikiRefreshOwner)throw Error('wiki_busy');view=resolveWikiGeneration(service,normalizeWikiGeneration(value));if(!view.applied)throw Error('model_unavailable');service.store.set('setting:wiki-generation',view.settings);}
  else if(action==='get')view=resolveWikiGeneration(service);else invalid();
  const {settings,models,applied}=view;return {settings,models,applied};
 }

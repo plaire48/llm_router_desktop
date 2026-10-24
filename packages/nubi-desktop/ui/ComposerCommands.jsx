@@ -5,11 +5,11 @@ import {TerminalMark} from './marks.jsx';
 import {commandOptions} from '../runtime/agent-commands.mjs';
 import {composerCommandQuery,removeComposerQuery} from './composer-command-state.mjs';
 
-export function useComposerCommands({api,taskId,value,inputRef,onChange,onCommand,onSelect,onCatalog}) {
+export function useComposerCommands({api,taskId,value,inputRef,onChange,onCommand,onSelect,onCatalog,wikiEnabled=true}) {
   const [catalog,setCatalog]=useState([]),[loading,setLoading]=useState(false),[failed,setFailed]=useState(false);
   const [selected,setSelected]=useState(0),[dismissed,setDismissed]=useState(null),[position,setPosition]=useState(null),[caret,setCaret]=useState(value.length),[blocked,setBlocked]=useState(false);
   const menu=useRef(null),id=useId(),fieldCaret=inputRef.current?.value===value?inputRef.current.selectionStart:caret,query=composerCommandQuery(value,fieldCaret),visible=!!query&&dismissed!==value&&!blocked;
-  const options=commandOptions(catalog,query?.query||''),signature=options.map(item=>item.command).join('|');
+  const options=commandOptions(catalog,query?.query||'').filter(item=>wikiEnabled||item.command!=='wiki_update'),signature=options.map(item=>item.command).join('|');
   const needsCatalog=/^\/[^\s/]+\s/.test(value);
   useEffect(()=>{onCatalog?.(catalog);},[catalog,onCatalog]);
   useEffect(()=>{setDismissed(null);setCaret(inputRef.current?.selectionStart??value.length);},[value]);

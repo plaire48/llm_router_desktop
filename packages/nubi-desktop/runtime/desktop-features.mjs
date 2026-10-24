@@ -1,6 +1,7 @@
 import {officeCacheUsable} from './mail-document-routing.mjs';
 import {importantFiles,coverageMap,coveragePlanningContext,coverageReport} from './wiki-coverage.mjs';
 import {wikiGeneration,wikiGenerationBinding,assertWikiGenerationCurrent} from './wiki-generation.mjs';
+import {hasProjectWiki,requireProjectWiki} from './wiki-scope.mjs';
 import {folderPlan,planWikiRounds,inWikiFolders} from './wiki-folder-plan.mjs';
 import {documentWindow,DOCUMENT_MAX_TEXT,DOCUMENT_MAX_BYTES} from './document-window.mjs';
 import {notifyWikiCompleted} from './wiki-notification.mjs';
@@ -92,6 +93,7 @@ export function installDesktopFeatures(Service){
   };
   Service.prototype.wikiInitialization=function({action='status',confirmed=false,folders,jobId}={}){
     this.ready();
+    if(!hasProjectWiki(this)){if(action!=='status')requireProjectWiki(this);return null;}
     if(action==='scope'){
       const pending=this.wikiScopeSelection;if(!pending||pending.owner!==this.store||pending.jobId!==jobId)fail('wiki_scope_changed');
       const rounds=planWikiRounds(pending.plan,{folders});this.wikiScopeSelection=null;pending.resolve(rounds);return this.store.get('wiki-init');
@@ -123,7 +125,7 @@ export function installDesktopFeatures(Service){
     return this.store.get('wiki-init');
   };
   Service.prototype.initializeWiki=async function(){
-    if(!this.store||this.disposed||this.workspaceKind==='conversation'||this.wikiResetting||this.store.get('wiki-reset-pending'))return;const store=this.store,root=this.root;
+    if(!this.store||this.disposed||!hasProjectWiki(this)||this.wikiResetting||this.store.get('wiki-reset-pending'))return;const store=this.store,root=this.root;
     if(this.wikiHostPaused)return store.get('wiki-init');
     if(this.wikiInitAdmission?.store===store)return this.wikiInitAdmission.promise;
     if(this.wikiInitController&&this.wikiInitOwner===store)return store.get('wiki-init');

@@ -14,7 +14,7 @@ function readStored(provider) {
 
 // value and onApply make it a controlled chip for a saved setting (the wiki generation model), with leadingOptions such as
 // 자동 before the provider levels and resetTo for the reset button; without them it applies to the conversation as before.
-export function ReasoningPicker({api, provider, disabled, value, onApply, leadingOptions = [], resetTo, onProviderChange}) {
+export function ReasoningPicker({api, provider, disabled, value, onApply, leadingOptions = [], resetTo, onProviderChange,id,descriptionId}) {
   const claude=provider?.provider==='claude';
   const optional = provider?.provider === 'chatgpt' && provider?.connected ? ['none','minimal'].filter(id=>provider.reasoningOptions?.includes(id)).map(id=>({id,label:reasoningLabel('chatgpt',id)})) : [];
   const options = [...leadingOptions, ...(claude
@@ -86,7 +86,7 @@ export function ReasoningPicker({api, provider, disabled, value, onApply, leadin
   }
   function close(){if(changing)return;cancelGesture();setOpen(false);}
   return <div className="nubi-reasoning-anchor" data-provider={provider?.provider} ref={anchor}>
-    <CxButton ref={trigger} className="nubi-reasoning-trigger" aria-label="추론 정도" title={claude&&selected.id!=='auto'?`Claude 추론 요청: --effort ${selected.id}`:`추론 정도: ${selected.label}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled||changing} onClick={() => setOpen(value => !value)}><Icon name="automation" size={18}/><span className="nubi-reasoning-label"><span>{selected.label}</span></span></CxButton>
+    <CxButton id={id} aria-describedby={descriptionId} ref={trigger} className="nubi-reasoning-trigger" aria-label="추론 정도" title={claude&&selected.id!=='auto'?`Claude 추론 요청: --effort ${selected.id}`:`추론 정도: ${selected.label}`} aria-haspopup="dialog" aria-expanded={open} disabled={disabled||changing} onClick={() => setOpen(value => !value)}><Icon name="automation" size={18}/><span className="nubi-reasoning-label"><span>{selected.label}</span></span></CxButton>
     {open && <AnchoredDialog dialogRef={dialog} title="추론 정도 조절" className="nubi-reasoning-menu" provider={provider?.provider} style={menuStyle} initialFocus='input[type="range"]' busy={changing} onClose={close}>
       <div className="nubi-reasoning-heading"><strong>{selected.label}</strong><CxButton className="nubi-reasoning-reset" data-icon-only aria-label="추론 정도를 기본값으로 되돌리기" title="기본값으로 되돌리기" disabled={disabled||changing} onClick={() => choose(options.find(item => item.id === (resetTo ?? DEFAULTS[provider.provider])) || options[0])}><Icon name="resetFilters" size={18}/></CxButton><CxButton className="nubi-reasoning-close nubi-modal-close" data-icon-only aria-label="추론 창 닫기" title="닫기" disabled={changing} onClick={close}><Icon name="xClose" size={18}/></CxButton></div>
       <div className="nubi-reasoning-slider-wrap" style={{'--nubi-reasoning-progress':`${selectedIndex / Math.max(1, options.length - 1) * 100}%`}}>

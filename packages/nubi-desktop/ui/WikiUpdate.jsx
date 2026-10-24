@@ -36,7 +36,7 @@ export function WikiUpdate({api,openPath,initialization,onApplied,currentModel,c
   if(!data)return <section className={`nubi-recovery-card nubi-wiki-update${error?'':' nubi-progress-atmosphere'}`} aria-label="위키 상태 확인" aria-busy={!error}>
     {error?<><CxNotice tone="danger">{error}</CxNotice>{resetControl}<CxButton onClick={()=>{loadingStarted.current=Date.now();setError('');void load();}}><Icon name="refresh" size={16}/>다시 확인</CxButton></>:<>
       <div className="nubi-action-head"><span className="nubi-action-tile" aria-hidden="true"><Icon name="bookmark" size={20}/></span><div><h3>위키 상태를 확인하고 있어요</h3><p role="status">{durationLabel(Math.max(0,now-loadingStarted.current),{keepSeconds:true})}</p></div></div>
-      <TaskProgressBar label="위키 상태 불러오는 중" estimate={{identity:"wiki-status"}}/>
+      <TaskProgressBar queue={false} label="위키 상태 불러오는 중" estimate={{identity:"wiki-status"}}/>
     </>}
   </section>;
   const view=wikiUpdateView({status:data.status,update,initialization});

@@ -3,6 +3,7 @@ import path from 'node:path';
 import {stringify} from 'yaml';
 import {qualityLabel} from './quality-status.mjs';
 import {git, hash, readSource, scopedFile, fail, gitOpenFailure} from './files.mjs';
+import {requireProjectWiki} from './wiki-scope.mjs';
 
 const statusText = {pending_creation:'생성 승인 대기',attention:'저장 확인 필요',conflicted:'기존 파일 확인 필요',creating:'저장 확인 중',timed_out:'시간 초과',paused:'복구 대기',proposed:'검토 대기',applied:'반영 확인',superseded:'후속 제안으로 대체',running:'실행 중',stopping:'중지 중',completed:'실행 종료',failed:'실패',cancelled:'중지',interrupted:'결과 미확정',unknown:'미확인',matching:'기준 내용과 일치',changed:'기준 이후 변경',unavailable:'현재 파일 확인 불가'};
 const plain = value => String(value).replace(/[\r\n]/g, ' ').replace(/[<>`|]/g, character => `&#${character.charCodeAt(0)};`);
@@ -79,6 +80,7 @@ function renderRecord(packet, {revision,createdAt,digest,previous}) {
 }
 
 export async function recordKnowledge({taskId}) {
+  requireProjectWiki(this);
   if (this.recordingKnowledge) fail('knowledge_busy');
   this.recordingKnowledge = true;
   try {
